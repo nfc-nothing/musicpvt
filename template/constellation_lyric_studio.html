@@ -1,0 +1,3430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Constellation Lyric Studio — Word-by-Word Cosmic Visualizer</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Animation & Smooth Scroll Libraries: GSAP 3, Anime.js v3.2.2, Lenis -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+  <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+
+  <!-- Premium Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       1. AURA EDGE-GLOW THEME TOKENS (5 CURATED COSMIC PALETTES)
+       ============================================================ */
+    :root {
+      --space-bg: #030307;
+      --space-vignette: #090414;
+      --aura-primary: #8b5cf6;
+      --aura-secondary: #a855f7;
+      --aura-rim: #f3e8ff;
+      --aura-rgb: 139, 92, 246;
+      --aura-rim-rgb: 233, 213, 255;
+      --star-core: #ffffff;
+      --star-dim: rgba(226, 232, 255, 0.72);
+      --thread-color: rgba(235, 228, 255, 0.36);
+      --thread-active: rgba(248, 244, 255, 0.78);
+      --word-active: #ffffff;
+      --word-dim: rgba(214, 218, 235, 0.48);
+      --accent: #a855f7;
+      --accent-soft: rgba(168, 85, 247, 0.24);
+
+      /* Dynamic bass-modulated halo multipliers */
+      --bass-boost: 0;
+
+      /* Typography pairing tokens (default: Celestial Sans) */
+      --font-hero: "Plus Jakarta Sans", -apple-system, sans-serif;
+      --font-hero-weight: 800;
+      --font-hero-style: normal;
+      --font-hero-tracking: -0.04em;
+      --font-body: "Plus Jakarta Sans", -apple-system, sans-serif;
+      --font-body-weight: 500;
+      --font-body-tracking: -0.015em;
+    }
+
+    [data-aura="cyan"] {
+      --space-vignette: #03121c;
+      --aura-primary: #06b6d4;
+      --aura-secondary: #38bdf8;
+      --aura-rim: #e0f7ff;
+      --aura-rgb: 6, 182, 212;
+      --aura-rim-rgb: 186, 230, 253;
+      --thread-color: rgba(214, 246, 255, 0.34);
+      --thread-active: rgba(238, 252, 255, 0.8);
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.24);
+    }
+
+    [data-aura="rose"] {
+      --space-vignette: #170411;
+      --aura-primary: #ec4899;
+      --aura-secondary: #c026d3;
+      --aura-rim: #fce7f3;
+      --aura-rgb: 236, 72, 153;
+      --aura-rim-rgb: 251, 207, 232;
+      --thread-color: rgba(255, 228, 242, 0.34);
+      --thread-active: rgba(255, 244, 250, 0.8);
+      --accent: #f472b6;
+      --accent-soft: rgba(244, 114, 182, 0.24);
+    }
+
+    [data-aura="gold"] {
+      --space-vignette: #140e04;
+      --aura-primary: #f59e0b;
+      --aura-secondary: #fbbf24;
+      --aura-rim: #fef3c7;
+      --aura-rgb: 245, 158, 11;
+      --aura-rim-rgb: 254, 243, 199;
+      --thread-color: rgba(255, 245, 218, 0.34);
+      --thread-active: rgba(255, 250, 235, 0.82);
+      --accent: #fbbf24;
+      --accent-soft: rgba(251, 191, 36, 0.24);
+    }
+
+    [data-aura="lunar"] {
+      --space-vignette: #0c0d12;
+      --aura-primary: #e2e8f0;
+      --aura-secondary: #94a3b8;
+      --aura-rim: #ffffff;
+      --aura-rgb: 226, 232, 240;
+      --aura-rim-rgb: 255, 255, 255;
+      --thread-color: rgba(241, 245, 249, 0.34);
+      --thread-active: rgba(255, 255, 255, 0.85);
+      --accent: #e2e8f0;
+      --accent-soft: rgba(226, 232, 240, 0.22);
+    }
+
+    /* 4 Curated Font Pairings */
+    [data-font="celestial"] {
+      --font-hero: "Plus Jakarta Sans", sans-serif;
+      --font-hero-weight: 800;
+      --font-hero-style: normal;
+      --font-hero-tracking: -0.04em;
+      --font-body: "Plus Jakarta Sans", sans-serif;
+      --font-body-weight: 500;
+      --font-body-tracking: -0.015em;
+    }
+
+    [data-font="editorial"] {
+      --font-hero: "Instrument Serif", Georgia, serif;
+      --font-hero-weight: 400;
+      --font-hero-style: italic;
+      --font-hero-tracking: -0.01em;
+      --font-body: "Inter", sans-serif;
+      --font-body-weight: 300;
+      --font-body-tracking: 0.015em;
+    }
+
+    [data-font="astro"] {
+      --font-hero: "Space Grotesk", sans-serif;
+      --font-hero-weight: 700;
+      --font-hero-style: normal;
+      --font-hero-tracking: -0.04em;
+      --font-body: "Outfit", sans-serif;
+      --font-body-weight: 400;
+      --font-body-tracking: 0.005em;
+    }
+
+    [data-font="kinetic"] {
+      --font-hero: "Syne", sans-serif;
+      --font-hero-weight: 800;
+      --font-hero-style: normal;
+      --font-hero-tracking: -0.03em;
+      --font-body: "Plus Jakarta Sans", sans-serif;
+      --font-body-weight: 500;
+      --font-body-tracking: -0.01em;
+    }
+
+    /* ============================================================
+       2. GLOBAL BASE & RESPONSIVE COSMIC STAGE
+       ============================================================ */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #020205;
+      color: #ffffff;
+      font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+
+    .studio-desk {
+      position: relative;
+      width: 100vw;
+      max-width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 50%, #090812 0%, #020204 100%);
+      overflow: hidden;
+    }
+
+    .stage-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 85% 75% at 50% 50%, var(--space-vignette) 0%, var(--space-bg) 72%, #020205 100%);
+      transition:
+        width 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.65s ease,
+        background 0.8s ease;
+    }
+
+    /* 9:16 Vertical Reel Preview Mode */
+    body.reel-mode .stage-frame {
+      height: min(86dvh, 800px);
+      width: min(92vw, calc(min(86dvh, 800px) * 0.5625));
+      border-radius: 34px;
+      box-shadow:
+        0 34px 100px rgba(0, 0, 0, 0.92),
+        0 0 90px -22px rgba(var(--aura-rgb), 0.52);
+    }
+
+    /* ============================================================
+       3. MICRO-STARFIELD CANVAS & INLINE SVG FILM GRAIN
+       ============================================================ */
+    #starfieldCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      display: block;
+    }
+
+    .film-grain {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0.04;
+      mix-blend-mode: screen;
+    }
+
+    /* ============================================================
+       4. SIGNATURE LUMINOUS NEON EDGE-GLOW PERIMETER HALO
+       ============================================================ */
+    .aura-edge-halo {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      border-radius: inherit;
+      pointer-events: none;
+      transition: box-shadow 0.14s linear, border-color 0.5s ease;
+      border: 1.5px solid rgba(var(--aura-rim-rgb), 0.72);
+      box-shadow:
+        inset 0 0 12px 1px rgba(var(--aura-rim-rgb), 0.55),
+        inset 0 0 32px 4px rgba(var(--aura-rgb), 0.68),
+        inset 0 0 78px 10px rgba(var(--aura-rgb), 0.36),
+        inset 0 0 140px 18px rgba(var(--aura-rgb), 0.16);
+      animation: auraBreath 6.5s ease-in-out infinite;
+    }
+
+    /* Extra subtle corner/bottom organic luminous bleed matching reference */
+    .aura-edge-halo::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background:
+        linear-gradient(to top, rgba(var(--aura-rgb), 0.18) 0%, transparent 11%),
+        linear-gradient(to left, rgba(var(--aura-rgb), 0.14) 0%, transparent 9%),
+        linear-gradient(to right, rgba(var(--aura-rgb), 0.09) 0%, transparent 8%),
+        linear-gradient(to bottom, rgba(var(--aura-rgb), 0.1) 0%, transparent 8%);
+      mix-blend-mode: screen;
+      opacity: calc(0.75 + var(--bass-boost) * 0.45);
+    }
+
+    @keyframes auraBreath {
+      0%, 100% {
+        opacity: 0.88;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* ============================================================
+       5. CONSTELLATION SVG + CRISP WORD TYPOGRAPHY LAYER
+       ============================================================ */
+    #constellationSvg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 6;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .constellation-thread {
+      fill: none;
+      stroke: var(--thread-color);
+      stroke-width: 1.15;
+      stroke-linecap: round;
+      transition: stroke 0.55s ease, opacity 0.55s ease;
+    }
+
+    .constellation-thread.is-fresh {
+      stroke: var(--thread-active);
+      filter: drop-shadow(0 0 6px rgba(var(--aura-rgb), 0.65));
+    }
+
+    .star-shape {
+      fill: var(--star-core);
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7))
+        drop-shadow(0 0 16px rgba(var(--aura-rgb), 0.55));
+      transition: fill 0.55s ease, opacity 0.55s ease;
+    }
+
+    .star-node.is-dimmed .star-shape {
+      fill: var(--star-dim);
+      filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.35));
+    }
+
+    .star-orbit-ring {
+      fill: none;
+      stroke: rgba(var(--aura-rim-rgb), 0.65);
+      stroke-width: 1.1;
+      transform-box: fill-box;
+      transform-origin: center;
+      filter: drop-shadow(0 0 6px rgba(var(--aura-rgb), 0.7));
+    }
+
+    /* Words HTML Layer synced 1:1 with SVG Star Coordinates */
+    #wordsLayer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .constellation-word {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: center center;
+      white-space: nowrap;
+      will-change: transform, opacity, filter;
+      pointer-events: none;
+      text-align: center;
+      line-height: 1.04;
+      color: var(--word-active);
+      transition: color 0.65s ease, text-shadow 0.65s ease;
+    }
+
+    .constellation-word.tier-0 {
+      font-family: var(--font-body);
+      font-weight: var(--font-body-weight);
+      letter-spacing: var(--font-body-tracking);
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.35);
+    }
+
+    .constellation-word.tier-1 {
+      font-family: var(--font-body);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      text-shadow:
+        0 0 18px rgba(255, 255, 255, 0.45),
+        0 0 28px rgba(var(--aura-rgb), 0.35);
+    }
+
+    .constellation-word.tier-2 {
+      font-family: var(--font-hero);
+      font-weight: var(--font-hero-weight);
+      font-style: var(--font-hero-style);
+      letter-spacing: var(--font-hero-tracking);
+      text-shadow:
+        0 0 24px rgba(255, 255, 255, 0.62),
+        0 0 46px rgba(var(--aura-rgb), 0.55);
+    }
+
+    .constellation-word.is-dimmed {
+      color: var(--word-dim);
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.14);
+    }
+
+    .constellation-word.tier-2.is-dimmed {
+      color: rgba(230, 232, 245, 0.58);
+      text-shadow: 0 0 16px rgba(var(--aura-rgb), 0.24);
+    }
+
+    /* Idle Stage Prompt before first Play */
+    .stage-idle-hint {
+      position: absolute;
+      inset: 0;
+      z-index: 12;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      text-align: center;
+      padding: 2rem;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .stage-idle-hint.is-hidden {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+
+    /* ============================================================
+       6. VISIONOS DARK FROSTED GLASS HUD & DOCK
+       ============================================================ */
+    .glass-hud {
+      background: rgba(10, 10, 18, 0.58);
+      backdrop-filter: blur(28px) saturate(170%);
+      -webkit-backdrop-filter: blur(28px) saturate(170%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 18px 46px rgba(0, 0, 0, 0.68),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    }
+
+    .top-hud {
+      position: fixed;
+      top: max(0.85rem, calc(env(safe-area-inset-top) + 0.4rem));
+      left: max(0.85rem, env(safe-area-inset-left));
+      right: max(0.85rem, env(safe-area-inset-right));
+      z-index: 32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .bottom-dock {
+      position: fixed;
+      bottom: max(0.95rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      width: min(94vw, 520px);
+      transition: opacity 0.55s ease;
+    }
+
+    .bottom-dock.is-idle-dim {
+      opacity: 0.24;
+    }
+    .bottom-dock.is-idle-dim:hover,
+    .bottom-dock.is-idle-dim:focus-within {
+      opacity: 1;
+    }
+
+    /* Micro Bass-Reactive Equalizer Bars */
+    .micro-eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .micro-eq-bar {
+      width: 2.5px;
+      height: 3.5px;
+      border-radius: 999px;
+      background: var(--aura-rim);
+      box-shadow: 0 0 8px rgba(var(--aura-rgb), 0.75);
+      will-change: height;
+    }
+
+    /* Clean Mode Discrete Restore Button */
+    .clean-exit-btn {
+      position: fixed;
+      top: max(0.9rem, env(safe-area-inset-top));
+      right: max(0.9rem, env(safe-area-inset-right));
+      z-index: 48;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    body.clean-mode .clean-exit-btn {
+      pointer-events: auto;
+    }
+    body.clean-mode .clean-exit-btn:hover,
+    body.clean-mode .clean-exit-btn:focus-visible {
+      opacity: 0.95;
+    }
+
+    /* ============================================================
+       7. STUDIO DRAWER (OBSIDIAN GLASS + LENIS SMOOTH SCROLL)
+       ============================================================ */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(2, 2, 7, 0.62);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .studio-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(100vw, 460px);
+      height: 100dvh;
+      z-index: 60;
+      background: rgba(8, 8, 15, 0.84);
+      backdrop-filter: blur(36px) saturate(180%);
+      -webkit-backdrop-filter: blur(36px) saturate(180%);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        -30px 0 90px rgba(0, 0, 0, 0.8),
+        inset 1px 0 0 rgba(var(--aura-rim-rgb), 0.08);
+      transform: translateX(105%);
+      display: flex;
+      flex-direction: column;
+      user-select: text;
+    }
+
+    .lenis-scroll {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+    }
+    .lenis-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .lenis-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .lenis-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+    }
+
+    /* Sleek Sliders */
+    input[type="range"].cosmic-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].cosmic-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--accent);
+      box-shadow: 0 0 12px rgba(var(--aura-rgb), 0.75);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].cosmic-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    input[type="range"].cosmic-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--accent);
+      box-shadow: 0 0 12px rgba(var(--aura-rgb), 0.75);
+    }
+
+    /* Anime.js Toast Pill */
+    .toast-pill {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-28px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+      .studio-drawer {
+        width: 100vw;
+        border-left: none;
+      }
+    }
+  </style>
+</head>
+<body data-aura="violet" data-font="celestial">
+
+  <!-- Hidden HTML5 Audio Element -->
+  <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+
+  <!-- Anime.js Toast Notification -->
+  <div id="toastPill" class="toast-pill glass-hud px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs sm:text-sm font-medium text-white max-w-[92vw]">
+    <span id="toastDot" class="w-2 h-2 rounded-full bg-violet-400 shrink-0"></span>
+    <span id="toastText" class="truncate">Ready</span>
+  </div>
+
+  <!-- ============================================================
+       TOP FLOATING VISIONOS HUD
+       ============================================================ -->
+  <header id="topHud" class="top-hud">
+    <!-- Top-Left Track Info Pill + Micro Bass-Reactive Equalizer -->
+    <button
+      id="trackPillBtn"
+      type="button"
+      title="Open Studio Settings (S)"
+      class="pointer-events-auto glass-hud pl-2.5 pr-3.5 py-1.5 rounded-full flex items-center gap-2.5 max-w-[58vw] sm:max-w-[300px] hover:bg-white/[0.08] transition text-left"
+    >
+      <div class="relative w-7 h-7 rounded-full overflow-hidden shrink-0 border border-white/20 bg-gradient-to-br from-violet-500/70 to-indigo-950 flex items-center justify-center">
+        <img id="hudCoverImg" src="" alt="" class="hidden w-full h-full object-cover" />
+        <svg id="hudCoverStar" class="w-3.5 h-3.5 text-white/95" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 1C12.4 7.8 16.2 11.6 23 12C16.2 12.4 12.4 16.2 12 23C11.6 16.2 7.8 12.4 1 12C7.8 11.6 11.6 7.8 12 1Z" />
+        </svg>
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <p id="hudTitle" class="text-[11px] sm:text-xs font-bold text-white truncate leading-tight">Too Close To The Stars</p>
+        <p id="hudArtist" class="text-[10px] text-white/55 truncate leading-tight mt-0.5">Cosmic Demo Synth</p>
+      </div>
+
+      <div class="micro-eq pl-1 shrink-0" aria-hidden="true">
+        <span class="micro-eq-bar" data-eq="0"></span>
+        <span class="micro-eq-bar" data-eq="1"></span>
+        <span class="micro-eq-bar" data-eq="2"></span>
+        <span class="micro-eq-bar" data-eq="3"></span>
+      </div>
+    </button>
+
+    <!-- Top-Right Sleek Action Buttons -->
+    <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+      <!-- Quick Aura Cycle -->
+      <button
+        id="quickAuraBtn"
+        type="button"
+        title="Cycle Aura Edge Glow"
+        class="glass-hud w-9 h-9 sm:w-auto sm:px-3 rounded-full flex items-center justify-center gap-1.5 text-xs font-semibold text-white/85 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <span id="quickAuraDot" class="w-2.5 h-2.5 rounded-full bg-violet-400 shadow-[0_0_10px_currentColor]"></span>
+        <span class="hidden md:inline" id="quickAuraName">Violet</span>
+      </button>
+
+      <!-- 16:9 <-> 9:16 Vertical Reel Preview Toggle -->
+      <button
+        id="reelToggleBtn"
+        type="button"
+        title="Toggle 16:9 / 9:16 Vertical Reel Frame"
+        class="glass-hud h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-1.5 text-[11px] font-bold text-white/85 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="2" width="12" height="20" rx="2.5" />
+        </svg>
+        <span id="reelLabel">16:9</span>
+      </button>
+
+      <!-- Clean Record Mode (H) -->
+      <button
+        id="cleanModeBtn"
+        type="button"
+        title="Clean Screen-Record Mode (H)"
+        class="glass-hud w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
+      <!-- Open Studio Drawer (S) -->
+      <button
+        id="openStudioBtn"
+        type="button"
+        title="Open Studio (S)"
+        class="glass-hud h-9 px-3 sm:px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition active:scale-95"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="2" y1="14" x2="6" y2="14" />
+          <line x1="10" y1="8" x2="14" y2="8" />
+          <line x1="18" y1="16" x2="22" y2="16" />
+        </svg>
+        <span>Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Discrete Corner Exit for Clean Mode -->
+  <button
+    id="cleanExitBtn"
+    type="button"
+    title="Exit Clean Mode (H or Esc)"
+    class="clean-exit-btn glass-hud px-3.5 py-1.5 rounded-full text-xs font-semibold text-white/90"
+  >
+    Exit Clean Mode
+  </button>
+
+  <!-- ============================================================
+       MAIN COSMIC CONSTELLATION STAGE
+       ============================================================ -->
+  <div class="studio-desk">
+    <main id="stageFrame" class="stage-frame">
+      <!-- Layer 1: GPU-Accelerated Background Micro-Starfield + Shooting Stars -->
+      <canvas id="starfieldCanvas" aria-hidden="true"></canvas>
+
+      <!-- Layer 2: Inline SVG FractalNoise Film Grain (Prevents Dark Banding) -->
+      <svg class="film-grain" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <filter id="obsidianGrain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#obsidianGrain)" />
+      </svg>
+
+      <!-- Layer 3: SVG Constellation Threads, Sparkles & 4-Pointed Star Nodes -->
+      <svg id="constellationSvg" aria-hidden="true">
+        <defs>
+          <radialGradient id="sparkleGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+            <stop offset="45%" stop-color="#d8b4fe" stop-opacity="0.45" />
+            <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <g id="threadsLayer"></g>
+        <g id="particlesLayer"></g>
+        <g id="nodesLayer"></g>
+      </svg>
+
+      <!-- Layer 4: Razor-Sharp Editorial Word Typography Layer -->
+      <div id="wordsLayer" aria-live="polite"></div>
+
+      <!-- Subtle Idle Stage Prompt (hides automatically once playing) -->
+      <div id="stageIdleHint" class="stage-idle-hint">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45 mb-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"></span>
+          <span>Press Play or Space</span>
+        </div>
+      </div>
+
+      <!-- Layer 5: Signature Luminous Neon Edge-Glow Perimeter Halo -->
+      <div id="auraEdgeHalo" class="aura-edge-halo" aria-hidden="true"></div>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM FLOATING DARK GLASS PLAYER DOCK
+       ============================================================ -->
+  <nav id="bottomDock" class="bottom-dock glass-hud px-3 sm:px-4 py-2 rounded-full flex items-center gap-2 sm:gap-3">
+    <!-- Restart Snippet (R) -->
+    <button
+      id="restartBtn"
+      type="button"
+      title="Restart Snippet (R)"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/10 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+        <path d="M3 3v5h5" />
+      </svg>
+    </button>
+
+    <!-- Play / Pause (Space) -->
+    <button
+      id="playPauseBtn"
+      type="button"
+      title="Play / Pause (Space)"
+      class="w-10 h-10 rounded-full shrink-0 bg-white text-[#07060d] hover:scale-105 active:scale-95 transition flex items-center justify-center shadow-[0_0_24px_rgba(255,255,255,0.3)]"
+    >
+      <svg id="playIcon" class="w-4 h-4 translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="6 4 20 12 6 20 6 4" />
+      </svg>
+      <svg id="pauseIcon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4.5" height="16" rx="1.2" />
+        <rect x="13.5" y="4" width="4.5" height="16" rx="1.2" />
+      </svg>
+    </button>
+
+    <!-- Glowing Progress Scrubber + Snippet Timestamp -->
+    <div class="flex-1 min-w-0 flex items-center gap-2.5">
+      <span id="timeElapsed" class="text-[11px] font-mono text-white/70 tabular-nums shrink-0">0:00</span>
+
+      <div id="progressTrack" class="relative flex-1 h-6 flex items-center cursor-pointer group">
+        <div class="w-full h-[3.5px] rounded-full bg-white/15 overflow-hidden">
+          <div
+            id="progressFill"
+            class="h-full rounded-full bg-gradient-to-r from-[color:var(--aura-primary)] to-white shadow-[0_0_12px_rgba(var(--aura-rgb),0.85)]"
+            style="width: 0%"
+          ></div>
+        </div>
+        <div
+          id="progressKnob"
+          class="absolute w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_#ffffff] -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style="left: 0%"
+        ></div>
+      </div>
+
+      <span id="timeTotal" class="text-[11px] font-mono text-white/45 tabular-nums shrink-0">0:18</span>
+    </div>
+
+    <!-- Loop Snippet Toggle -->
+    <button
+      id="loopBtn"
+      type="button"
+      title="Loop Active Snippet"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-violet-300 bg-white/10 hover:bg-white/16 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m17 2 4 4-4 4" />
+        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+        <path d="m7 22-4-4 4-4" />
+        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+      </svg>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       GLASSMORPHIC STUDIO DRAWER (LENIS SMOOTH SCROLL)
+       ============================================================ -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <aside id="studioDrawer" class="studio-drawer" aria-label="Constellation Lyric Studio Settings">
+    <!-- Drawer Header -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <div>
+        <h2 class="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+          <svg class="w-4 h-4 text-violet-400" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 1C12.4 7.8 16.2 11.6 23 12C16.2 12.4 12.4 16.2 12 23C11.6 16.2 7.8 12.4 1 12C7.8 11.6 11.6 7.8 12 1Z" />
+          </svg>
+          <span>Constellation Studio</span>
+        </h2>
+        <p class="text-[11px] text-white/50">Upload MP3 · LRCLIB.net · Star Map Controls</p>
+      </div>
+      <button
+        id="closeStudioBtn"
+        type="button"
+        aria-label="Close Studio"
+        class="w-9 h-9 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center text-white/80 hover:text-white transition"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Lenis Scroll Container -->
+    <div id="drawerScrollWrapper" class="flex-1 lenis-scroll">
+      <div id="drawerScrollContent" class="px-5 py-5 space-y-6">
+
+        <!-- SECTION 1: AUDIO UPLOAD & ARTWORK -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">1. Audio &amp; Track Info</h3>
+            <span id="audioStatusBadge" class="text-[11px] font-semibold text-violet-300">Demo Synth Ready</span>
+          </div>
+
+          <label
+            id="audioDropZone"
+            for="audioFileInput"
+            class="block w-full p-4 rounded-2xl border border-dashed border-white/20 hover:border-violet-400/70 bg-white/[0.03] hover:bg-white/[0.06] transition cursor-pointer text-center"
+          >
+            <input id="audioFileInput" type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" class="hidden" />
+            <div class="flex flex-col items-center gap-1.5">
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-violet-300">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+              <p id="audioDropLabel" class="text-xs font-bold text-white">Drop MP3 / WAV / M4A or tap to upload</p>
+              <p id="audioFileMeta" class="text-[11px] text-white/45">100% browser-local · Live Web Audio bass-reactive halo</p>
+            </div>
+          </label>
+
+          <div class="grid grid-cols-[62px_1fr] gap-3 items-center">
+            <label
+              for="coverFileInput"
+              title="Optional Album Cover"
+              class="w-[62px] h-[62px] rounded-2xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] overflow-hidden flex flex-col items-center justify-center cursor-pointer transition"
+            >
+              <input id="coverFileInput" type="file" accept="image/*" class="hidden" />
+              <img id="drawerCoverImg" src="" alt="" class="hidden w-full h-full object-cover" />
+              <div id="drawerCoverPlaceholder" class="flex flex-col items-center text-white/55">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+                <span class="text-[9px] mt-0.5 font-semibold">Cover</span>
+              </div>
+            </label>
+
+            <div class="space-y-2">
+              <input
+                id="titleInput"
+                type="text"
+                value="Too Close To The Stars"
+                placeholder="Track Title"
+                class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-violet-400/70 focus:outline-none text-xs font-semibold text-white placeholder-white/35"
+              />
+              <input
+                id="artistInput"
+                type="text"
+                value="Cosmic Demo Synth"
+                placeholder="Artist Name"
+                class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-violet-400/70 focus:outline-none text-xs text-white/85 placeholder-white/35"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: SYNCED LYRICS (LRCLIB LINK / SEARCH / MANUAL) -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">2. Synced Lyrics (LRCLIB.net)</h3>
+            <span id="lyricsStatsBadge" class="text-[11px] font-mono text-white/55">4 lines · 27 words</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-bold">
+            <button type="button" data-lrc-tab="url" class="lrc-tab-btn py-1.5 rounded-lg bg-white text-black transition">LRCLIB Link</button>
+            <button type="button" data-lrc-tab="search" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Search</button>
+            <button type="button" data-lrc-tab="manual" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Manual LRC</button>
+          </div>
+
+          <!-- Tab A: Direct LRCLIB Track Link or ID -->
+          <div id="lrcTabUrl" class="space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibUrlInput"
+                type="text"
+                placeholder="https://lrclib.net/tracks/28185115 or 28185115"
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-violet-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="fetchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95 flex items-center gap-1.5"
+              >
+                <span id="fetchBtnLabel">Fetch</span>
+                <svg id="fetchSpinner" class="hidden w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25" />
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p id="lrclibStatusText" class="text-[11px] text-white/48">
+              Paste any <span class="text-white/80 font-medium">lrclib.net/tracks/{id}</span> link to auto-load synced lyrics &amp; metadata.
+            </p>
+          </div>
+
+          <!-- Tab B: Built-in LRCLIB Live Search -->
+          <div id="lrcTabSearch" class="hidden space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibSearchInput"
+                type="text"
+                placeholder="Search song name or artist..."
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-violet-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="searchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95"
+              >
+                Search
+              </button>
+            </div>
+            <div id="searchResultsBox" class="max-h-48 lenis-scroll space-y-1.5 pr-0.5">
+              <p class="text-[11px] text-white/45 text-center py-4">Search LRCLIB's synced catalog and click any track to load.</p>
+            </div>
+          </div>
+
+          <!-- Tab C: Manual LRC Editor -->
+          <div id="lrcTabManual" class="hidden space-y-2">
+            <textarea
+              id="manualLrcInput"
+              rows="5"
+              placeholder="[00:00.20] We were too close to the *stars*&#10;[00:04.80] I never knew *somebody* like you"
+              class="w-full p-3 rounded-xl bg-white/[0.07] border border-white/14 focus:border-violet-400/70 focus:outline-none text-xs font-mono text-white placeholder-white/35 resize-y"
+            ></textarea>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] text-white/45">Tip: Wrap words in <code class="text-violet-300">*asterisks*</code> or use <code class="text-violet-300">&lt;mm:ss.xx&gt;</code> tags.</span>
+              <button
+                id="applyManualLrcBtn"
+                type="button"
+                class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/24 border border-white/15 text-xs font-bold text-white shrink-0 transition"
+              >
+                Apply LRC
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 3: PARTICULAR PART SNIPPET TRIMMER & SYNC OFFSET -->
+        <section class="space-y-3.5 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">3. Song Part Trimmer</h3>
+            <span id="snippetWindowBadge" class="text-[11px] font-mono font-semibold text-violet-300">0:00 → 0:18 (18s)</span>
+          </div>
+
+          <!-- Direct Start / End Time Inputs -->
+          <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">Start</span>
+                <button id="useNowStartBtn" type="button" class="text-[10px] font-bold text-violet-300 hover:underline">Now</button>
+              </div>
+              <input id="startTimeInput" type="text" value="0:00" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">End</span>
+                <button id="useNowEndBtn" type="button" class="text-[10px] font-bold text-violet-300 hover:underline">Now</button>
+              </div>
+              <input id="endTimeInput" type="text" value="0:18" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <button
+              id="resetFullSongBtn"
+              type="button"
+              class="h-[54px] px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-[11px] font-bold text-white/80 hover:text-white transition"
+            >
+              Reset<br/>Full
+            </button>
+          </div>
+
+          <!-- Lenis Scrollable Lyric Timeline Picker -->
+          <div class="space-y-1.5">
+            <p class="text-[11px] text-white/55">Click <span class="text-white font-semibold">Start</span> / <span class="text-white font-semibold">End</span> on any lyric lines to isolate that part:</p>
+            <div id="lyricPickerWrapper" class="h-48 lenis-scroll rounded-2xl bg-black/45 border border-white/10">
+              <div id="lyricPickerList" class="divide-y divide-white/[0.06]"></div>
+            </div>
+          </div>
+
+          <!-- Sync Offset Slider (-5.00s to +5.00s, 0.05s steps) -->
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-white/85">Lyric Sync Offset</span>
+              <div class="flex items-center gap-1.5">
+                <button id="offsetMinusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">-0.1s</button>
+                <span id="offsetLabel" class="min-w-[54px] text-center font-mono text-xs font-bold text-white">0.00s</span>
+                <button id="offsetPlusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">+0.1s</button>
+                <button id="offsetResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/8 hover:bg-white/16 text-[10px] text-white/70 transition">0</button>
+              </div>
+            </div>
+            <input id="offsetSlider" type="range" min="-5" max="5" step="0.05" value="0" class="cosmic-slider w-full" aria-label="Lyric sync offset" />
+          </div>
+        </section>
+
+        <!-- SECTION 4: CONSTELLATION & VISUAL CONTROLS -->
+        <section class="space-y-4 pt-3 border-t border-white/10 pb-8">
+          <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">4. Constellation &amp; Aesthetic</h3>
+
+          <!-- 5 Aura Edge-Glow Themes -->
+          <div class="space-y-2">
+            <span class="text-[11px] font-semibold text-white/70">Aura Edge-Glow Theme</span>
+            <div class="grid grid-cols-5 gap-2">
+              <button type="button" data-aura-pick="violet" class="aura-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/14 border border-white/40 transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-purple-700 shadow-[0_0_12px_rgba(139,92,246,0.9)]"></span>
+                <span class="text-[10px] font-semibold">Violet</span>
+              </button>
+              <button type="button" data-aura-pick="cyan" class="aura-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-300 to-sky-600 shadow-[0_0_12px_rgba(6,182,212,0.85)]"></span>
+                <span class="text-[10px] font-semibold">Cyan</span>
+              </button>
+              <button type="button" data-aura-pick="rose" class="aura-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-pink-400 to-fuchsia-700 shadow-[0_0_12px_rgba(236,72,153,0.85)]"></span>
+                <span class="text-[10px] font-semibold">Rose</span>
+              </button>
+              <button type="button" data-aura-pick="gold" class="aura-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-amber-200 to-amber-600 shadow-[0_0_12px_rgba(245,158,11,0.85)]"></span>
+                <span class="text-[10px] font-semibold">Gold</span>
+              </button>
+              <button type="button" data-aura-pick="lunar" class="aura-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-white to-slate-400 shadow-[0_0_12px_rgba(255,255,255,0.75)]"></span>
+                <span class="text-[10px] font-semibold">Lunar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Curated Font Pairings -->
+          <div class="space-y-2">
+            <span class="text-[11px] font-semibold text-white/70">Typography Pairing</span>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-font-pick="celestial" class="font-btn p-2.5 rounded-xl text-left bg-white/14 border border-white/40 transition">
+                <p class="text-xs font-extrabold text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">Celestial Sans</p>
+                <p class="text-[10px] text-white/50">Plus Jakarta Sans</p>
+              </button>
+              <button type="button" data-font-pick="editorial" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-sm italic text-white leading-tight" style="font-family: 'Instrument Serif', serif;">Editorial Poetry</p>
+                <p class="text-[10px] text-white/50">Instrument Serif + Inter</p>
+              </button>
+              <button type="button" data-font-pick="astro" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-xs font-bold text-white" style="font-family: 'Space Grotesk', sans-serif;">Astro Grotesk</p>
+                <p class="text-[10px] text-white/50">Space Grotesk + Outfit</p>
+              </button>
+              <button type="button" data-font-pick="kinetic" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-xs font-extrabold text-white" style="font-family: 'Syne', sans-serif;">Kinetic Display</p>
+                <p class="text-[10px] text-white/50">Syne + Jakarta</p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Constellation Lifecycle Mode & Line Style -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1.5">
+              <span class="text-[11px] font-semibold text-white/70">Lifecycle Mode</span>
+              <div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-[11px] font-bold">
+                <button type="button" data-lifecycle="cluster" class="lifecycle-btn py-1.5 rounded-lg bg-white text-black transition">Clusters</button>
+                <button type="button" data-lifecycle="trail" class="lifecycle-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Trail</button>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <span class="text-[11px] font-semibold text-white/70">Thread Style</span>
+              <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-[10px] font-bold">
+                <button type="button" data-line-style="solid" class="linestyle-btn py-1.5 rounded-lg bg-white text-black transition">Solid</button>
+                <button type="button" data-line-style="dashed" class="linestyle-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Dash</button>
+                <button type="button" data-line-style="curved" class="linestyle-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Arc</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Max Stars Slider (6–18) & Star Scale / Glow Intensity Slider -->
+          <div class="space-y-3 p-3.5 rounded-2xl bg-white/[0.05] border border-white/10">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-white/80">Max Visible Stars</span>
+                <span id="maxStarsVal" class="font-mono font-bold text-violet-300">13</span>
+              </div>
+              <input id="maxStarsSlider" type="range" min="6" max="18" step="1" value="13" class="cosmic-slider w-full" aria-label="Max visible stars" />
+            </div>
+
+            <div class="space-y-1.5 pt-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-white/80">Star Scale &amp; Glow Intensity</span>
+                <span id="glowScaleVal" class="font-mono font-bold text-violet-300">1.00×</span>
+              </div>
+              <input id="glowScaleSlider" type="range" min="0.7" max="1.45" step="0.05" value="1" class="cosmic-slider w-full" aria-label="Star scale and glow intensity" />
+            </div>
+          </div>
+
+          <p class="text-[10px] text-white/40 text-center">
+            Shortcuts: <span class="text-white/70 font-semibold">Space</span> Play · <span class="text-white/70 font-semibold">R</span> Restart · <span class="text-white/70 font-semibold">S</span> Studio · <span class="text-white/70 font-semibold">H</span> Clean Record
+          </p>
+        </section>
+
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    /* ============================================================
+       CONSTELLATION LYRIC STUDIO — CORE ENGINE
+       GSAP 3 + Anime.js + Lenis + Web Audio API + Canvas Starfield
+       ============================================================ */
+    (() => {
+      "use strict";
+
+      const SVG_NS = "http://www.w3.org/2000/svg";
+
+      /* ----------------------------------------------------------
+         1. CURATED DEMO LYRICS (ENHANCED WORD TIMING FOR INSTANT WOW)
+         ---------------------------------------------------------- */
+      const DEMO_LRC = `
+[00:00.25] <00:00.25>We <00:00.70>were <00:01.20>too <00:01.70>close <00:02.25>to <00:02.70>the <00:03.15>*stars*
+[00:04.55] <00:04.55>I <00:04.95>never <00:05.55>knew <00:06.15>*somebody* <00:07.15>*like* <00:07.85>you
+[00:09.25] <00:09.25>Tracing <00:09.95>quiet <00:10.65>*light* <00:11.45>across <00:12.10>the <00:12.55>*dark*
+[00:13.85] <00:13.85>Every <00:14.55>*constellation* <00:15.70>leads <00:16.30>to <00:16.85>*you*
+      `.trim();
+
+      // Connector / subtle words (English + common Hindi/Urdu lyrics connectors)
+      const CONNECTOR_WORDS = new Set([
+        "i", "me", "my", "we", "us", "our", "you", "your", "he", "she", "it", "its", "they", "them",
+        "a", "an", "the", "to", "too", "of", "in", "on", "at", "by", "for", "from", "with", "into",
+        "and", "or", "but", "so", "if", "as", "is", "am", "are", "was", "were", "be", "been", "do",
+        "did", "does", "not", "no", "up", "out", "all", "had", "has", "have", "can", "will", "just",
+        "that", "this", "then", "than", "when", "what", "who", "how", "now", "here", "there", "very",
+        "hai", "hain", "ho", "hoon", "ka", "ki", "ke", "ko", "se", "ne", "toh", "to", "hi", "bhi",
+        "jo", "ye", "yeh", "wo", "woh", "mein", "me", "pe", "par", "ab", "na", "ya", "aur", "tha",
+        "thi", "the", "tu", "tum", "hum", "main", "mai", "kya", "sab", "ek", "koi", "kyun"
+      ]);
+
+      const AURA_LIST = [
+        { id: "violet", name: "Violet", dot: "bg-violet-400" },
+        { id: "cyan", name: "Cyan", dot: "bg-cyan-400" },
+        { id: "rose", name: "Rose", dot: "bg-pink-400" },
+        { id: "gold", name: "Gold", dot: "bg-amber-400" },
+        { id: "lunar", name: "Lunar", dot: "bg-slate-200" },
+      ];
+
+      /* ----------------------------------------------------------
+         2. APPLICATION STATE
+         ---------------------------------------------------------- */
+      const state = {
+        mode: "demo",                // "demo" | "audio"
+        audioObjectUrl: null,
+        coverObjectUrl: null,
+        isPlaying: false,
+        isLooping: true,
+        isDrawerOpen: false,
+        isCleanMode: false,
+        isReelMode: false,
+        aura: "violet",
+        font: "celestial",
+        lifecycleMode: "cluster",    // "cluster" | "trail"
+        lineStyle: "solid",          // "solid" | "dashed" | "curved"
+        maxStars: 13,
+        glowScale: 1.0,
+
+        duration: 18.2,
+        startTime: 0.0,
+        endTime: 18.2,
+        syncOffset: 0.0,
+        currentTime: 0.0,
+
+        lines: [],                   // Parsed line-level lyrics [{ time, text, words[] }]
+        wordTimeline: [],            // Flat word-level timeline for entire song
+        snippetWords: [],            // Words active inside [startTime, endTime]
+        lastTriggeredWordIdx: -1,
+        activeClusterId: -1,
+
+        // Live rendered star objects on stage
+        // { wordIdx, clusterId, nx, ny, baseX, baseY, x, y, tier, starSize, driftPhase, driftSpeed, driftAmp, nodeG, ringEl, wordEl, threadEl, prevStar, isDying }
+        liveStars: [],
+
+        // Web Audio API (Shared for Demo Synth + Uploaded MP3)
+        audioCtx: null,
+        masterGain: null,
+        analyser: null,
+        freqData: null,
+        mediaSourceConnected: false,
+        demoTimer: null,
+        demoChordIdx: 0,
+        demoOscNodes: [],
+        bassEnergy: 0,
+
+        // RAF & Timers
+        rafId: null,
+        lastFrameTs: 0,
+        idleTimer: null,
+        lenisDrawer: null,
+        lenisPicker: null,
+        resizeObserver: null,
+      };
+
+      /* ----------------------------------------------------------
+         3. DOM REFERENCES
+         ---------------------------------------------------------- */
+      const el = {
+        audio: document.getElementById("audioPlayer"),
+        stageFrame: document.getElementById("stageFrame"),
+        starfieldCanvas: document.getElementById("starfieldCanvas"),
+        constellationSvg: document.getElementById("constellationSvg"),
+        threadsLayer: document.getElementById("threadsLayer"),
+        particlesLayer: document.getElementById("particlesLayer"),
+        nodesLayer: document.getElementById("nodesLayer"),
+        wordsLayer: document.getElementById("wordsLayer"),
+        auraEdgeHalo: document.getElementById("auraEdgeHalo"),
+        stageIdleHint: document.getElementById("stageIdleHint"),
+
+        // Toast & Top HUD
+        toastPill: document.getElementById("toastPill"),
+        toastDot: document.getElementById("toastDot"),
+        toastText: document.getElementById("toastText"),
+        topHud: document.getElementById("topHud"),
+        trackPillBtn: document.getElementById("trackPillBtn"),
+        hudCoverImg: document.getElementById("hudCoverImg"),
+        hudCoverStar: document.getElementById("hudCoverStar"),
+        hudTitle: document.getElementById("hudTitle"),
+        hudArtist: document.getElementById("hudArtist"),
+        eqBars: document.querySelectorAll(".micro-eq-bar"),
+        quickAuraBtn: document.getElementById("quickAuraBtn"),
+        quickAuraDot: document.getElementById("quickAuraDot"),
+        quickAuraName: document.getElementById("quickAuraName"),
+        reelToggleBtn: document.getElementById("reelToggleBtn"),
+        reelLabel: document.getElementById("reelLabel"),
+        cleanModeBtn: document.getElementById("cleanModeBtn"),
+        cleanExitBtn: document.getElementById("cleanExitBtn"),
+        openStudioBtn: document.getElementById("openStudioBtn"),
+
+        // Bottom Dock
+        bottomDock: document.getElementById("bottomDock"),
+        restartBtn: document.getElementById("restartBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        playIcon: document.getElementById("playIcon"),
+        pauseIcon: document.getElementById("pauseIcon"),
+        progressTrack: document.getElementById("progressTrack"),
+        progressFill: document.getElementById("progressFill"),
+        progressKnob: document.getElementById("progressKnob"),
+        timeElapsed: document.getElementById("timeElapsed"),
+        timeTotal: document.getElementById("timeTotal"),
+        loopBtn: document.getElementById("loopBtn"),
+
+        // Studio Drawer
+        drawerBackdrop: document.getElementById("drawerBackdrop"),
+        studioDrawer: document.getElementById("studioDrawer"),
+        closeStudioBtn: document.getElementById("closeStudioBtn"),
+        drawerScrollWrapper: document.getElementById("drawerScrollWrapper"),
+        drawerScrollContent: document.getElementById("drawerScrollContent"),
+
+        // Section 1: Audio & Track Info
+        audioStatusBadge: document.getElementById("audioStatusBadge"),
+        audioDropZone: document.getElementById("audioDropZone"),
+        audioFileInput: document.getElementById("audioFileInput"),
+        audioDropLabel: document.getElementById("audioDropLabel"),
+        audioFileMeta: document.getElementById("audioFileMeta"),
+        coverFileInput: document.getElementById("coverFileInput"),
+        drawerCoverImg: document.getElementById("drawerCoverImg"),
+        drawerCoverPlaceholder: document.getElementById("drawerCoverPlaceholder"),
+        titleInput: document.getElementById("titleInput"),
+        artistInput: document.getElementById("artistInput"),
+
+        // Section 2: LRCLIB
+        lyricsStatsBadge: document.getElementById("lyricsStatsBadge"),
+        lrcTabBtns: document.querySelectorAll(".lrc-tab-btn"),
+        lrcTabUrl: document.getElementById("lrcTabUrl"),
+        lrcTabSearch: document.getElementById("lrcTabSearch"),
+        lrcTabManual: document.getElementById("lrcTabManual"),
+        lrclibUrlInput: document.getElementById("lrclibUrlInput"),
+        fetchLrclibBtn: document.getElementById("fetchLrclibBtn"),
+        fetchBtnLabel: document.getElementById("fetchBtnLabel"),
+        fetchSpinner: document.getElementById("fetchSpinner"),
+        lrclibStatusText: document.getElementById("lrclibStatusText"),
+        lrclibSearchInput: document.getElementById("lrclibSearchInput"),
+        searchLrclibBtn: document.getElementById("searchLrclibBtn"),
+        searchResultsBox: document.getElementById("searchResultsBox"),
+        manualLrcInput: document.getElementById("manualLrcInput"),
+        applyManualLrcBtn: document.getElementById("applyManualLrcBtn"),
+
+        // Section 3: Trimmer & Offset
+        snippetWindowBadge: document.getElementById("snippetWindowBadge"),
+        startTimeInput: document.getElementById("startTimeInput"),
+        endTimeInput: document.getElementById("endTimeInput"),
+        useNowStartBtn: document.getElementById("useNowStartBtn"),
+        useNowEndBtn: document.getElementById("useNowEndBtn"),
+        resetFullSongBtn: document.getElementById("resetFullSongBtn"),
+        lyricPickerWrapper: document.getElementById("lyricPickerWrapper"),
+        lyricPickerList: document.getElementById("lyricPickerList"),
+        offsetSlider: document.getElementById("offsetSlider"),
+        offsetLabel: document.getElementById("offsetLabel"),
+        offsetMinusBtn: document.getElementById("offsetMinusBtn"),
+        offsetPlusBtn: document.getElementById("offsetPlusBtn"),
+        offsetResetBtn: document.getElementById("offsetResetBtn"),
+
+        // Section 4: Visual Controls
+        auraBtns: document.querySelectorAll(".aura-btn"),
+        fontBtns: document.querySelectorAll(".font-btn"),
+        lifecycleBtns: document.querySelectorAll(".lifecycle-btn"),
+        lineStyleBtns: document.querySelectorAll(".linestyle-btn"),
+        maxStarsSlider: document.getElementById("maxStarsSlider"),
+        maxStarsVal: document.getElementById("maxStarsVal"),
+        glowScaleSlider: document.getElementById("glowScaleSlider"),
+        glowScaleVal: document.getElementById("glowScaleVal"),
+      };
+
+      /* ----------------------------------------------------------
+         4. UTILITIES (TOAST, TIME, ESCAPING, SMART WORD PARSER)
+         ---------------------------------------------------------- */
+      let toastTimeout = null;
+      function showToast(msg, type = "info") {
+        el.toastText.textContent = msg;
+        el.toastDot.className = "w-2 h-2 rounded-full shrink-0 " + (
+          type === "error" ? "bg-rose-500" :
+          type === "success" ? "bg-emerald-400" :
+          "bg-violet-400"
+        );
+        clearTimeout(toastTimeout);
+
+        if (window.anime) {
+          anime.remove(el.toastPill);
+          anime({
+            targets: el.toastPill,
+            translateX: ["-50%", "-50%"],
+            translateY: [-24, 0],
+            opacity: [0, 1],
+            scale: [0.92, 1],
+            duration: 420,
+            easing: "easeOutElastic(1, 0.72)",
+          });
+        } else {
+          el.toastPill.style.opacity = "1";
+          el.toastPill.style.transform = "translateX(-50%) translateY(0)";
+        }
+
+        toastTimeout = setTimeout(() => {
+          if (window.anime) {
+            anime({
+              targets: el.toastPill,
+              translateX: ["-50%", "-50%"],
+              translateY: [0, -18],
+              opacity: [1, 0],
+              duration: 280,
+              easing: "easeInQuad",
+            });
+          } else {
+            el.toastPill.style.opacity = "0";
+          }
+        }, 3200);
+      }
+
+      function formatTime(sec) {
+        if (!Number.isFinite(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+
+      function parseTimeInput(str) {
+        if (!str) return null;
+        const clean = str.trim();
+        if (/^\d+(\.\d+)?$/.test(clean)) return parseFloat(clean);
+        const m = clean.match(/^(\d+):(\d{1,2})(?:\.(\d+))?$/);
+        if (!m) return null;
+        const mins = parseInt(m[1], 10);
+        const secs = parseInt(m[2], 10);
+        if (secs >= 60) return null;
+        const frac = m[3] ? parseFloat("0." + m[3]) : 0;
+        return mins * 60 + secs + frac;
+      }
+
+      function parseStampToSec(minStr, secStr, fracStr) {
+        const mins = parseInt(minStr, 10);
+        const secs = parseInt(secStr, 10);
+        const msStr = fracStr || "0";
+        const ms = msStr.length === 1
+          ? parseInt(msStr, 10) / 10
+          : msStr.length === 2
+          ? parseInt(msStr, 10) / 100
+          : parseInt(msStr.slice(0, 3), 10) / 1000;
+        return mins * 60 + secs + ms;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      /**
+       * Parses both standard [mm:ss.xx] LRC lines AND enhanced <mm:ss.xx> word-level LRC.
+       * Automatically computes intelligent syllable/character-weighted word timing and
+       * editorial typography tiers (tier 0 = connector, tier 1 = medium, tier 2 = hero).
+       */
+      function parseEnhancedLRC(rawText) {
+        if (!rawText || typeof rawText !== "string") return { lines: [], words: [] };
+
+        const rawLines = rawText.split(/\r?\n/);
+        const lineTimeRx = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+        const entries = [];
+
+        for (const raw of rawLines) {
+          const stamps = [];
+          let m;
+          lineTimeRx.lastIndex = 0;
+          while ((m = lineTimeRx.exec(raw)) !== null) {
+            stamps.push(parseStampToSec(m[1], m[2], m[3]));
+          }
+          if (!stamps.length) continue;
+          const body = raw.replace(lineTimeRx, "").trim();
+          if (!body) continue;
+
+          for (const t of stamps) {
+            entries.push({ time: t, rawBody: body });
+          }
+        }
+
+        entries.sort((a, b) => a.time - b.time);
+
+        const lines = [];
+        const flatWords = [];
+        const wordTagRx = /<(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?>\s*([^<]+)/g;
+
+        entries.forEach((entry, lineIdx) => {
+          const nextEntry = entries[lineIdx + 1];
+          const gapToNext = nextEntry ? Math.max(0.7, nextEntry.time - entry.time) : 4.2;
+
+          // Check for enhanced word-level timestamps (<mm:ss.xx>)
+          const taggedTokens = [];
+          let wm;
+          wordTagRx.lastIndex = 0;
+          while ((wm = wordTagRx.exec(entry.rawBody)) !== null) {
+            const wTime = parseStampToSec(wm[1], wm[2], wm[3]);
+            const chunk = wm[4].trim();
+            if (!chunk) continue;
+            // In case multiple words sit inside one tag, split evenly
+            const sub = chunk.split(/\s+/).filter(Boolean);
+            sub.forEach((tok, idx) => {
+              taggedTokens.push({ raw: tok, time: wTime + idx * 0.25, explicitTime: true });
+            });
+          }
+
+          let tokenObjs = [];
+          if (taggedTokens.length > 0) {
+            tokenObjs = taggedTokens;
+          } else {
+            const plainWords = entry.rawBody.split(/\s+/).filter(Boolean);
+            if (!plainWords.length) return;
+
+            // Intelligent syllable / character weighted timing distribution
+            const weights = plainWords.map((tok) => {
+              const clean = tok.replace(/[*.,!?;:'"()]/g, "");
+              const vowels = (clean.match(/[aeiouyAEIOUY]+/g) || []).length;
+              const base = Math.max(1, vowels * 0.72 + clean.length * 0.22);
+              const punctPause = /[,;—-]$/.test(tok) ? 0.55 : /[.!?]$/.test(tok) ? 0.75 : 0;
+              return base + punctPause;
+            });
+            const totalW = weights.reduce((a, b) => a + b, 0) || 1;
+            // Fit comfortably within line duration with natural breathing room at phrase end
+            const idealPaceDur = Math.min(gapToNext * 0.9, Math.max(1.25, plainWords.length * 0.54));
+            const spanDur = Math.min(gapToNext - 0.14, Math.max(0.85, Math.max(idealPaceDur, Math.min(gapToNext * 0.84, 5.2))));
+
+            let accum = 0;
+            tokenObjs = plainWords.map((tok, i) => {
+              const t = entry.time + (accum / totalW) * spanDur;
+              accum += weights[i];
+              return { raw: tok, time: t, explicitTime: false };
+            });
+          }
+
+          // Determine editorial typography hierarchy per line
+          const cleanedWords = tokenObjs.map((obj) => {
+            const explicitStar = /^\*.+\*$/.test(obj.raw) || obj.raw.includes("*");
+            const display = obj.raw.replace(/\*/g, "");
+            const norm = display.toLowerCase().replace(/[^a-z0-9\u0900-\u097f]/g, "");
+            return { ...obj, display, norm, explicitStar };
+          });
+
+          // Pick longest meaningful word in line if none explicitly starred
+          let longestIdx = -1;
+          let longestLen = 0;
+          cleanedWords.forEach((w, i) => {
+            if (!CONNECTOR_WORDS.has(w.norm) && w.norm.length > longestLen) {
+              longestLen = w.norm.length;
+              longestIdx = i;
+            }
+          });
+
+          const hasExplicitStars = cleanedWords.some((w) => w.explicitStar);
+          const lineDisplayText = cleanedWords.map((w) => w.display).join(" ");
+          const lineWords = [];
+
+          cleanedWords.forEach((w, idx) => {
+            let tier = 0; // 0 = sleek connector, 1 = medium accent, 2 = hero emphasis
+            const isConnector = CONNECTOR_WORDS.has(w.norm);
+            const isLastWord = idx === cleanedWords.length - 1;
+
+            if (w.explicitStar) {
+              tier = 2;
+            } else if (!hasExplicitStars) {
+              if (!isConnector && (w.norm.length >= 7 || idx === longestIdx || (isLastWord && w.norm.length >= 4))) {
+                tier = 2;
+              } else if (!isConnector && w.norm.length >= 4) {
+                tier = 1;
+              }
+            } else {
+              if (!isConnector && w.norm.length >= 6) tier = 1;
+            }
+
+            const wordObj = {
+              id: flatWords.length,
+              lineIdx,
+              wordInLine: idx,
+              lineLen: cleanedWords.length,
+              time: Number(w.time.toFixed(3)),
+              text: w.display,
+              tier,
+              gapBefore: lineIdx > 0 && idx === 0 ? entry.time - entries[lineIdx - 1].time : 0,
+            };
+
+            lineWords.push(wordObj);
+            flatWords.push(wordObj);
+          });
+
+          lines.push({
+            index: lineIdx,
+            time: entry.time,
+            text: lineDisplayText,
+            words: lineWords,
+          });
+        });
+
+        return { lines, words: flatWords };
+      }
+
+      /* ----------------------------------------------------------
+         5. GPU-ACCELERATED CANVAS MICRO-STARFIELD & SHOOTING STARS
+         ---------------------------------------------------------- */
+      const starfield = {
+        ctx: null,
+        w: 0,
+        h: 0,
+        dpr: 1,
+        stars: [],
+        shooters: [],
+        pointerX: 0,
+        pointerY: 0,
+        smoothPX: 0,
+        smoothPY: 0,
+        nextShooterAt: 0,
+      };
+
+      function initStarfield() {
+        starfield.ctx = el.starfieldCanvas.getContext("2d");
+        resizeStarfield();
+        starfield.nextShooterAt = performance.now() + 2600;
+
+        window.addEventListener("pointermove", (e) => {
+          if (e.pointerType && e.pointerType !== "mouse") return;
+          starfield.pointerX = (e.clientX / window.innerWidth - 0.5) * 2;
+          starfield.pointerY = (e.clientY / window.innerHeight - 0.5) * 2;
+        }, { passive: true });
+      }
+
+      function resizeStarfield() {
+        const w = Math.max(240, el.stageFrame.clientWidth || window.innerWidth);
+        const h = Math.max(320, el.stageFrame.clientHeight || window.innerHeight);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        starfield.w = w;
+        starfield.h = h;
+        starfield.dpr = dpr;
+        el.starfieldCanvas.width = Math.round(w * dpr);
+        el.starfieldCanvas.height = Math.round(h * dpr);
+
+        const count = Math.max(55, Math.min(130, Math.round((w * h) / 11500)));
+        starfield.stars = [];
+        for (let i = 0; i < count; i++) {
+          const depth = 0.25 + Math.random() * 0.95;
+          starfield.stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: (0.45 + Math.random() * 1.15) * depth,
+            depth,
+            alpha: 0.16 + Math.random() * 0.55,
+            twinklePhase: Math.random() * Math.PI * 2,
+            twinkleSpeed: 0.5 + Math.random() * 1.6,
+            tint: Math.random() > 0.78 ? 1 : 0,
+          });
+        }
+      }
+
+      function renderStarfield(ts) {
+        const ctx = starfield.ctx;
+        if (!ctx) return;
+
+        const { w, h, dpr } = starfield;
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, w, h);
+
+        // Smooth gentle parallax follow
+        starfield.smoothPX += (starfield.pointerX - starfield.smoothPX) * 0.04;
+        starfield.smoothPY += (starfield.pointerY - starfield.smoothPY) * 0.04;
+
+        const tSec = ts * 0.001;
+        const auraRgb = getComputedStyle(document.documentElement).getPropertyValue("--aura-rgb").trim() || "139, 92, 246";
+
+        for (let i = 0; i < starfield.stars.length; i++) {
+          const s = starfield.stars[i];
+          const tw = 0.52 + 0.48 * Math.sin(tSec * s.twinkleSpeed + s.twinklePhase);
+          const a = s.alpha * tw * (1 + state.bassEnergy * 0.25);
+
+          let px = s.x + starfield.smoothPX * 14 * s.depth;
+          let py = s.y + starfield.smoothPY * 14 * s.depth;
+          if (px < 0) px += w;
+          if (px > w) px -= w;
+          if (py < 0) py += h;
+          if (py > h) py -= h;
+
+          ctx.beginPath();
+          ctx.arc(px, py, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = s.tint
+            ? `rgba(${auraRgb}, ${Math.min(0.85, a)})`
+            : `rgba(235, 240, 255, ${Math.min(0.85, a)})`;
+          ctx.fill();
+        }
+
+        // Rare soft shooting star
+        if (ts > starfield.nextShooterAt && starfield.shooters.length < 1) {
+          starfield.nextShooterAt = ts + 5200 + Math.random() * 6800;
+          const startX = w * (0.15 + Math.random() * 0.7);
+          const startY = h * (0.06 + Math.random() * 0.35);
+          const angle = (Math.PI * 0.16) + Math.random() * 0.22;
+          const speed = 420 + Math.random() * 240;
+          starfield.shooters.push({
+            x: startX,
+            y: startY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0,
+            maxLife: 0.72 + Math.random() * 0.35,
+            len: 54 + Math.random() * 48,
+          });
+        }
+
+        for (let i = starfield.shooters.length - 1; i >= 0; i--) {
+          const sh = starfield.shooters[i];
+          sh.life += 0.016;
+          sh.x += sh.vx * 0.016;
+          sh.y += sh.vy * 0.016;
+          const prog = sh.life / sh.maxLife;
+          if (prog >= 1) {
+            starfield.shooters.splice(i, 1);
+            continue;
+          }
+          const opacity = Math.sin(prog * Math.PI) * 0.55;
+          const mag = Math.hypot(sh.vx, sh.vy) || 1;
+          const tailX = sh.x - (sh.vx / mag) * sh.len;
+          const tailY = sh.y - (sh.vy / mag) * sh.len;
+
+          const grad = ctx.createLinearGradient(sh.x, sh.y, tailX, tailY);
+          grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+          grad.addColorStop(0.35, `rgba(${auraRgb}, ${opacity * 0.65})`);
+          grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 1.3;
+          ctx.beginPath();
+          ctx.moveTo(sh.x, sh.y);
+          ctx.lineTo(tailX, tailY);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      /* ----------------------------------------------------------
+         6. WEB AUDIO API: COSMIC AMBIENT SYNTH + LIVE BASS ANALYSER
+         ---------------------------------------------------------- */
+      function ensureAudioGraph() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return false;
+
+        if (!state.audioCtx) {
+          state.audioCtx = new AudioCtx();
+          state.masterGain = state.audioCtx.createGain();
+          state.masterGain.gain.value = 0.85;
+
+          state.analyser = state.audioCtx.createAnalyser();
+          state.analyser.fftSize = 128;
+          state.analyser.smoothingTimeConstant = 0.84;
+          state.freqData = new Uint8Array(state.analyser.frequencyBinCount);
+
+          state.masterGain.connect(state.analyser);
+          state.analyser.connect(state.audioCtx.destination);
+        }
+
+        if (state.audioCtx.state === "suspended") {
+          state.audioCtx.resume().catch(() => {});
+        }
+        return true;
+      }
+
+      function connectMediaElementOnce() {
+        if (!ensureAudioGraph() || state.mediaSourceConnected) return;
+        try {
+          const src = state.audioCtx.createMediaElementSource(el.audio);
+          src.connect(state.masterGain);
+          state.mediaSourceConnected = true;
+        } catch (_) {}
+      }
+
+      // Ethereal Cosmic Progression (F#m9 → Dmaj9 → Bm9 → C#m7)
+      const COSMIC_CHORDS = [
+        { sub: 46.25, pad: [185.0, 220.0, 277.18, 329.63, 415.3], bell: 739.99 },
+        { sub: 73.42, pad: [146.83, 220.0, 277.18, 329.63, 369.99], bell: 659.25 },
+        { sub: 61.74, pad: [123.47, 185.0, 220.0, 277.18, 329.63], bell: 554.37 },
+        { sub: 69.30, pad: [138.59, 207.65, 246.94, 329.63, 415.3], bell: 622.25 },
+      ];
+
+      function triggerCosmicChord() {
+        if (state.mode !== "demo" || !state.isPlaying || !ensureAudioGraph()) return;
+        const ctx = state.audioCtx;
+        const now = ctx.currentTime;
+        const chord = COSMIC_CHORDS[state.demoChordIdx % COSMIC_CHORDS.length];
+        state.demoChordIdx++;
+
+        const lpf = ctx.createBiquadFilter();
+        lpf.type = "lowpass";
+        lpf.frequency.setValueAtTime(280, now);
+        lpf.frequency.exponentialRampToValueAtTime(1150, now + 1.6);
+        lpf.frequency.exponentialRampToValueAtTime(360, now + 4.4);
+        lpf.Q.value = 1.4;
+
+        const padGain = ctx.createGain();
+        padGain.gain.setValueAtTime(0.0001, now);
+        padGain.gain.exponentialRampToValueAtTime(0.095, now + 0.9);
+        padGain.gain.setValueAtTime(0.088, now + 3.1);
+        padGain.gain.exponentialRampToValueAtTime(0.0001, now + 4.8);
+
+        lpf.connect(padGain);
+        padGain.connect(state.masterGain);
+
+        const nodes = [];
+
+        // Soft heartbeat sub-bass (2 pulses per bar for luminous halo breathing)
+        [0, 2.25].forEach((offset) => {
+          const subOsc = ctx.createOscillator();
+          const subGain = ctx.createGain();
+          subOsc.type = "sine";
+          subOsc.frequency.setValueAtTime(chord.sub, now + offset);
+          subGain.gain.setValueAtTime(0.0001, now + offset);
+          subGain.gain.exponentialRampToValueAtTime(0.28, now + offset + 0.08);
+          subGain.gain.exponentialRampToValueAtTime(0.001, now + offset + 1.85);
+          subOsc.connect(subGain);
+          subGain.connect(state.masterGain);
+          subOsc.start(now + offset);
+          subOsc.stop(now + offset + 2.0);
+          nodes.push(subOsc);
+        });
+
+        // Lush detuned cosmic pad voices
+        chord.pad.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          osc.type = idx % 2 === 0 ? "triangle" : "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          osc.detune.setValueAtTime((idx - 2) * 6.5, now);
+          osc.connect(lpf);
+          osc.start(now + idx * 0.05);
+          osc.stop(now + 4.9);
+          nodes.push(osc);
+        });
+
+        // Delicate crystalline starlight bell chime
+        const bellOsc = ctx.createOscillator();
+        const bellGain = ctx.createGain();
+        bellOsc.type = "sine";
+        bellOsc.frequency.setValueAtTime(chord.bell, now + 0.15);
+        bellGain.gain.setValueAtTime(0.0001, now + 0.15);
+        bellGain.gain.exponentialRampToValueAtTime(0.028, now + 0.22);
+        bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
+        bellOsc.connect(bellGain);
+        bellGain.connect(state.masterGain);
+        bellOsc.start(now + 0.15);
+        bellOsc.stop(now + 2.5);
+        nodes.push(bellOsc);
+
+        state.demoOscNodes.push(...nodes);
+        if (state.demoOscNodes.length > 48) {
+          state.demoOscNodes = state.demoOscNodes.slice(-24);
+        }
+      }
+
+      function startDemoSynth() {
+        stopDemoSynth();
+        if (state.mode !== "demo") return;
+        triggerCosmicChord();
+        state.demoTimer = setInterval(triggerCosmicChord, 4500);
+      }
+
+      function stopDemoSynth() {
+        if (state.demoTimer) {
+          clearInterval(state.demoTimer);
+          state.demoTimer = null;
+        }
+        state.demoOscNodes.forEach((n) => {
+          try { n.stop(); } catch (_) {}
+        });
+        state.demoOscNodes = [];
+      }
+
+      function updateAudioReactivity() {
+        let bass = 0;
+        const eqVals = [0.16, 0.24, 0.2, 0.14];
+
+        if (state.isPlaying && state.analyser && state.freqData) {
+          state.analyser.getByteFrequencyData(state.freqData);
+          let sum = 0;
+          for (let i = 0; i < 6; i++) sum += state.freqData[i];
+          bass = Math.min(1, sum / (6 * 215));
+
+          const bins = [1, 4, 8, 15];
+          bins.forEach((b, idx) => {
+            eqVals[idx] = Math.max(0.18, (state.freqData[b] || 0) / 255);
+          });
+        } else if (state.isPlaying) {
+          const t = performance.now() * 0.003;
+          bass = 0.25 + Math.sin(t) * 0.15;
+          for (let i = 0; i < 4; i++) {
+            eqVals[i] = 0.25 + Math.abs(Math.sin(t * (1.2 + i * 0.35))) * 0.55;
+          }
+        }
+
+        // Smooth bass energy for organic luminous halo breathing
+        state.bassEnergy += (bass - state.bassEnergy) * 0.18;
+        const b = state.bassEnergy;
+        document.documentElement.style.setProperty("--bass-boost", b.toFixed(3));
+
+        // Modulate the signature perimeter neon edge-glow border directly
+        const rimAlpha = (0.64 + b * 0.34).toFixed(2);
+        const innerBlur = Math.round(12 + b * 10);
+        const midBlur = Math.round(32 + b * 24);
+        const outerBlur = Math.round(78 + b * 54);
+        const deepBlur = Math.round(140 + b * 68);
+        const midAlpha = (0.62 + b * 0.32).toFixed(2);
+        const outerAlpha = (0.34 + b * 0.26).toFixed(2);
+
+        el.auraEdgeHalo.style.borderColor = `rgba(var(--aura-rim-rgb), ${rimAlpha})`;
+        el.auraEdgeHalo.style.boxShadow =
+          `inset 0 0 ${innerBlur}px 1px rgba(var(--aura-rim-rgb), ${(0.5 + b * 0.35).toFixed(2)}), ` +
+          `inset 0 0 ${midBlur}px 4px rgba(var(--aura-rgb), ${midAlpha}), ` +
+          `inset 0 0 ${outerBlur}px 10px rgba(var(--aura-rgb), ${outerAlpha}), ` +
+          `inset 0 0 ${deepBlur}px 18px rgba(var(--aura-rgb), ${(0.15 + b * 0.16).toFixed(2)})`;
+
+        // Top-left micro equalizer bars
+        el.eqBars.forEach((bar, i) => {
+          const h = state.isPlaying ? Math.round(3 + eqVals[i] * 11) : 3.5;
+          bar.style.height = `${h}px`;
+        });
+      }
+
+      /* ----------------------------------------------------------
+         7. WORD-BY-WORD STAR CONSTELLATION ENGINE (HERO FEATURE)
+         ---------------------------------------------------------- */
+      function getSafeBounds() {
+        const w = Math.max(260, el.stageFrame.clientWidth || window.innerWidth);
+        const h = Math.max(380, el.stageFrame.clientHeight || window.innerHeight);
+        const isNarrow = w < 560 || state.isReelMode;
+
+        const padLeft = isNarrow ? Math.max(46, w * 0.13) : Math.max(84, w * 0.13);
+        const padRight = isNarrow ? Math.max(46, w * 0.13) : Math.max(84, w * 0.13);
+        // Frame elegantly inside the neon border + HUD clearance
+        const padTop = isNarrow ? Math.max(92, h * 0.17) : Math.max(106, h * 0.2);
+        const padBottom = isNarrow ? Math.max(106, h * 0.2) : Math.max(118, h * 0.23);
+
+        return {
+          w,
+          h,
+          isNarrow,
+          minX: padLeft,
+          maxX: Math.max(padLeft + 60, w - padRight),
+          minY: padTop,
+          maxY: Math.max(padTop + 80, h - padBottom),
+        };
+      }
+
+      function getWordFontSizePx(tier, isNarrow) {
+        const scale = state.glowScale;
+        if (tier === 2) {
+          const base = isNarrow ? 31 : 48;
+          return Math.round(base * scale);
+        }
+        if (tier === 1) {
+          const base = isNarrow ? 18 : 23;
+          return Math.round(base * scale);
+        }
+        const base = isNarrow ? 13 : 16;
+        return Math.round(base * scale);
+      }
+
+      function getStarRadiusPx(tier, isNarrow) {
+        const scale = state.glowScale;
+        const base = tier === 2 ? (isNarrow ? 13 : 17) : tier === 1 ? (isNarrow ? 8.5 : 10.5) : (isNarrow ? 6.5 : 8);
+        return base * scale;
+      }
+
+      /**
+       * Creates a crisp 4-pointed concave astro star SVG path centered at (0, 0).
+       */
+      function createFourPointStarPath(r) {
+        const c = r * 0.24; // Concave curve handle for sleek editorial diamond sparkle
+        return `M 0 ${-r} Q ${c * 0.55} ${-c * 0.55} ${r} 0 Q ${c * 0.55} ${c * 0.55} 0 ${r} Q ${-c * 0.55} ${c * 0.55} ${-r} 0 Q ${-c * 0.55} ${-c * 0.55} 0 ${-r} Z`;
+      }
+
+      /**
+       * Anti-Overlap Bounded Spatial Layout Algorithm:
+       * Computes an organic 2D star coordinate that forms an aesthetic constellation
+       * web while avoiding word/star collisions and screen-edge clipping.
+       */
+      function computeOrganicStarPosition(wordObj, prevStar) {
+        const bounds = getSafeBounds();
+        const fontSize = getWordFontSizePx(wordObj.tier, bounds.isNarrow);
+        const estWordW = Math.min(bounds.w * 0.44, wordObj.text.length * fontSize * 0.62 + 18);
+        const estWordH = fontSize * 1.4 + 26;
+
+        const safeMinX = Math.min(bounds.maxX - 20, Math.max(bounds.minX, estWordW * 0.52 + 18));
+        const safeMaxX = Math.max(safeMinX + 20, Math.min(bounds.maxX, bounds.w - estWordW * 0.52 - 18));
+        const safeMinY = bounds.minY;
+        const safeMaxY = Math.max(safeMinY + 40, bounds.maxY - fontSize * 0.85);
+        const spanW = safeMaxX - safeMinX;
+        const spanH = safeMaxY - safeMinY;
+
+        const activeNodes = state.liveStars.filter((s) => !s.isDying);
+        const idealMinDist = bounds.isNarrow ? Math.min(spanW, spanH) * 0.26 : Math.min(spanW, spanH) * 0.3;
+        const idealMaxDist = bounds.isNarrow ? Math.max(spanW, spanH) * 0.55 : spanW * 0.42;
+
+        let best = { x: safeMinX + spanW * 0.5, y: safeMinY + spanH * 0.5, score: -Infinity };
+        const candidateCount = 46;
+
+        for (let i = 0; i < candidateCount; i++) {
+          let cx, cy;
+
+          if (!prevStar || i % 3 === 0) {
+            // Broad organic candidate across safe zone
+            cx = safeMinX + Math.random() * spanW;
+            cy = safeMinY + Math.random() * spanH;
+          } else {
+            // Directional constellation jump from previous star (crisp geometric angles)
+            const angle = Math.random() * Math.PI * 2;
+            const dist = idealMinDist + Math.random() * (idealMaxDist - idealMinDist);
+            cx = prevStar.baseX + Math.cos(angle) * dist;
+            cy = prevStar.baseY + Math.sin(angle) * dist;
+            // Clamp cleanly into safe bounds
+            cx = Math.max(safeMinX, Math.min(safeMaxX, cx));
+            cy = Math.max(safeMinY, Math.min(safeMaxY, cy));
+          }
+
+          let score = 0;
+
+          // 1. Reward organic thread length from previous star
+          if (prevStar) {
+            const dPrev = Math.hypot(cx - prevStar.baseX, cy - prevStar.baseY);
+            if (dPrev < idealMinDist * 0.65) score -= 240;
+            else if (dPrev >= idealMinDist && dPrev <= idealMaxDist) score += 95;
+            else score += 35 - Math.abs(dPrev - idealMaxDist) * 0.12;
+          } else {
+            // First star in a cluster looks great slightly left-of-center or upper-left
+            const targetX = safeMinX + spanW * (0.22 + Math.random() * 0.35);
+            const targetY = safeMinY + spanH * (0.3 + Math.random() * 0.4);
+            score -= Math.hypot(cx - targetX, cy - targetY) * 0.25;
+          }
+
+          // 2. Strong anti-overlap penalty against all existing stars & their word bounding boxes
+          for (let j = 0; j < activeNodes.length; j++) {
+            const other = activeNodes[j];
+            const dx = Math.abs(cx - other.baseX);
+            const dy = Math.abs(cy - other.baseY);
+            const minClearX = (estWordW + other.estWordW) * 0.52 + 16;
+            const minClearY = (estWordH + other.estWordH) * 0.46 + 14;
+
+            if (dx < minClearX && dy < minClearY) {
+              const overlapX = minClearX - dx;
+              const overlapY = minClearY - dy;
+              score -= 360 + (overlapX + overlapY) * 3.5;
+            } else {
+              const dist = Math.hypot(dx, dy);
+              if (dist < 75) score -= (75 - dist) * 4;
+            }
+          }
+
+          // 3. Encourage spreading across vertical tiers (prevents flat horizontal lines)
+          if (prevStar) {
+            const verticalDelta = Math.abs(cy - prevStar.baseY);
+            if (verticalDelta > 28) score += 34;
+          }
+
+          if (score > best.score) {
+            best = { x: cx, y: cy, score };
+          }
+        }
+
+        const nx = spanW > 0 ? (best.x - safeMinX) / spanW : 0.5;
+        const ny = spanH > 0 ? (best.y - safeMinY) / spanH : 0.5;
+
+        return {
+          x: best.x,
+          y: best.y,
+          nx: Math.max(0, Math.min(1, nx)),
+          ny: Math.max(0, Math.min(1, ny)),
+          estWordW,
+          estWordH,
+          fontSize,
+        };
+      }
+
+      /**
+       * Computes SVG path string between two stars based on active lineStyle (solid | dashed | curved).
+       */
+      function buildThreadPath(x1, y1, x2, y2, curveSign) {
+        if (state.lineStyle === "curved") {
+          const mx = (x1 + x2) * 0.5;
+          const my = (y1 + y2) * 0.5;
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const dist = Math.hypot(dx, dy) || 1;
+          const offset = Math.min(48, dist * 0.22) * curveSign;
+          const cx = mx - (dy / dist) * offset;
+          const cy = my + (dx / dist) * offset;
+          return `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+        }
+        return `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+      }
+
+      /**
+       * Anime.js Radial Micro-Sparkle Burst when a star blooms on beat.
+       */
+      function spawnStarSparkleBurst(x, y, tier) {
+        if (!window.anime) return;
+        const count = tier === 2 ? 9 : 5;
+        const particles = [];
+
+        for (let i = 0; i < count; i++) {
+          const c = document.createElementNS(SVG_NS, "circle");
+          c.setAttribute("cx", x.toFixed(1));
+          c.setAttribute("cy", y.toFixed(1));
+          c.setAttribute("r", (tier === 2 ? 1.8 : 1.25).toFixed(2));
+          c.setAttribute("fill", i % 2 === 0 ? "#ffffff" : "var(--aura-rim)");
+          c.style.opacity = "0.95";
+          el.particlesLayer.appendChild(c);
+          particles.push(c);
+        }
+
+        const spread = (tier === 2 ? 34 : 20) * state.glowScale;
+        anime({
+          targets: particles,
+          cx: (target, i) => {
+            const ang = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+            return x + Math.cos(ang) * (spread * (0.6 + Math.random() * 0.55));
+          },
+          cy: (target, i) => {
+            const ang = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+            return y + Math.sin(ang) * (spread * (0.6 + Math.random() * 0.55));
+          },
+          r: 0,
+          opacity: [0.95, 0],
+          duration: tier === 2 ? 780 : 580,
+          easing: "easeOutExpo",
+          complete: () => {
+            particles.forEach((p) => p.remove());
+          },
+        });
+      }
+
+      /**
+       * Dissolves a specific star node, its word label, and its thread smoothly into stardust.
+       */
+      function dissolveStar(starObj, duration = 0.72) {
+        if (!starObj || starObj.isDying) return;
+        starObj.isDying = true;
+
+        const targets = [starObj.nodeG, starObj.wordEl, starObj.threadEl].filter(Boolean);
+        if (window.gsap) {
+          gsap.to(targets, {
+            opacity: 0,
+            duration,
+            ease: "power2.inOut",
+            onComplete: () => {
+              starObj.nodeG?.remove();
+              starObj.wordEl?.remove();
+              starObj.threadEl?.remove();
+              const idx = state.liveStars.indexOf(starObj);
+              if (idx >= 0) state.liveStars.splice(idx, 1);
+            },
+          });
+          if (starObj.wordEl) {
+            gsap.to(starObj.wordEl, {
+              filter: "blur(6px)",
+              duration,
+              ease: "power2.in",
+            });
+          }
+        } else {
+          starObj.nodeG?.remove();
+          starObj.wordEl?.remove();
+          starObj.threadEl?.remove();
+          const idx = state.liveStars.indexOf(starObj);
+          if (idx >= 0) state.liveStars.splice(idx, 1);
+        }
+      }
+
+      function dissolveAllStars(instant = false) {
+        const snapshot = state.liveStars.slice();
+        if (instant) {
+          snapshot.forEach((s) => {
+            s.nodeG?.remove();
+            s.wordEl?.remove();
+            s.threadEl?.remove();
+          });
+          state.liveStars = [];
+          return;
+        }
+        snapshot.forEach((s, idx) => {
+          setTimeout(() => dissolveStar(s, 0.72), idx * 24);
+        });
+      }
+
+      /**
+       * Spawns a new word-star node with connecting SVG thread, bloom animation,
+       * orbital active ring, and crisp editorial word typography.
+       */
+      function spawnWordStar(wordObj, wordIdx, instant = false) {
+        const activeStars = state.liveStars.filter((s) => !s.isDying);
+
+        // Determine cluster boundary (every 2 lines or long musical pause or maxStars cap)
+        const clusterId = Math.floor(wordObj.lineIdx / 2);
+
+        if (state.lifecycleMode === "cluster") {
+          const hitCap = activeStars.length >= state.maxStars;
+          const newVerseCluster = state.activeClusterId !== -1 && clusterId !== state.activeClusterId;
+          const longPause = wordObj.gapBefore > 2.6 && activeStars.length >= 4;
+
+          if (newVerseCluster || hitCap || longPause) {
+            dissolveAllStars(instant);
+          }
+          state.activeClusterId = clusterId;
+        } else {
+          // Continuous Trail: slide out oldest star & its thread cleanly
+          while (state.liveStars.filter((s) => !s.isDying).length >= state.maxStars) {
+            const oldest = state.liveStars.find((s) => !s.isDying);
+            if (!oldest) break;
+            dissolveStar(oldest, instant ? 0 : 0.65);
+          }
+        }
+
+        // Dim previous active star & remove its orbital ring
+        const currentActiveList = state.liveStars.filter((s) => !s.isDying);
+        const prevStar = currentActiveList.length ? currentActiveList[currentActiveList.length - 1] : null;
+        if (prevStar) {
+          prevStar.nodeG.classList.add("is-dimmed");
+          prevStar.wordEl.classList.add("is-dimmed");
+          if (prevStar.threadEl) prevStar.threadEl.classList.remove("is-fresh");
+          if (prevStar.ringEl) {
+            if (window.gsap && !instant) {
+              const rEl = prevStar.ringEl;
+              gsap.to(rEl, {
+                opacity: 0,
+                scale: 1.65,
+                duration: 0.45,
+                ease: "power2.out",
+                onComplete: () => rEl.remove(),
+              });
+            } else {
+              prevStar.ringEl.remove();
+            }
+            prevStar.ringEl = null;
+          }
+        }
+
+        const bounds = getSafeBounds();
+        const pos = computeOrganicStarPosition(wordObj, prevStar);
+        const starR = getStarRadiusPx(wordObj.tier, bounds.isNarrow);
+        const curveSign = (wordIdx % 2 === 0 ? 1 : -1);
+
+        // 1. Connecting SVG Constellation Thread from previous star
+        let threadEl = null;
+        if (prevStar) {
+          threadEl = document.createElementNS(SVG_NS, "path");
+          threadEl.setAttribute("class", "constellation-thread is-fresh");
+          const d = buildThreadPath(prevStar.x, prevStar.y, pos.x, pos.y, curveSign);
+          threadEl.setAttribute("d", d);
+          if (state.lineStyle === "dashed") {
+            threadEl.setAttribute("stroke-dasharray", "4 5");
+          }
+          el.threadsLayer.appendChild(threadEl);
+
+          if (!instant && window.gsap) {
+            const totalLen = threadEl.getTotalLength ? threadEl.getTotalLength() : 160;
+            if (state.lineStyle !== "dashed") {
+              threadEl.style.strokeDasharray = `${totalLen}`;
+              threadEl.style.strokeDashoffset = `${totalLen}`;
+              gsap.to(threadEl, {
+                strokeDashoffset: 0,
+                duration: 0.56,
+                ease: "power3.out",
+                onComplete: () => {
+                  threadEl.style.strokeDasharray = "";
+                  threadEl.style.strokeDashoffset = "";
+                },
+              });
+            } else {
+              gsap.fromTo(threadEl, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" });
+            }
+          }
+        }
+
+        // 2. Crisp 4-Pointed Diamond Star SVG Group + Active Orbital Pulse Ring
+        const nodeG = document.createElementNS(SVG_NS, "g");
+        nodeG.setAttribute("class", "star-node");
+        nodeG.setAttribute("transform", `translate(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`);
+
+        const starInner = document.createElementNS(SVG_NS, "g");
+        const starPath = document.createElementNS(SVG_NS, "path");
+        starPath.setAttribute("class", "star-shape");
+        starPath.setAttribute("d", createFourPointStarPath(starR));
+        starInner.appendChild(starPath);
+
+        // Concentric glowing orbital ring around active star
+        const ringEl = document.createElementNS(SVG_NS, "circle");
+        ringEl.setAttribute("class", "star-orbit-ring");
+        ringEl.setAttribute("cx", "0");
+        ringEl.setAttribute("cy", "0");
+        ringEl.setAttribute("r", (starR * 1.55).toFixed(1));
+
+        nodeG.appendChild(ringEl);
+        nodeG.appendChild(starInner);
+        el.nodesLayer.appendChild(nodeG);
+
+        // 3. Crisp Editorial Word Label anchored neatly beneath its star
+        const wordEl = document.createElement("div");
+        wordEl.className = `constellation-word tier-${wordObj.tier}`;
+        wordEl.textContent = wordObj.text;
+        wordEl.style.fontSize = `${pos.fontSize}px`;
+        const labelOffsetY = starR + (wordObj.tier === 2 ? 12 : 9);
+        wordEl.style.transform = `translate3d(${pos.x.toFixed(1)}px, ${(pos.y + labelOffsetY).toFixed(1)}px, 0) translate(-50%, 0)`;
+        el.wordsLayer.appendChild(wordEl);
+
+        const starObj = {
+          wordIdx,
+          clusterId,
+          nx: pos.nx,
+          ny: pos.ny,
+          baseX: pos.x,
+          baseY: pos.y,
+          x: pos.x,
+          y: pos.y,
+          estWordW: pos.estWordW,
+          estWordH: pos.estWordH,
+          tier: wordObj.tier,
+          starR,
+          labelOffsetY,
+          curveSign,
+          driftPhase: Math.random() * Math.PI * 2,
+          driftSpeed: 0.45 + Math.random() * 0.45,
+          driftAmpX: 3.5 + Math.random() * 4.5,
+          driftAmpY: 3.0 + Math.random() * 4.5,
+          nodeG,
+          starInner,
+          ringEl,
+          wordEl,
+          threadEl,
+          prevStar,
+          isDying: false,
+        };
+
+        state.liveStars.push(starObj);
+
+        // 4. GSAP + Anime.js Bloom, Rotation, Orbital Ripple & Blur-to-Sharp Word Reveal
+        if (!instant) {
+          if (window.gsap) {
+            gsap.fromTo(
+              starInner,
+              { scale: 0, rotation: 45, transformOrigin: "0px 0px", opacity: 0 },
+              {
+                scale: 1,
+                rotation: 0,
+                opacity: 1,
+                duration: wordObj.tier === 2 ? 0.78 : 0.62,
+                ease: "elastic.out(1.05, 0.58)",
+              }
+            );
+
+            gsap.fromTo(
+              wordEl,
+              { opacity: 0, filter: "blur(8px)", y: 12 },
+              {
+                opacity: 1,
+                filter: "blur(0px)",
+                y: 0,
+                duration: wordObj.tier === 2 ? 0.65 : 0.52,
+                ease: "power3.out",
+              }
+            );
+          }
+
+          if (window.anime) {
+            anime({
+              targets: ringEl,
+              scale: [0.55, 1.35],
+              opacity: [0.95, 0.25],
+              duration: 1450,
+              loop: true,
+              direction: "alternate",
+              easing: "easeInOutSine",
+            });
+          }
+
+          spawnStarSparkleBurst(pos.x, pos.y, wordObj.tier);
+        }
+      }
+
+      /**
+       * Living Zero-Gravity Drift: keeps every star, its word label, and connected
+       * SVG thread gently breathing and synchronized at 60fps.
+       */
+      function updateLivingZeroGravityDrift(ts) {
+        const t = ts * 0.001;
+        const bassPush = 1 + state.bassEnergy * 0.22;
+
+        for (let i = 0; i < state.liveStars.length; i++) {
+          const s = state.liveStars[i];
+          const dx = Math.sin(t * s.driftSpeed + s.driftPhase) * s.driftAmpX * bassPush;
+          const dy = Math.cos(t * (s.driftSpeed * 0.85) + s.driftPhase * 1.3) * s.driftAmpY * bassPush;
+
+          s.x = s.baseX + dx;
+          s.y = s.baseY + dy;
+
+          s.nodeG.setAttribute("transform", `translate(${s.x.toFixed(2)}, ${s.y.toFixed(2)})`);
+          s.wordEl.style.transform = `translate3d(${s.x.toFixed(2)}px, ${(s.y + s.labelOffsetY).toFixed(2)}px, 0) translate(-50%, 0)`;
+
+          if (s.threadEl && s.prevStar) {
+            s.threadEl.setAttribute(
+              "d",
+              buildThreadPath(s.prevStar.x, s.prevStar.y, s.x, s.y, s.curveSign)
+            );
+          }
+        }
+      }
+
+      /**
+       * Remaps all live stars cleanly into updated stage dimensions on Resize / 9:16 Toggle.
+       */
+      function remapLiveStarsToBounds() {
+        const bounds = getSafeBounds();
+        for (let i = 0; i < state.liveStars.length; i++) {
+          const s = state.liveStars[i];
+          const fontSize = getWordFontSizePx(s.tier, bounds.isNarrow);
+          const starR = getStarRadiusPx(s.tier, bounds.isNarrow);
+          const estWordW = Math.min(bounds.w * 0.44, s.wordEl.textContent.length * fontSize * 0.62 + 18);
+
+          const safeMinX = Math.min(bounds.maxX - 20, Math.max(bounds.minX, estWordW * 0.52 + 18));
+          const safeMaxX = Math.max(safeMinX + 20, Math.min(bounds.maxX, bounds.w - estWordW * 0.52 - 18));
+          const safeMinY = bounds.minY;
+          const safeMaxY = Math.max(safeMinY + 40, bounds.maxY - fontSize * 0.85);
+
+          s.baseX = safeMinX + s.nx * (safeMaxX - safeMinX);
+          s.baseY = safeMinY + s.ny * (safeMaxY - safeMinY);
+          s.x = s.baseX;
+          s.y = s.baseY;
+          s.starR = starR;
+          s.labelOffsetY = starR + (s.tier === 2 ? 12 : 9);
+          s.wordEl.style.fontSize = `${fontSize}px`;
+
+          const pathEl = s.starInner?.querySelector(".star-shape");
+          if (pathEl) pathEl.setAttribute("d", createFourPointStarPath(starR));
+          if (s.ringEl) s.ringEl.setAttribute("r", (starR * 1.55).toFixed(1));
+        }
+      }
+
+      /**
+       * Synchronizes the word-by-word constellation with current playback time.
+       */
+      function syncConstellationToTime(effectiveTime, forceRebuild = false) {
+        const words = state.snippetWords;
+        if (!words.length) return;
+
+        // Find index of the latest word whose timestamp <= effectiveTime
+        let targetIdx = -1;
+        for (let i = 0; i < words.length; i++) {
+          if (words[i].time <= effectiveTime + 0.03) {
+            targetIdx = i;
+          } else {
+            break;
+          }
+        }
+
+        if (forceRebuild || targetIdx < state.lastTriggeredWordIdx) {
+          dissolveAllStars(true);
+          state.activeClusterId = -1;
+          state.lastTriggeredWordIdx = -1;
+
+          if (targetIdx >= 0) {
+            // Reconstruct only the visible cluster/window leading up to targetIdx
+            let startIdx = Math.max(0, targetIdx - state.maxStars + 1);
+            if (state.lifecycleMode === "cluster") {
+              const targetCluster = Math.floor(words[targetIdx].lineIdx / 2);
+              while (startIdx < targetIdx && Math.floor(words[startIdx].lineIdx / 2) !== targetCluster) {
+                startIdx++;
+              }
+            }
+            for (let i = startIdx; i <= targetIdx; i++) {
+              spawnWordStar(words[i], i, i < targetIdx);
+            }
+            state.lastTriggeredWordIdx = targetIdx;
+          }
+          return;
+        }
+
+        // Normal forward playback: trigger newly crossed words one by one
+        if (targetIdx > state.lastTriggeredWordIdx) {
+          for (let i = state.lastTriggeredWordIdx + 1; i <= targetIdx; i++) {
+            spawnWordStar(words[i], i, false);
+          }
+          state.lastTriggeredWordIdx = targetIdx;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         8. PLAYBACK ENGINE, SNIPPET LOOPING & 60FPS MASTER LOOP
+         ---------------------------------------------------------- */
+      function getCurrentTime() {
+        return state.mode === "audio" ? el.audio.currentTime : state.currentTime;
+      }
+
+      function seekTo(sec) {
+        const clamped = Math.max(0, Math.min(state.duration, sec));
+        if (state.mode === "audio") {
+          try { el.audio.currentTime = clamped; } catch (_) {}
+        } else {
+          state.currentTime = clamped;
+        }
+        updateProgressUI(clamped);
+        syncConstellationToTime(clamped + state.syncOffset, true);
+      }
+
+      function updateProgressUI(nowSec) {
+        const clipLen = Math.max(0.1, state.endTime - state.startTime);
+        const rel = Math.max(0, Math.min(clipLen, nowSec - state.startTime));
+        const pct = (rel / clipLen) * 100;
+        el.progressFill.style.width = `${pct}%`;
+        el.progressKnob.style.left = `${pct}%`;
+        el.timeElapsed.textContent = formatTime(rel);
+      }
+
+      function setPlayUI(playing) {
+        state.isPlaying = playing;
+        el.playIcon.classList.toggle("hidden", playing);
+        el.pauseIcon.classList.toggle("hidden", !playing);
+        el.stageIdleHint.classList.toggle("is-hidden", playing || state.liveStars.length > 0);
+
+        if (window.anime) {
+          anime({
+            targets: el.playPauseBtn,
+            scale: [0.88, 1.07, 1],
+            duration: 380,
+            easing: "easeOutElastic(1, 0.7)",
+          });
+        }
+
+        resetIdleDockTimer();
+      }
+
+      function startPlayback() {
+        ensureAudioGraph();
+        const now = getCurrentTime();
+        if (now < state.startTime || now >= state.endTime - 0.08) {
+          seekTo(state.startTime);
+        }
+
+        if (state.mode === "audio") {
+          connectMediaElementOnce();
+          el.audio.play().then(() => {
+            setPlayUI(true);
+            state.lastFrameTs = performance.now();
+          }).catch(() => {
+            showToast("Tap Play again to start audio", "error");
+            setPlayUI(false);
+          });
+        } else {
+          setPlayUI(true);
+          startDemoSynth();
+          state.lastFrameTs = performance.now();
+        }
+      }
+
+      function pausePlayback() {
+        if (state.mode === "audio") {
+          el.audio.pause();
+        } else {
+          stopDemoSynth();
+        }
+        setPlayUI(false);
+      }
+
+      function togglePlay() {
+        if (state.isPlaying) pausePlayback();
+        else startPlayback();
+      }
+
+      function startMasterAnimationLoop() {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+
+        const frame = (ts) => {
+          // 1. Background starfield & shooting stars
+          renderStarfield(ts);
+
+          // 2. Playback progression & word-by-word constellation sync
+          if (state.isPlaying) {
+            let now;
+            if (state.mode === "audio") {
+              now = el.audio.currentTime;
+            } else {
+              const dt = Math.min(0.2, (ts - state.lastFrameTs) / 1000);
+              state.lastFrameTs = ts;
+              state.currentTime += dt;
+              now = state.currentTime;
+            }
+
+            if (now >= state.endTime) {
+              if (state.isLooping) {
+                seekTo(state.startTime);
+                now = state.startTime;
+                if (state.mode === "audio" && el.audio.paused) {
+                  el.audio.play().catch(() => {});
+                }
+              } else {
+                pausePlayback();
+                seekTo(state.startTime);
+              }
+            }
+
+            updateProgressUI(now);
+            syncConstellationToTime(now + state.syncOffset, false);
+          }
+
+          // 3. Real-time bass-reactive halo & micro equalizer
+          updateAudioReactivity();
+
+          // 4. Living Zero-Gravity Drift for spawned stars & SVG threads
+          updateLivingZeroGravityDrift(ts);
+
+          state.rafId = requestAnimationFrame(frame);
+        };
+
+        state.lastFrameTs = performance.now();
+        state.rafId = requestAnimationFrame(frame);
+      }
+
+      /* ----------------------------------------------------------
+         9. SNIPPET BOUNDS & LENIS LYRIC TIMELINE PICKER
+         ---------------------------------------------------------- */
+      function computeSnippetWords() {
+        const tol = 0.25;
+        const filtered = state.wordTimeline.filter(
+          (w) => w.time >= state.startTime - tol && w.time <= state.endTime + tol
+        );
+        state.snippetWords = filtered.length ? filtered : state.wordTimeline.slice();
+      }
+
+      function setSnippetBounds(start, end) {
+        const maxDur = Math.max(2, state.duration);
+        const s = Math.max(0, Math.min(start, maxDur - 1));
+        const e = Math.max(s + 1, Math.min(end, maxDur));
+
+        state.startTime = Number(s.toFixed(2));
+        state.endTime = Number(e.toFixed(2));
+
+        el.startTimeInput.value = formatTime(state.startTime);
+        el.endTimeInput.value = formatTime(state.endTime);
+
+        const clipLen = Math.max(0, state.endTime - state.startTime);
+        el.snippetWindowBadge.textContent = `${formatTime(state.startTime)} → ${formatTime(state.endTime)} (${Math.round(clipLen)}s)`;
+        el.timeTotal.textContent = formatTime(clipLen);
+
+        computeSnippetWords();
+        renderLyricPicker();
+        const now = getCurrentTime();
+        updateProgressUI(now);
+        if (state.isPlaying || state.liveStars.length > 0) {
+          syncConstellationToTime(now + state.syncOffset, true);
+        }
+      }
+
+      function renderLyricPicker() {
+        el.lyricsStatsBadge.textContent = `${state.lines.length} lines · ${state.wordTimeline.length} words`;
+        el.lyricPickerList.innerHTML = "";
+
+        if (!state.lines.length) {
+          el.lyricPickerList.innerHTML =
+            '<p class="p-4 text-xs text-white/45 text-center">No synced lyrics loaded yet.</p>';
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        state.lines.forEach((line, idx) => {
+          const inRange = line.time >= state.startTime - 0.25 && line.time <= state.endTime + 0.25;
+          const row = document.createElement("div");
+          row.className = `flex items-center justify-between gap-2 px-3 py-2.5 text-xs transition ${
+            inRange
+              ? "bg-violet-500/18 text-white border-l-2 border-violet-400"
+              : "text-white/55 hover:bg-white/[0.04]"
+          }`;
+
+          const left = document.createElement("button");
+          left.type = "button";
+          left.className = "flex-1 min-w-0 text-left flex items-center gap-2.5 truncate";
+          left.innerHTML = `
+            <span class="font-mono text-[10px] opacity-60 shrink-0">${formatTime(line.time)}</span>
+            <span class="truncate font-medium">${escapeHtml(line.text)}</span>
+          `;
+          left.addEventListener("click", () => {
+            const target = Math.max(0, Math.min(state.duration - 0.2, line.time - state.syncOffset));
+            if (target < state.startTime || target >= state.endTime) {
+              setSnippetBounds(target, Math.min(state.duration, target + 20));
+            }
+            seekTo(target);
+            if (!state.isPlaying) startPlayback();
+          });
+
+          const actions = document.createElement("div");
+          actions.className = "flex items-center gap-1 shrink-0";
+
+          const btnStart = document.createElement("button");
+          btnStart.type = "button";
+          btnStart.textContent = "Start";
+          btnStart.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnStart.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newStart = Math.max(0, line.time - state.syncOffset);
+            const newEnd = state.endTime <= newStart + 1.5
+              ? Math.min(state.duration, newStart + 20)
+              : state.endTime;
+            setSnippetBounds(newStart, newEnd);
+            seekTo(newStart);
+            showToast(`Snippet starts at ${formatTime(newStart)}`, "success");
+          });
+
+          const btnEnd = document.createElement("button");
+          btnEnd.type = "button";
+          btnEnd.textContent = "End";
+          btnEnd.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnEnd.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const next = state.lines[idx + 1];
+            const naturalEnd = next ? next.time - 0.05 : line.time + 4.4;
+            const newEnd = Math.min(state.duration, Math.max(1.5, naturalEnd - state.syncOffset));
+            const newStart = state.startTime >= newEnd - 1 ? Math.max(0, newEnd - 18) : state.startTime;
+            setSnippetBounds(newStart, newEnd);
+            showToast(`Snippet ends at ${formatTime(newEnd)}`, "success");
+          });
+
+          actions.appendChild(btnStart);
+          actions.appendChild(btnEnd);
+          row.appendChild(left);
+          row.appendChild(actions);
+          frag.appendChild(row);
+        });
+
+        el.lyricPickerList.appendChild(frag);
+        state.lenisPicker?.resize();
+      }
+
+      /* ----------------------------------------------------------
+         10. LOCAL MP3 UPLOAD & LRCLIB.NET API INTEGRATION
+         ---------------------------------------------------------- */
+      function handleAudioFile(file) {
+        if (!file) return;
+        const ok = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|aac|flac)$/i.test(file.name);
+        if (!ok) {
+          showToast("Please upload a valid MP3, WAV, M4A, or OGG file", "error");
+          return;
+        }
+
+        pausePlayback();
+        stopDemoSynth();
+
+        if (state.audioObjectUrl) URL.revokeObjectURL(state.audioObjectUrl);
+        state.audioObjectUrl = URL.createObjectURL(file);
+        state.mode = "audio";
+        el.audio.src = state.audioObjectUrl;
+        el.audio.load();
+
+        el.audioDropLabel.textContent = file.name;
+        el.audioFileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · Loaded locally`;
+        el.audioStatusBadge.textContent = "Local Audio Active";
+        el.audioStatusBadge.className = "text-[11px] font-semibold text-emerald-400";
+
+        if (el.titleInput.value === "Too Close To The Stars") {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+          el.titleInput.value = cleanName;
+          el.hudTitle.textContent = cleanName;
+          el.artistInput.value = "Local Audio";
+          el.hudArtist.textContent = "Local Audio";
+        }
+
+        showToast(`Loaded "${file.name}"`, "success");
+      }
+
+      el.audio.addEventListener("loadedmetadata", () => {
+        if (!Number.isFinite(el.audio.duration) || el.audio.duration <= 0) return;
+        state.duration = el.audio.duration;
+        if (state.endTime > state.duration || state.endTime === 18.2) {
+          const smartEnd = Math.min(state.duration, state.startTime + 24);
+          setSnippetBounds(0, smartEnd);
+        } else {
+          setSnippetBounds(state.startTime, state.endTime);
+        }
+        seekTo(state.startTime);
+      });
+
+      el.audio.addEventListener("ended", () => {
+        if (state.isLooping) {
+          seekTo(state.startTime);
+          el.audio.play().catch(() => {});
+        } else {
+          pausePlayback();
+          seekTo(state.startTime);
+        }
+      });
+
+      function handleCoverFile(file) {
+        if (!file || !file.type.startsWith("image/")) {
+          showToast("Please choose an image file", "error");
+          return;
+        }
+        if (state.coverObjectUrl) URL.revokeObjectURL(state.coverObjectUrl);
+        state.coverObjectUrl = URL.createObjectURL(file);
+
+        el.hudCoverImg.src = state.coverObjectUrl;
+        el.hudCoverImg.classList.remove("hidden");
+        el.hudCoverStar.classList.add("hidden");
+
+        el.drawerCoverImg.src = state.coverObjectUrl;
+        el.drawerCoverImg.classList.remove("hidden");
+        el.drawerCoverPlaceholder.classList.add("hidden");
+        showToast("Cover thumbnail updated", "success");
+      }
+
+      function applyTrackData(data, sourceName = "LRCLIB") {
+        if (data.trackName) {
+          el.titleInput.value = data.trackName;
+          el.hudTitle.textContent = data.trackName;
+        }
+        if (data.artistName) {
+          el.artistInput.value = data.artistName;
+          el.hudArtist.textContent = data.artistName;
+        }
+
+        if (data.syncedLyrics) {
+          const parsed = parseEnhancedLRC(data.syncedLyrics);
+          if (!parsed.words.length) {
+            showToast("Track had empty synced timestamps", "error");
+            return false;
+          }
+
+          state.lines = parsed.lines;
+          state.wordTimeline = parsed.words;
+          el.manualLrcInput.value = data.syncedLyrics;
+          dissolveAllStars(true);
+          state.lastTriggeredWordIdx = -1;
+          state.activeClusterId = -1;
+
+          if (state.mode === "demo") {
+            const lastT = parsed.words[parsed.words.length - 1].time;
+            state.duration = Math.max(data.duration || 0, lastT + 4.5, 22);
+            const firstT = parsed.lines[0]?.time || 0;
+            setSnippetBounds(firstT, Math.min(state.duration, firstT + 22));
+          } else {
+            const hasInside = parsed.lines.some((l) => l.time >= state.startTime && l.time <= state.endTime);
+            if (!hasInside && parsed.lines[0] && parsed.lines[0].time < state.duration - 2) {
+              setSnippetBounds(parsed.lines[0].time, Math.min(state.duration, parsed.lines[0].time + 22));
+            } else {
+              computeSnippetWords();
+              renderLyricPicker();
+            }
+          }
+
+          seekTo(state.startTime);
+          el.lrclibStatusText.innerHTML = `<span class="text-emerald-400 font-semibold">Loaded ${parsed.lines.length} lines (${parsed.words.length} star words) from ${escapeHtml(sourceName)}!</span>`;
+          showToast(`Loaded ${parsed.words.length} star words from ${sourceName}`, "success");
+          return true;
+        } else if (data.plainLyrics) {
+          el.manualLrcInput.value = data.plainLyrics;
+          switchLrcTab("manual");
+          el.lrclibStatusText.innerHTML = `<span class="text-amber-400">Plain lyrics only (no timestamps). Try Search for a synced entry or add timestamps manually.</span>`;
+          showToast("No synced timestamps on this entry", "error");
+          return false;
+        }
+
+        el.lrclibStatusText.innerHTML = `<span class="text-rose-400">No lyrics found on this track.</span>`;
+        showToast("No lyrics available", "error");
+        return false;
+      }
+
+      async function fetchLrclibByUrl() {
+        const raw = el.lrclibUrlInput.value.trim();
+        if (!raw) {
+          showToast("Paste an lrclib.net/tracks/{id} link or numeric ID", "error");
+          return;
+        }
+
+        const idMatch = raw.match(/(?:tracks|get)\/(\d+)/i) || raw.match(/^(\d+)$/) || raw.match(/(\d{4,})/);
+        if (!idMatch) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">Invalid LRCLIB link. Example: https://lrclib.net/tracks/28185115</span>`;
+          showToast("Invalid LRCLIB link or ID", "error");
+          return;
+        }
+
+        const trackId = idMatch[1];
+        el.fetchLrclibBtn.disabled = true;
+        el.fetchBtnLabel.textContent = "...";
+        el.fetchSpinner.classList.remove("hidden");
+        el.lrclibStatusText.textContent = `Fetching track #${trackId} from lrclib.net...`;
+
+        try {
+          const resp = await fetch(`https://lrclib.net/api/get/${trackId}`, {
+            headers: { Accept: "application/json" },
+          });
+          if (!resp.ok) {
+            throw new Error(resp.status === 404 ? `Track #${trackId} not found on LRCLIB.` : `HTTP ${resp.status}`);
+          }
+          const data = await resp.json();
+          applyTrackData(data, `LRCLIB #${trackId}`);
+        } catch (err) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">${escapeHtml(err.message || "Network error")}</span>`;
+          showToast(err.message || "Failed to fetch from LRCLIB", "error");
+        } finally {
+          el.fetchLrclibBtn.disabled = false;
+          el.fetchBtnLabel.textContent = "Fetch";
+          el.fetchSpinner.classList.add("hidden");
+        }
+      }
+
+      async function searchLrclib() {
+        const q = el.lrclibSearchInput.value.trim();
+        if (!q) {
+          showToast("Enter a song title or artist", "error");
+          return;
+        }
+
+        el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/55 text-center py-4">Searching LRCLIB for "${escapeHtml(q)}"...</p>`;
+        try {
+          const resp = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, {
+            headers: { Accept: "application/json" },
+          });
+          if (!resp.ok) throw new Error(`Search failed (${resp.status})`);
+          const list = await resp.json();
+
+          if (!Array.isArray(list) || !list.length) {
+            el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/45 text-center py-4">No matching tracks found.</p>`;
+            return;
+          }
+
+          list.sort((a, b) => (b.syncedLyrics ? 1 : 0) - (a.syncedLyrics ? 1 : 0));
+          el.searchResultsBox.innerHTML = "";
+          const frag = document.createDocumentFragment();
+
+          list.slice(0, 16).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const hasSync = Boolean(item.syncedLyrics);
+            btn.className = "w-full text-left p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] transition flex items-center justify-between gap-2";
+            btn.innerHTML = `
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${escapeHtml(item.trackName || "Untitled")}</p>
+                <p class="text-[11px] text-white/50 truncate">${escapeHtml(item.artistName || "Unknown")} · ${formatTime(item.duration || 0)}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                hasSync ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/25" : "bg-white/10 text-white/45"
+              }">${hasSync ? "Synced" : "Plain"}</span>
+            `;
+            btn.addEventListener("click", () => {
+              el.lrclibUrlInput.value = `https://lrclib.net/tracks/${item.id}`;
+              applyTrackData(item, `LRCLIB #${item.id}`);
+            });
+            frag.appendChild(btn);
+          });
+
+          el.searchResultsBox.appendChild(frag);
+        } catch (err) {
+          el.searchResultsBox.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-4">${escapeHtml(err.message)}</p>`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         11. UI CONTROLS: AURA, FONTS, DRAWER, CLEAN MODE, REEL, LENIS
+         ---------------------------------------------------------- */
+      function setAuraTheme(auraId) {
+        state.aura = auraId;
+        document.body.setAttribute("data-aura", auraId);
+        const meta = AURA_LIST.find((a) => a.id === auraId) || AURA_LIST[0];
+        el.quickAuraDot.className = `w-2.5 h-2.5 rounded-full ${meta.dot} shadow-[0_0_10px_currentColor]`;
+        el.quickAuraName.textContent = meta.name;
+
+        el.auraBtns.forEach((btn) => {
+          const active = btn.dataset.auraPick === auraId;
+          btn.classList.toggle("bg-white/14", active);
+          btn.classList.toggle("border-white/40", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+      }
+
+      function setFontPairing(fontId) {
+        state.font = fontId;
+        document.body.setAttribute("data-font", fontId);
+        el.fontBtns.forEach((btn) => {
+          const active = btn.dataset.fontPick === fontId;
+          btn.classList.toggle("bg-white/14", active);
+          btn.classList.toggle("border-white/40", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+      }
+
+      function setLifecycleMode(mode) {
+        state.lifecycleMode = mode;
+        el.lifecycleBtns.forEach((btn) => {
+          const active = btn.dataset.lifecycle === mode;
+          btn.className = `lifecycle-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+        showToast(mode === "cluster" ? "Constellation Clusters mode" : "Continuous Star Trail mode");
+      }
+
+      function setLineStyle(style) {
+        state.lineStyle = style;
+        el.lineStyleBtns.forEach((btn) => {
+          const active = btn.dataset.lineStyle === style;
+          btn.className = `linestyle-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+        // Update live threads immediately
+        state.liveStars.forEach((s) => {
+          if (!s.threadEl) return;
+          if (style === "dashed") s.threadEl.setAttribute("stroke-dasharray", "4 5");
+          else s.threadEl.removeAttribute("stroke-dasharray");
+        });
+      }
+
+      function switchLrcTab(tab) {
+        el.lrcTabUrl.classList.toggle("hidden", tab !== "url");
+        el.lrcTabSearch.classList.toggle("hidden", tab !== "search");
+        el.lrcTabManual.classList.toggle("hidden", tab !== "manual");
+        el.lrcTabBtns.forEach((btn) => {
+          const active = btn.dataset.lrcTab === tab;
+          btn.className = `lrc-tab-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setSyncOffset(val) {
+        const clamped = Math.max(-5, Math.min(5, Math.round(val * 20) / 20));
+        state.syncOffset = clamped;
+        el.offsetSlider.value = String(clamped);
+        el.offsetLabel.textContent = `${clamped > 0 ? "+" : ""}${clamped.toFixed(2)}s`;
+        syncConstellationToTime(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !state.isDrawerOpen;
+        state.isDrawerOpen = open;
+        el.drawerBackdrop.style.pointerEvents = open ? "auto" : "none";
+
+        if (window.gsap) {
+          gsap.to(el.studioDrawer, {
+            x: open ? "0%" : "105%",
+            duration: 0.54,
+            ease: open ? "power3.out" : "power3.inOut",
+          });
+          gsap.to(el.drawerBackdrop, {
+            opacity: open ? 1 : 0,
+            duration: 0.4,
+            ease: "power2.out",
+          });
+        } else {
+          el.studioDrawer.style.transform = open ? "translateX(0)" : "translateX(105%)";
+          el.drawerBackdrop.style.opacity = open ? "1" : "0";
+        }
+
+        if (open) {
+          el.bottomDock.classList.remove("is-idle-dim");
+          setTimeout(() => {
+            state.lenisDrawer?.resize();
+            state.lenisPicker?.resize();
+          }, 120);
+        } else {
+          resetIdleDockTimer();
+        }
+      }
+
+      function toggleCleanMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isCleanMode;
+        state.isCleanMode = next;
+        if (next && state.isDrawerOpen) toggleDrawer(false);
+        document.body.classList.toggle("clean-mode", next);
+
+        if (window.gsap) {
+          gsap.to(el.topHud, {
+            opacity: next ? 0 : 1,
+            y: next ? -22 : 0,
+            duration: 0.42,
+            ease: "power3.out",
+          });
+          gsap.to(el.bottomDock, {
+            opacity: next ? 0 : 1,
+            y: next ? 28 : 0,
+            duration: 0.44,
+            ease: "power3.out",
+            onStart: () => {
+              if (!next) el.bottomDock.style.pointerEvents = "auto";
+            },
+            onComplete: () => {
+              if (next) el.bottomDock.style.pointerEvents = "none";
+            },
+          });
+        } else {
+          el.topHud.style.opacity = next ? "0" : "1";
+          el.bottomDock.style.opacity = next ? "0" : "1";
+        }
+
+        if (next) {
+          showToast("Clean Mode — Click/tap anywhere or press H to restore");
+        }
+      }
+
+      function toggleReelMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isReelMode;
+        state.isReelMode = next;
+        document.body.classList.toggle("reel-mode", next);
+        el.reelLabel.textContent = next ? "9:16" : "16:9";
+        showToast(next ? "9:16 Vertical Reel Frame" : "Full 16:9 Cosmic Stage");
+      }
+
+      function resetIdleDockTimer() {
+        clearTimeout(state.idleTimer);
+        el.bottomDock.classList.remove("is-idle-dim");
+        if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+          state.idleTimer = setTimeout(() => {
+            if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+              el.bottomDock.classList.add("is-idle-dim");
+            }
+          }, 3400);
+        }
+      }
+
+      function initLenisSmoothScroll() {
+        const isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+        if (!window.Lenis || isTouch) return;
+
+        state.lenisDrawer = new Lenis({
+          wrapper: el.drawerScrollWrapper,
+          content: el.drawerScrollContent,
+          duration: 1.15,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+        });
+
+        state.lenisPicker = new Lenis({
+          wrapper: el.lyricPickerWrapper,
+          content: el.lyricPickerList,
+          duration: 1.05,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+        });
+
+        el.lyricPickerWrapper.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+
+        if (window.gsap) {
+          gsap.ticker.add((time) => {
+            state.lenisDrawer?.raf(time * 1000);
+            state.lenisPicker?.raf(time * 1000);
+          });
+          gsap.ticker.lagSmoothing(0);
+        }
+      }
+
+      function initStageResizeObserver() {
+        let timer = null;
+        const onResize = () => {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            resizeStarfield();
+            remapLiveStarsToBounds();
+          }, 90);
+        };
+
+        if (window.ResizeObserver) {
+          state.resizeObserver = new ResizeObserver(onResize);
+          state.resizeObserver.observe(el.stageFrame);
+        }
+        window.addEventListener("resize", onResize);
+        window.addEventListener("orientationchange", onResize);
+      }
+
+      function runCinematicIntro() {
+        if (!window.gsap) return;
+        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+        tl.from(el.auraEdgeHalo, { opacity: 0, duration: 1.2 }, 0)
+          .from(el.topHud, { opacity: 0, y: -18, duration: 0.7 }, 0.2)
+          .from(el.bottomDock, { opacity: 0, y: 24, duration: 0.75 }, 0.28);
+
+        // Render a poetic static preview constellation ("We were too close to the stars") immediately on load
+        // so the stage looks magical even before pressing Play!
+        const previewCount = Math.min(7, state.snippetWords.length);
+        for (let i = 0; i < previewCount; i++) {
+          setTimeout(() => {
+            if (!state.isPlaying && state.lastTriggeredWordIdx < i) {
+              spawnWordStar(state.snippetWords[i], i, false);
+              state.lastTriggeredWordIdx = i;
+            }
+          }, 260 + i * 170);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         12. EVENT LISTENERS & KEYBOARD SHORTCUTS
+         ---------------------------------------------------------- */
+      el.playPauseBtn.addEventListener("click", () => {
+        if (!state.isPlaying && state.currentTime === 0 && state.lastTriggeredWordIdx >= 0) {
+          // Clear static intro preview cleanly when user initiates first play
+          dissolveAllStars(true);
+          state.lastTriggeredWordIdx = -1;
+          state.activeClusterId = -1;
+        }
+        togglePlay();
+      });
+
+      el.restartBtn.addEventListener("click", () => {
+        seekTo(state.startTime);
+        if (!state.isPlaying) startPlayback();
+      });
+
+      el.loopBtn.addEventListener("click", () => {
+        state.isLooping = !state.isLooping;
+        el.loopBtn.classList.toggle("text-violet-300", state.isLooping);
+        el.loopBtn.classList.toggle("bg-white/10", state.isLooping);
+        el.loopBtn.classList.toggle("text-white/40", !state.isLooping);
+        showToast(state.isLooping ? "Snippet Loop ON" : "Snippet Loop OFF");
+      });
+
+      // Scrubber (Mouse + Touch)
+      function scrubProgress(clientX) {
+        const rect = el.progressTrack.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        seekTo(state.startTime + ratio * (state.endTime - state.startTime));
+      }
+      el.progressTrack.addEventListener("click", (e) => scrubProgress(e.clientX));
+      el.progressTrack.addEventListener("touchstart", (e) => {
+        if (e.touches[0]) scrubProgress(e.touches[0].clientX);
+      }, { passive: true });
+
+      // Top HUD Buttons
+      el.openStudioBtn.addEventListener("click", () => toggleDrawer(true));
+      el.trackPillBtn.addEventListener("click", () => toggleDrawer(true));
+      el.closeStudioBtn.addEventListener("click", () => toggleDrawer(false));
+      el.drawerBackdrop.addEventListener("click", () => toggleDrawer(false));
+
+      el.quickAuraBtn.addEventListener("click", () => {
+        const idx = AURA_LIST.findIndex((a) => a.id === state.aura);
+        const next = AURA_LIST[(idx + 1) % AURA_LIST.length];
+        setAuraTheme(next.id);
+        showToast(`${next.name} Aura`);
+      });
+
+      el.reelToggleBtn.addEventListener("click", () => toggleReelMode());
+      el.cleanModeBtn.addEventListener("click", () => toggleCleanMode(true));
+      el.cleanExitBtn.addEventListener("click", () => toggleCleanMode(false));
+
+      // Clicking/tapping anywhere on the stage in Clean Mode restores UI
+      el.stageFrame.addEventListener("click", () => {
+        if (state.isCleanMode) toggleCleanMode(false);
+      });
+
+      // Wake idle dock on pointer/touch activity
+      ["pointermove", "touchstart", "keydown"].forEach((evt) => {
+        window.addEventListener(evt, resetIdleDockTimer, { passive: true });
+      });
+
+      // Audio & Cover Upload + Drag-and-Drop
+      el.audioFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleAudioFile(e.target.files[0]);
+      });
+      ["dragenter", "dragover"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.add("border-violet-400", "bg-white/[0.08]");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.remove("border-violet-400", "bg-white/[0.08]");
+        });
+      });
+      el.audioDropZone.addEventListener("drop", (e) => {
+        if (e.dataTransfer?.files?.[0]) handleAudioFile(e.dataTransfer.files[0]);
+      });
+
+      el.coverFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleCoverFile(e.target.files[0]);
+      });
+
+      el.titleInput.addEventListener("input", () => {
+        el.hudTitle.textContent = el.titleInput.value.trim() || "Untitled";
+      });
+      el.artistInput.addEventListener("input", () => {
+        el.hudArtist.textContent = el.artistInput.value.trim() || "Unknown Artist";
+      });
+
+      // LRCLIB Controls
+      el.lrcTabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => switchLrcTab(btn.dataset.lrcTab));
+      });
+      el.fetchLrclibBtn.addEventListener("click", fetchLrclibByUrl);
+      el.lrclibUrlInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") fetchLrclibByUrl();
+      });
+      el.searchLrclibBtn.addEventListener("click", searchLrclib);
+      el.lrclibSearchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") searchLrclib();
+      });
+      el.applyManualLrcBtn.addEventListener("click", () => {
+        const parsed = parseEnhancedLRC(el.manualLrcInput.value);
+        if (!parsed.words.length) {
+          showToast("Include [mm:ss.xx] timestamps before lyric lines", "error");
+          return;
+        }
+        state.lines = parsed.lines;
+        state.wordTimeline = parsed.words;
+        computeSnippetWords();
+        renderLyricPicker();
+        syncConstellationToTime(getCurrentTime() + state.syncOffset, true);
+        showToast(`Applied ${parsed.words.length} star words`, "success");
+      });
+
+      // Snippet Start/End Time Inputs
+      el.startTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.startTimeInput.value);
+        if (p === null) {
+          el.startTimeInput.value = formatTime(state.startTime);
+          showToast("Use M:SS format (e.g. 0:45)", "error");
+          return;
+        }
+        setSnippetBounds(p, Math.max(p + 1, state.endTime));
+        seekTo(state.startTime);
+      });
+      el.endTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.endTimeInput.value);
+        if (p === null) {
+          el.endTimeInput.value = formatTime(state.endTime);
+          showToast("Use M:SS format (e.g. 1:15)", "error");
+          return;
+        }
+        setSnippetBounds(Math.min(state.startTime, p - 1), p);
+      });
+      el.useNowStartBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(now, Math.max(now + 2, state.endTime));
+        showToast(`Start set to ${formatTime(now)}`);
+      });
+      el.useNowEndBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(Math.min(state.startTime, Math.max(0, now - 2)), Math.max(1.5, now));
+        showToast(`End set to ${formatTime(now)}`);
+      });
+      el.resetFullSongBtn.addEventListener("click", () => {
+        setSnippetBounds(0, state.duration);
+        showToast("Snippet reset to full song");
+      });
+
+      // Sync Offset Controls
+      el.offsetSlider.addEventListener("input", () => setSyncOffset(parseFloat(el.offsetSlider.value)));
+      el.offsetMinusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset - 0.1));
+      el.offsetPlusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset + 0.1));
+      el.offsetResetBtn.addEventListener("click", () => setSyncOffset(0));
+
+      // Section 4 Visual Controls
+      el.auraBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setAuraTheme(btn.dataset.auraPick));
+      });
+      el.fontBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setFontPairing(btn.dataset.fontPick));
+      });
+      el.lifecycleBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setLifecycleMode(btn.dataset.lifecycle));
+      });
+      el.lineStyleBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setLineStyle(btn.dataset.lineStyle));
+      });
+
+      el.maxStarsSlider.addEventListener("input", () => {
+        state.maxStars = parseInt(el.maxStarsSlider.value, 10);
+        el.maxStarsVal.textContent = String(state.maxStars);
+      });
+
+      el.glowScaleSlider.addEventListener("input", () => {
+        state.glowScale = parseFloat(el.glowScaleSlider.value);
+        el.glowScaleVal.textContent = `${state.glowScale.toFixed(2)}×`;
+        remapLiveStarsToBounds();
+      });
+
+      // Global Keyboard Shortcuts
+      window.addEventListener("keydown", (e) => {
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "TEXTAREA";
+
+        if (e.key === "Escape") {
+          if (state.isCleanMode) toggleCleanMode(false);
+          else if (state.isDrawerOpen) toggleDrawer(false);
+          return;
+        }
+        if (typing) return;
+
+        const key = e.key.toLowerCase();
+        if (e.code === "Space") {
+          e.preventDefault();
+          if (!state.isPlaying && state.currentTime === 0 && state.lastTriggeredWordIdx >= 0) {
+            dissolveAllStars(true);
+            state.lastTriggeredWordIdx = -1;
+            state.activeClusterId = -1;
+          }
+          togglePlay();
+        } else if (key === "h") {
+          toggleCleanMode();
+        } else if (key === "s") {
+          toggleDrawer();
+        } else if (key === "r") {
+          seekTo(state.startTime);
+          if (!state.isPlaying) startPlayback();
+        }
+      });
+
+      /* ----------------------------------------------------------
+         13. BOOTSTRAP APPLICATION
+         ---------------------------------------------------------- */
+      function init() {
+        const parsed = parseEnhancedLRC(DEMO_LRC);
+        state.lines = parsed.lines;
+        state.wordTimeline = parsed.words;
+        el.manualLrcInput.value = DEMO_LRC;
+
+        setAuraTheme("violet");
+        setFontPairing("celestial");
+        setSnippetBounds(0, 18.2);
+
+        initStarfield();
+        initLenisSmoothScroll();
+        initStageResizeObserver();
+        startMasterAnimationLoop();
+        runCinematicIntro();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

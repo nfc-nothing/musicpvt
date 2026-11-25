@@ -1,0 +1,3192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Fisheye Lyric Studio — Optical Lens &amp; Smooth Scroll Visualizer</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Premium Animation Libraries: GSAP 3, Anime.js, Lenis -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+  <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+
+  <!-- Curated Unique Editorial & Display Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,800;1,9..144,700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Syne:wght@700;800&family=Unbounded:wght@700;800;900&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       1. THEME DESIGN TOKENS (5 CURATED OPTICAL PALETTES)
+       ============================================================ */
+    :root {
+      --bg-void: #030201;
+      --accent: #f59e0b;
+      --accent-soft: rgba(245, 158, 11, 0.22);
+      --accent-glow: rgba(245, 158, 11, 0.55);
+      --hud-bg: rgba(12, 10, 9, 0.64);
+      --hud-border: rgba(255, 232, 198, 0.14);
+    }
+
+    [data-theme="crimson"] {
+      --bg-void: #050102;
+      --accent: #ff3b5c;
+      --accent-soft: rgba(255, 59, 92, 0.22);
+      --accent-glow: rgba(255, 59, 92, 0.55);
+      --hud-border: rgba(255, 200, 210, 0.14);
+    }
+
+    [data-theme="violet"] {
+      --bg-void: #04020a;
+      --accent: #a855f7;
+      --accent-soft: rgba(168, 85, 247, 0.22);
+      --accent-glow: rgba(168, 85, 247, 0.55);
+      --hud-border: rgba(232, 210, 255, 0.14);
+    }
+
+    [data-theme="acid"] {
+      --bg-void: #020502;
+      --accent: #a3e635;
+      --accent-soft: rgba(163, 230, 53, 0.22);
+      --accent-glow: rgba(163, 230, 53, 0.52);
+      --hud-border: rgba(226, 255, 194, 0.14);
+    }
+
+    [data-theme="cyan"] {
+      --bg-void: #010408;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.22);
+      --accent-glow: rgba(56, 189, 248, 0.55);
+      --hud-border: rgba(205, 242, 255, 0.14);
+    }
+
+    /* ============================================================
+       2. GLOBAL BASE & RESPONSIVE STAGE FRAME (16:9 & 9:16 REEL)
+       ============================================================ */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #020202;
+      color: #ffffff;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+
+    .studio-desk {
+      position: relative;
+      width: 100vw;
+      max-width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 48%, #0e0b09 0%, #020202 100%);
+      overflow: hidden;
+    }
+
+    .stage-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-void);
+      overflow: hidden;
+      transition:
+        width 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.6s ease;
+    }
+
+    body.reel-mode .stage-frame {
+      height: min(86dvh, 800px);
+      width: min(92vw, calc(min(86dvh, 800px) * 0.5625));
+      border-radius: 36px;
+      box-shadow:
+        0 34px 100px rgba(0, 0, 0, 0.92),
+        0 0 90px -22px var(--accent-glow);
+    }
+
+    #fisheyeCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ============================================================
+       3. FROSTED GLASS HUD, BOTTOM DOCK & STUDIO DRAWER
+       ============================================================ */
+    .glass-hud {
+      background: var(--hud-bg);
+      backdrop-filter: blur(28px) saturate(165%);
+      -webkit-backdrop-filter: blur(28px) saturate(165%);
+      border: 1px solid var(--hud-border);
+      box-shadow:
+        0 18px 46px rgba(0, 0, 0, 0.72),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    }
+
+    .top-hud {
+      position: fixed;
+      top: max(0.85rem, calc(env(safe-area-inset-top) + 0.4rem));
+      left: max(0.85rem, env(safe-area-inset-left));
+      right: max(0.85rem, env(safe-area-inset-right));
+      z-index: 32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .bottom-dock {
+      position: fixed;
+      bottom: max(0.9rem, calc(env(safe-area-inset-bottom) + 0.45rem));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      max-width: calc(100vw - 1rem);
+      transition: opacity 0.45s ease;
+    }
+
+    .bottom-dock.is-idle-dim {
+      opacity: 0.28;
+    }
+    .bottom-dock.is-idle-dim:hover,
+    .bottom-dock.is-idle-dim:focus-within {
+      opacity: 1;
+    }
+
+    /* Hide scrollbar inside horizontal dock on tiny screens */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Micro Equalizer Bars */
+    .micro-eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .micro-eq-bar {
+      width: 2.5px;
+      height: 3.5px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      will-change: height;
+    }
+
+    /* Discrete Corner Exit for Clean Mode */
+    .clean-exit-btn {
+      position: fixed;
+      top: max(0.9rem, env(safe-area-inset-top));
+      right: max(0.9rem, env(safe-area-inset-right));
+      z-index: 48;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    body.clean-mode .clean-exit-btn {
+      pointer-events: auto;
+    }
+    body.clean-mode .clean-exit-btn:hover,
+    body.clean-mode .clean-exit-btn:focus-visible {
+      opacity: 0.95;
+    }
+
+    /* Studio Drawer */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(2, 2, 4, 0.62);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .studio-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(100vw, 464px);
+      height: 100dvh;
+      z-index: 60;
+      background: rgba(11, 10, 10, 0.88);
+      backdrop-filter: blur(36px) saturate(175%);
+      -webkit-backdrop-filter: blur(36px) saturate(175%);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: -28px 0 88px rgba(0, 0, 0, 0.84);
+      transform: translateX(105%);
+      display: flex;
+      flex-direction: column;
+      user-select: text;
+    }
+
+    .lenis-scroll {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+    }
+    .lenis-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .lenis-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .lenis-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+    }
+
+    /* Sleek Sliders */
+    input[type="range"].studio-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    input[type="range"].studio-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* Toast Notification */
+    .toast-pill {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-28px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+      .studio-drawer {
+        width: 100vw;
+        border-left: none;
+      }
+    }
+  </style>
+</head>
+<body data-theme="amber">
+
+  <!-- Hidden HTML5 Audio Element -->
+  <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+
+  <!-- Anime.js Toast Notification -->
+  <div id="toastPill" class="toast-pill glass-hud px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs sm:text-sm font-medium text-white max-w-[92vw]">
+    <span id="toastDot" class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+    <span id="toastText" class="truncate">Ready</span>
+  </div>
+
+  <!-- ============================================================
+       TOP FLOATING HUD
+       ============================================================ -->
+  <header id="topHud" class="top-hud">
+    <!-- Top-Left Track Info Pill + Micro Equalizer -->
+    <button
+      id="trackPillBtn"
+      type="button"
+      title="Open Studio Settings (S)"
+      class="pointer-events-auto glass-hud pl-2.5 pr-3.5 py-1.5 rounded-full flex items-center gap-2.5 max-w-[56vw] sm:max-w-[300px] hover:bg-white/[0.08] transition text-left"
+    >
+      <div class="relative w-7 h-7 rounded-full overflow-hidden shrink-0 border border-white/20 bg-gradient-to-br from-amber-500/80 to-stone-950 flex items-center justify-center">
+        <img id="hudCoverImg" src="" alt="" class="hidden w-full h-full object-cover" />
+        <svg id="hudCoverGlyph" class="w-3.5 h-3.5 text-amber-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="12" cy="12" r="8" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <p id="hudTitle" class="text-[11px] sm:text-xs font-bold text-white truncate leading-tight">Midnight Velvet</p>
+        <p id="hudArtist" class="text-[10px] text-white/55 truncate leading-tight mt-0.5">Optical Demo Synth</p>
+      </div>
+
+      <div class="micro-eq pl-1 shrink-0" aria-hidden="true">
+        <span class="micro-eq-bar" data-eq="0"></span>
+        <span class="micro-eq-bar" data-eq="1"></span>
+        <span class="micro-eq-bar" data-eq="2"></span>
+        <span class="micro-eq-bar" data-eq="3"></span>
+      </div>
+    </button>
+
+    <!-- Top-Right Action Pills -->
+    <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+      <!-- WebGL / 2D Optical Badge -->
+      <span
+        id="rendererBadge"
+        class="hidden md:inline-flex glass-hud px-2.5 py-1.5 rounded-full text-[10px] font-mono font-semibold text-white/65"
+      >
+        WebGL Lens
+      </span>
+
+      <!-- Clean Screen-Record Mode (H) -->
+      <button
+        id="cleanModeBtn"
+        type="button"
+        title="Clean Screen-Record Mode (Press H)"
+        class="glass-hud w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
+      <!-- Open Studio Drawer (S) -->
+      <button
+        id="openStudioBtn"
+        type="button"
+        title="Open Studio (Press S)"
+        class="glass-hud h-9 px-3 sm:px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition active:scale-95"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="2" y1="14" x2="6" y2="14" />
+          <line x1="10" y1="8" x2="14" y2="8" />
+          <line x1="18" y1="16" x2="22" y2="16" />
+        </svg>
+        <span>Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Discrete Corner Exit for Clean Mode -->
+  <button
+    id="cleanExitBtn"
+    type="button"
+    title="Exit Clean Mode (H or Esc)"
+    class="clean-exit-btn glass-hud px-3.5 py-1.5 rounded-full text-xs font-semibold text-white/90"
+  >
+    Exit Clean Mode
+  </button>
+
+  <!-- ============================================================
+       MAIN WEBGL OPTICAL FISHEYE STAGE
+       ============================================================ -->
+  <div class="studio-desk">
+    <main id="stageFrame" class="stage-frame">
+      <canvas id="fisheyeCanvas" aria-label="Optical Fisheye Synced Lyric Visualizer"></canvas>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM FLOATING GLASS DOCK
+       ============================================================ -->
+  <nav id="bottomDock" class="bottom-dock glass-hud px-2.5 sm:px-3.5 py-2 rounded-full flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+    <!-- Restart Snippet (R) -->
+    <button
+      id="restartBtn"
+      type="button"
+      title="Restart Snippet (Press R)"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/10 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+        <path d="M3 3v5h5" />
+      </svg>
+    </button>
+
+    <!-- Play / Pause (Space) -->
+    <button
+      id="playPauseBtn"
+      type="button"
+      title="Play / Pause (Space)"
+      class="w-10 h-10 rounded-full shrink-0 bg-white text-black hover:scale-105 active:scale-95 transition flex items-center justify-center shadow-[0_0_24px_rgba(255,255,255,0.28)]"
+    >
+      <svg id="playIcon" class="w-4 h-4 translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="6 4 20 12 6 20 6 4" />
+      </svg>
+      <svg id="pauseIcon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4.5" height="16" rx="1.2" />
+        <rect x="13.5" y="4" width="4.5" height="16" rx="1.2" />
+      </svg>
+    </button>
+
+    <!-- Scrubber & Time -->
+    <div class="flex items-center gap-2 min-w-[110px] sm:min-w-[165px] px-1">
+      <span id="timeElapsed" class="text-[11px] font-mono text-white/75 tabular-nums shrink-0">0:00</span>
+      <div id="progressTrack" class="relative flex-1 h-6 flex items-center cursor-pointer group">
+        <div class="w-full h-[3.5px] rounded-full bg-white/16 overflow-hidden">
+          <div
+            id="progressFill"
+            class="h-full rounded-full bg-gradient-to-r from-[color:var(--accent)] to-white shadow-[0_0_12px_var(--accent-glow)]"
+            style="width: 0%"
+          ></div>
+        </div>
+        <div
+          id="progressKnob"
+          class="absolute w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_#ffffff] -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style="left: 0%"
+        ></div>
+      </div>
+      <span id="timeTotal" class="text-[11px] font-mono text-white/45 tabular-nums shrink-0">0:24</span>
+    </div>
+
+    <!-- Loop Toggle -->
+    <button
+      id="loopBtn"
+      type="button"
+      title="Loop Active Snippet"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-[color:var(--accent)] bg-white/10 hover:bg-white/16 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m17 2 4 4-4 4" />
+        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+        <path d="m7 22-4-4 4-4" />
+        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+      </svg>
+    </button>
+
+    <div class="w-px h-5 bg-white/15 shrink-0"></div>
+
+    <!-- PROMINENT ONE-CLICK TIME HIDE / UNHIDE TOGGLE (T) -->
+    <button
+      id="dockTimeToggleBtn"
+      type="button"
+      title="Hide / Unhide Lock-Screen Date & Time (Press T)"
+      class="h-9 px-2.5 sm:px-3 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold bg-white/14 text-white hover:bg-white/22 border border-white/15 transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5 text-[color:var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span id="dockTimeLabel">Time: ON</span>
+    </button>
+
+    <!-- CYCLE FISHEYE LENS STRENGTH BUTTON (F) -->
+    <button
+      id="dockFisheyeCycleBtn"
+      type="button"
+      title="Cycle Fisheye Lens Strength (Press F)"
+      class="h-9 px-2.5 sm:px-3 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold bg-white/14 text-white hover:bg-white/22 border border-white/15 transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5 text-[color:var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 3a9 9 0 0 1 0 18" opacity="0.45" />
+      </svg>
+      <span id="dockFisheyeLabel">Lens: 58%</span>
+    </button>
+
+    <!-- 16:9 / 9:16 Vertical Reel Toggle -->
+    <button
+      id="dockReelBtn"
+      type="button"
+      title="Toggle 16:9 Full Stage / 9:16 Vertical Reel Frame"
+      class="h-9 px-2.5 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold text-white/80 hover:text-white hover:bg-white/10 transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="2" width="12" height="20" rx="2.5" />
+      </svg>
+      <span id="dockReelLabel">16:9</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       STUDIO DRAWER (LENIS SMOOTH SCROLL ENABLED)
+       ============================================================ -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <aside id="studioDrawer" class="studio-drawer" aria-label="Fisheye Lyric Studio Settings">
+    <!-- Drawer Header -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <div>
+        <h2 class="text-base font-extrabold text-white tracking-tight">Fisheye Lyric Studio</h2>
+        <p class="text-[11px] text-white/50">MP3 · LRCLIB.net · Optical Lens &amp; Smooth Scroll</p>
+      </div>
+      <button
+        id="closeStudioBtn"
+        type="button"
+        aria-label="Close Studio"
+        class="w-9 h-9 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center text-white/80 hover:text-white transition"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Lenis Scroll Container -->
+    <div id="drawerScrollWrapper" class="flex-1 lenis-scroll">
+      <div id="drawerScrollContent" class="px-5 py-5 space-y-6">
+
+        <!-- SECTION 1: AUDIO & TRACK INFO -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">1. Audio &amp; Track Info</h3>
+            <span id="audioStatusBadge" class="text-[11px] font-semibold text-amber-400">Demo Synth Ready</span>
+          </div>
+
+          <label
+            id="audioDropZone"
+            for="audioFileInput"
+            class="block w-full p-4 rounded-2xl border border-dashed border-white/20 hover:border-[color:var(--accent)] bg-white/[0.03] hover:bg-white/[0.06] transition cursor-pointer text-center"
+          >
+            <input id="audioFileInput" type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" class="hidden" />
+            <div class="flex flex-col items-center gap-1.5">
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-[color:var(--accent)]">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+              <p id="audioDropLabel" class="text-xs font-bold text-white">Drop MP3 / WAV / M4A or tap to upload</p>
+              <p id="audioFileMeta" class="text-[11px] text-white/45">100% browser-local · Live Web Audio bass lens breathing</p>
+            </div>
+          </label>
+
+          <div class="grid grid-cols-[62px_1fr] gap-3 items-center">
+            <label
+              for="coverFileInput"
+              title="Optional Album Cover"
+              class="w-[62px] h-[62px] rounded-2xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] overflow-hidden flex flex-col items-center justify-center cursor-pointer transition"
+            >
+              <input id="coverFileInput" type="file" accept="image/*" class="hidden" />
+              <img id="drawerCoverImg" src="" alt="" class="hidden w-full h-full object-cover" />
+              <div id="drawerCoverPlaceholder" class="flex flex-col items-center text-white/55">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+                <span class="text-[9px] mt-0.5 font-semibold">Cover</span>
+              </div>
+            </label>
+
+            <div class="space-y-2">
+              <input
+                id="titleInput"
+                type="text"
+                value="Midnight Velvet"
+                placeholder="Track Title"
+                class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-[color:var(--accent)] focus:outline-none text-xs font-semibold text-white placeholder-white/35"
+              />
+              <input
+                id="artistInput"
+                type="text"
+                value="Optical Demo Synth"
+                placeholder="Artist Name"
+                class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-[color:var(--accent)] focus:outline-none text-xs text-white/85 placeholder-white/35"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: SYNCED LYRICS (LRCLIB.NET) -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">2. Synced Lyrics (LRCLIB.net)</h3>
+            <span id="lyricsCountBadge" class="text-[11px] font-mono text-white/55">8 lines</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-bold">
+            <button type="button" data-lrc-tab="url" class="lrc-tab-btn py-1.5 rounded-lg bg-white text-black transition">LRCLIB Link</button>
+            <button type="button" data-lrc-tab="search" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Search</button>
+            <button type="button" data-lrc-tab="manual" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Manual LRC</button>
+          </div>
+
+          <!-- Tab A: LRCLIB URL / ID -->
+          <div id="lrcTabUrl" class="space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibUrlInput"
+                type="text"
+                placeholder="https://lrclib.net/tracks/28185115 or 28185115"
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-[color:var(--accent)] focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="fetchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95 flex items-center gap-1.5"
+              >
+                <span id="fetchBtnLabel">Fetch</span>
+                <svg id="fetchSpinner" class="hidden w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25" />
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p id="lrclibStatusText" class="text-[11px] text-white/48">
+              Paste any <span class="text-white/80 font-medium">lrclib.net/tracks/{id}</span> link to load synced lyrics instantly.
+            </p>
+          </div>
+
+          <!-- Tab B: Built-in Search -->
+          <div id="lrcTabSearch" class="hidden space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibSearchInput"
+                type="text"
+                placeholder="Search song name or artist..."
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-[color:var(--accent)] focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="searchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95"
+              >
+                Search
+              </button>
+            </div>
+            <div id="searchResultsBox" class="max-h-48 lenis-scroll space-y-1.5 pr-0.5">
+              <p class="text-[11px] text-white/45 text-center py-4">Search LRCLIB's synced library and click any track.</p>
+            </div>
+          </div>
+
+          <!-- Tab C: Manual LRC -->
+          <div id="lrcTabManual" class="hidden space-y-2">
+            <textarea
+              id="manualLrcInput"
+              rows="5"
+              placeholder="[00:00.00] First synced line&#10;[00:03.20] Second synced line"
+              class="w-full p-3 rounded-xl bg-white/[0.07] border border-white/14 focus:border-[color:var(--accent)] focus:outline-none text-xs font-mono text-white placeholder-white/35 resize-y"
+            ></textarea>
+            <button
+              id="applyManualLrcBtn"
+              type="button"
+              class="w-full py-2.5 rounded-xl bg-white/15 hover:bg-white/24 border border-white/15 text-xs font-bold text-white transition"
+            >
+              Apply Manual LRC
+            </button>
+          </div>
+        </section>
+
+        <!-- SECTION 3: EXACT SNIPPET TRIMMER & SYNC OFFSET -->
+        <section class="space-y-3.5 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">3. Exact Song Part (Loop)</h3>
+            <span id="snippetWindowBadge" class="text-[11px] font-mono font-semibold text-[color:var(--accent)]">0:00 → 0:24 (24s)</span>
+          </div>
+
+          <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">Start</span>
+                <button id="useNowStartBtn" type="button" class="text-[10px] font-bold text-[color:var(--accent)] hover:underline">Now</button>
+              </div>
+              <input id="startTimeInput" type="text" value="0:00" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">End</span>
+                <button id="useNowEndBtn" type="button" class="text-[10px] font-bold text-[color:var(--accent)] hover:underline">Now</button>
+              </div>
+              <input id="endTimeInput" type="text" value="0:24" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <button
+              id="resetFullSongBtn"
+              type="button"
+              class="h-[54px] px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-[11px] font-bold text-white/80 hover:text-white transition"
+            >
+              Reset<br/>Full
+            </button>
+          </div>
+
+          <!-- Interactive Lyric Line Picker -->
+          <div class="space-y-1.5">
+            <p class="text-[11px] text-white/55">Tap <span class="text-white font-semibold">Start</span> / <span class="text-white font-semibold">End</span> on any lyric line to loop just that part:</p>
+            <div id="lyricPickerWrapper" class="h-44 lenis-scroll rounded-2xl bg-black/45 border border-white/10">
+              <div id="lyricPickerList" class="divide-y divide-white/[0.06]"></div>
+            </div>
+          </div>
+
+          <!-- Sync Offset (-5.00s to +5.00s) -->
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-white/85">Lyric Sync Offset</span>
+              <div class="flex items-center gap-1.5">
+                <button id="offsetMinusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">-0.1s</button>
+                <span id="offsetLabel" class="min-w-[54px] text-center font-mono text-xs font-bold text-white">0.00s</span>
+                <button id="offsetPlusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">+0.1s</button>
+                <button id="offsetResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/8 hover:bg-white/16 text-[10px] text-white/70 transition">0</button>
+              </div>
+            </div>
+            <input id="offsetSlider" type="range" min="-5" max="5" step="0.05" value="0" class="studio-slider w-full" aria-label="Lyric sync offset" />
+          </div>
+        </section>
+
+        <!-- SECTION 4: LOCK-SCREEN CLOCK (HIDE / UNHIDE) -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">4. Lock-Screen Time</h3>
+            <button
+              id="drawerTimeToggleBtn"
+              type="button"
+              class="px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white border border-white/20 transition"
+            >
+              Time: ON (T)
+            </button>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-3">
+            <!-- Live Clock vs Custom Aesthetic Time -->
+            <div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/35 border border-white/10 text-xs font-bold">
+              <button type="button" data-clock-mode="live" class="clock-mode-btn py-1.5 rounded-lg bg-white text-black transition">Live Clock</button>
+              <button type="button" data-clock-mode="custom" class="clock-mode-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Custom Time</button>
+            </div>
+
+            <!-- Custom Date & Time Inputs -->
+            <div id="customClockInputs" class="hidden grid grid-cols-2 gap-2">
+              <div class="space-y-1">
+                <label class="text-[10px] font-semibold text-white/50 uppercase">Custom Date</label>
+                <input
+                  id="customDateInput"
+                  type="text"
+                  value="Sun Oct 25"
+                  placeholder="Sun Oct 25"
+                  class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-[color:var(--accent)] focus:outline-none text-xs font-semibold text-white"
+                />
+              </div>
+              <div class="space-y-1">
+                <label class="text-[10px] font-semibold text-white/50 uppercase">Custom Time</label>
+                <input
+                  id="customTimeInput"
+                  type="text"
+                  value="12:39"
+                  placeholder="12:39"
+                  class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-[color:var(--accent)] focus:outline-none text-xs font-mono font-bold text-white"
+                />
+              </div>
+            </div>
+
+            <!-- Bottom Lock Hint Toggle (Default OFF) -->
+            <div class="flex items-center justify-between pt-2 border-t border-white/10">
+              <span class="text-xs font-semibold text-white/75">Bottom Lock-Screen Hint</span>
+              <button
+                id="lockHintToggleBtn"
+                type="button"
+                class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white/10 text-white/60 transition"
+              >
+                OFF
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 5: OPTICAL FISHEYE LENS, FONTS & THEMES -->
+        <section class="space-y-4 pt-3 border-t border-white/10 pb-8">
+          <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">5. Fisheye Optics, Fonts &amp; Theme</h3>
+
+          <!-- Fisheye Lens Strength Slider & Chromatic / Cutout Toggles -->
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-3">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-white/85">Fisheye Lens Curvature</span>
+                <span id="fisheyeValLabel" class="font-mono font-bold text-[color:var(--accent)]">58%</span>
+              </div>
+              <input id="fisheyeSlider" type="range" min="0" max="100" step="1" value="58" class="studio-slider w-full" aria-label="Fisheye lens strength" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button
+                id="chromaticToggleBtn"
+                type="button"
+                class="py-2 px-3 rounded-xl bg-white/12 border border-white/25 text-[11px] font-bold text-white flex items-center justify-between transition"
+              >
+                <span>Chromatic Edge</span>
+                <span id="chromaticState" class="text-[10px] text-emerald-300">ON</span>
+              </button>
+
+              <button
+                id="cutoutToggleBtn"
+                type="button"
+                class="py-2 px-3 rounded-xl bg-white/12 border border-white/25 text-[11px] font-bold text-white flex items-center justify-between transition"
+              >
+                <span>Marker Cutout</span>
+                <span id="cutoutState" class="text-[10px] text-emerald-300">ON</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 5 Unique Curated Fonts -->
+          <div class="space-y-2">
+            <span class="text-[11px] font-semibold text-white/70">Editorial Display Font</span>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-font-pick="bricolage" class="font-btn p-2.5 rounded-xl text-left bg-white/14 border border-white/40 transition">
+                <p class="text-xs font-extrabold text-white" style="font-family: 'Bricolage Grotesque', sans-serif;">Bricolage</p>
+                <p class="text-[10px] text-white/50">Expressive Neo-Grotesque</p>
+              </button>
+              <button type="button" data-font-pick="syne" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-xs font-extrabold text-white" style="font-family: 'Syne', sans-serif;">Syne</p>
+                <p class="text-[10px] text-white/50">Wide Avant-Garde</p>
+              </button>
+              <button type="button" data-font-pick="fraunces" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-xs italic font-bold text-white" style="font-family: 'Fraunces', serif;">Fraunces</p>
+                <p class="text-[10px] text-white/50">Warm Soft Serif</p>
+              </button>
+              <button type="button" data-font-pick="instrument" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-sm italic text-white leading-tight" style="font-family: 'Instrument Serif', serif;">Instrument</p>
+                <p class="text-[10px] text-white/50">High-Fashion Editorial</p>
+              </button>
+              <button type="button" data-font-pick="unbounded" class="font-btn col-span-2 p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-extrabold text-white" style="font-family: 'Unbounded', sans-serif;">Unbounded</p>
+                  <p class="text-[10px] text-white/50">Bold Futuristic Display</p>
+                </div>
+                <span class="text-[10px] font-mono text-white/40">WIDE</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 5 Curated Optical Themes -->
+          <div class="space-y-2">
+            <span class="text-[11px] font-semibold text-white/70">Color Palette</span>
+            <div class="grid grid-cols-5 gap-2">
+              <button type="button" data-theme-pick="amber" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/14 border border-white/40 transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-amber-300 to-orange-600 shadow-[0_0_12px_rgba(245,158,11,0.85)]"></span>
+                <span class="text-[10px] font-semibold">Amber</span>
+              </button>
+              <button type="button" data-theme-pick="crimson" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-rose-400 to-red-700 shadow-[0_0_12px_rgba(255,59,92,0.8)]"></span>
+                <span class="text-[10px] font-semibold">Crimson</span>
+              </button>
+              <button type="button" data-theme-pick="violet" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-purple-400 to-indigo-700 shadow-[0_0_12px_rgba(168,85,247,0.8)]"></span>
+                <span class="text-[10px] font-semibold">Violet</span>
+              </button>
+              <button type="button" data-theme-pick="acid" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-lime-300 to-emerald-600 shadow-[0_0_12px_rgba(163,230,53,0.8)]"></span>
+                <span class="text-[10px] font-semibold">Acid</span>
+              </button>
+              <button type="button" data-theme-pick="cyan" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <span class="w-5 h-5 rounded-full bg-gradient-to-br from-sky-300 to-blue-700 shadow-[0_0_12px_rgba(56,189,248,0.8)]"></span>
+                <span class="text-[10px] font-semibold">Cyan</span>
+              </button>
+            </div>
+          </div>
+
+          <p class="text-[10px] text-white/40 text-center">
+            Shortcuts: <span class="text-white/75 font-semibold">Space</span> Play · <span class="text-white/75 font-semibold">T</span> Time · <span class="text-white/75 font-semibold">F</span> Lens · <span class="text-white/75 font-semibold">R</span> Restart · <span class="text-white/75 font-semibold">S</span> Studio · <span class="text-white/75 font-semibold">H</span> Clean
+          </p>
+        </section>
+
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    /* ============================================================
+       FISHEYE LYRIC STUDIO — WEBGL OPTICAL LENS + SMOOTH SCROLL
+       GSAP 3 + Anime.js + Lenis + Web Audio API + LRCLIB.net
+       ============================================================ */
+    (() => {
+      "use strict";
+
+      /* ----------------------------------------------------------
+         1. CURATED DEMO LYRICS (ZERO EMOJIS, PURE EDITORIAL TEXT)
+         ---------------------------------------------------------- */
+      const DEMO_LRC = `
+[00:00.20] Baby, baby girl you glow in the dark
+[00:03.40] Every quiet whisper leaves a golden spark
+[00:06.60] Haan sab ne toh sab keh diya hai
+[00:09.80] Kya hi kahoon jo abhi bhi ankaha hai
+[00:13.00] Late night streetlights bending through the glass
+[00:16.20] Holding onto moments we never want to pass
+[00:19.40] Velvet frequencies drifting slow and warm
+[00:22.00] Right here in the silence after the storm
+      `.trim();
+
+      /* ----------------------------------------------------------
+         2. CURATED THEMES, FONTS & FISHEYE PRESETS
+         ---------------------------------------------------------- */
+      const THEMES = {
+        amber: {
+          bg: "#030201",
+          textPrimary: "#f7d07a",
+          textActive: "#ffe8b0",
+          textDim: "rgba(247, 208, 122, 0.36)",
+          boxBg: "#f59e0b",
+          boxText: "#0a0602",
+          edgeOuter: "#d95f18",
+          edgeMid: "#f59e0b",
+          edgeCore: "#fff0c4",
+          clockColor: "rgba(242, 232, 218, 0.72)",
+          glowRgb: [0.96, 0.58, 0.12],
+        },
+        crimson: {
+          bg: "#050102",
+          textPrimary: "#ff99ab",
+          textActive: "#ffd6de",
+          textDim: "rgba(255, 153, 171, 0.34)",
+          boxBg: "#ff3b5c",
+          boxText: "#0d0204",
+          edgeOuter: "#be123c",
+          edgeMid: "#ff3b5c",
+          edgeCore: "#ffdbe2",
+          clockColor: "rgba(255, 224, 230, 0.72)",
+          glowRgb: [1.0, 0.22, 0.36],
+        },
+        violet: {
+          bg: "#04020a",
+          textPrimary: "#d8b4fe",
+          textActive: "#f3e8ff",
+          textDim: "rgba(216, 180, 254, 0.34)",
+          boxBg: "#a855f7",
+          boxText: "#080312",
+          edgeOuter: "#6d28d9",
+          edgeMid: "#a855f7",
+          edgeCore: "#f5e8ff",
+          clockColor: "rgba(237, 224, 255, 0.72)",
+          glowRgb: [0.66, 0.33, 0.97],
+        },
+        acid: {
+          bg: "#020502",
+          textPrimary: "#d9f99d",
+          textActive: "#f2ffcf",
+          textDim: "rgba(217, 249, 157, 0.34)",
+          boxBg: "#a3e635",
+          boxText: "#050a02",
+          edgeOuter: "#4d7c0f",
+          edgeMid: "#a3e635",
+          edgeCore: "#f4ffd9",
+          clockColor: "rgba(236, 252, 210, 0.72)",
+          glowRgb: [0.64, 0.9, 0.21],
+        },
+        cyan: {
+          bg: "#010408",
+          textPrimary: "#bae6fd",
+          textActive: "#e6f6ff",
+          textDim: "rgba(186, 230, 253, 0.34)",
+          boxBg: "#38bdf8",
+          boxText: "#020810",
+          edgeOuter: "#0369a1",
+          edgeMid: "#38bdf8",
+          edgeCore: "#e0f7ff",
+          clockColor: "rgba(218, 242, 255, 0.72)",
+          glowRgb: [0.22, 0.74, 0.97],
+        },
+      };
+
+      const FONTS = {
+        bricolage: { family: '"Bricolage Grotesque", sans-serif', weight: "800", style: "normal", scale: 1.0, lineGap: 1.24 },
+        syne: { family: '"Syne", sans-serif', weight: "800", style: "normal", scale: 0.92, lineGap: 1.26 },
+        fraunces: { family: '"Fraunces", serif', weight: "700", style: "italic", scale: 1.0, lineGap: 1.24 },
+        instrument: { family: '"Instrument Serif", serif', weight: "400", style: "italic", scale: 1.18, lineGap: 1.18 },
+        unbounded: { family: '"Unbounded", sans-serif', weight: "800", style: "normal", scale: 0.8, lineGap: 1.32 },
+      };
+
+      const FISHEYE_PRESETS = [
+        { pct: 0, label: "Flat" },
+        { pct: 32, label: "Subtle" },
+        { pct: 58, label: "Classic" },
+        { pct: 82, label: "Deep" },
+        { pct: 100, label: "Ultra" },
+      ];
+
+      /* ----------------------------------------------------------
+         3. APPLICATION STATE
+         ---------------------------------------------------------- */
+      const state = {
+        mode: "demo",                 // "demo" | "audio"
+        audioObjectUrl: null,
+        coverObjectUrl: null,
+        isPlaying: false,
+        isLooping: true,
+        isDrawerOpen: false,
+        isCleanMode: false,
+        isReelMode: false,
+        isCoarsePointer: false,
+
+        theme: "amber",
+        font: "bricolage",
+        fisheyeStrength: 0.58,        // 0.0 -> 1.0
+        chromaticEnabled: true,
+        cutoutEnabled: true,
+
+        // Lock-Screen Time Settings
+        showClock: true,
+        showLockHint: false,
+        clockMode: "live",            // "live" | "custom"
+        customDate: "Sun Oct 25",
+        customTime: "12:39",
+
+        // Playback & Snippet Bounds
+        duration: 24.6,
+        startTime: 0.0,
+        endTime: 24.6,
+        syncOffset: 0.0,
+        currentTime: 0.0,
+
+        lines: [],                    // Full parsed lines [{ time, text }]
+        snippetLines: [],             // Lines inside [startTime, endTime]
+        activeIndex: 0,
+
+        // Offscreen 2D Canvas + WebGL Pipeline
+        srcCanvas: null,
+        srcCtx: null,
+        gl: null,
+        glProgram: null,
+        glTex: null,
+        glUniforms: {},
+        fallback2dCtx: null,
+        canvasW: 1280,
+        canvasH: 720,
+        dpr: 1,
+
+        // Cached Vertical Scroll Layout (rebuilt on resize / font / snippet change)
+        layoutCache: {
+          key: "",
+          lines: [],
+        },
+
+        // Web Audio API (Shared for Demo Synth + Local MP3)
+        audioCtx: null,
+        masterGain: null,
+        analyser: null,
+        freqData: null,
+        mediaConnected: false,
+        demoTimer: null,
+        demoStep: 0,
+        demoNodes: [],
+        bassEnergy: 0,
+
+        // Loops & Smooth Scroll
+        rafId: null,
+        lastFrameTs: 0,
+        idleTimer: null,
+        lenisDrawer: null,
+        lenisPicker: null,
+        resizeObserver: null,
+      };
+
+      // GSAP-interpolated continuous values sampled every frame
+      const anim = {
+        clockOpacity: 1,
+        clockY: 0,
+        hintOpacity: 0,
+        fisheye: 0.58,
+        scrollY: 0,
+        activeLineFloat: 0,
+        lineEnter: 1,
+        boxReveal: 1,
+      };
+
+      /* ----------------------------------------------------------
+         4. DOM REFERENCES
+         ---------------------------------------------------------- */
+      const el = {
+        audio: document.getElementById("audioPlayer"),
+        stageFrame: document.getElementById("stageFrame"),
+        canvas: document.getElementById("fisheyeCanvas"),
+
+        // Toast & Top HUD
+        toastPill: document.getElementById("toastPill"),
+        toastDot: document.getElementById("toastDot"),
+        toastText: document.getElementById("toastText"),
+        topHud: document.getElementById("topHud"),
+        trackPillBtn: document.getElementById("trackPillBtn"),
+        hudCoverImg: document.getElementById("hudCoverImg"),
+        hudCoverGlyph: document.getElementById("hudCoverGlyph"),
+        hudTitle: document.getElementById("hudTitle"),
+        hudArtist: document.getElementById("hudArtist"),
+        eqBars: document.querySelectorAll(".micro-eq-bar"),
+        rendererBadge: document.getElementById("rendererBadge"),
+        cleanModeBtn: document.getElementById("cleanModeBtn"),
+        cleanExitBtn: document.getElementById("cleanExitBtn"),
+        openStudioBtn: document.getElementById("openStudioBtn"),
+
+        // Bottom Dock
+        bottomDock: document.getElementById("bottomDock"),
+        restartBtn: document.getElementById("restartBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        playIcon: document.getElementById("playIcon"),
+        pauseIcon: document.getElementById("pauseIcon"),
+        progressTrack: document.getElementById("progressTrack"),
+        progressFill: document.getElementById("progressFill"),
+        progressKnob: document.getElementById("progressKnob"),
+        timeElapsed: document.getElementById("timeElapsed"),
+        timeTotal: document.getElementById("timeTotal"),
+        loopBtn: document.getElementById("loopBtn"),
+        dockTimeToggleBtn: document.getElementById("dockTimeToggleBtn"),
+        dockTimeLabel: document.getElementById("dockTimeLabel"),
+        dockFisheyeCycleBtn: document.getElementById("dockFisheyeCycleBtn"),
+        dockFisheyeLabel: document.getElementById("dockFisheyeLabel"),
+        dockReelBtn: document.getElementById("dockReelBtn"),
+        dockReelLabel: document.getElementById("dockReelLabel"),
+
+        // Studio Drawer
+        drawerBackdrop: document.getElementById("drawerBackdrop"),
+        studioDrawer: document.getElementById("studioDrawer"),
+        closeStudioBtn: document.getElementById("closeStudioBtn"),
+        drawerScrollWrapper: document.getElementById("drawerScrollWrapper"),
+        drawerScrollContent: document.getElementById("drawerScrollContent"),
+
+        // Section 1: Audio & Track Info
+        audioStatusBadge: document.getElementById("audioStatusBadge"),
+        audioDropZone: document.getElementById("audioDropZone"),
+        audioFileInput: document.getElementById("audioFileInput"),
+        audioDropLabel: document.getElementById("audioDropLabel"),
+        audioFileMeta: document.getElementById("audioFileMeta"),
+        coverFileInput: document.getElementById("coverFileInput"),
+        drawerCoverImg: document.getElementById("drawerCoverImg"),
+        drawerCoverPlaceholder: document.getElementById("drawerCoverPlaceholder"),
+        titleInput: document.getElementById("titleInput"),
+        artistInput: document.getElementById("artistInput"),
+
+        // Section 2: LRCLIB
+        lyricsCountBadge: document.getElementById("lyricsCountBadge"),
+        lrcTabBtns: document.querySelectorAll(".lrc-tab-btn"),
+        lrcTabUrl: document.getElementById("lrcTabUrl"),
+        lrcTabSearch: document.getElementById("lrcTabSearch"),
+        lrcTabManual: document.getElementById("lrcTabManual"),
+        lrclibUrlInput: document.getElementById("lrclibUrlInput"),
+        fetchLrclibBtn: document.getElementById("fetchLrclibBtn"),
+        fetchBtnLabel: document.getElementById("fetchBtnLabel"),
+        fetchSpinner: document.getElementById("fetchSpinner"),
+        lrclibStatusText: document.getElementById("lrclibStatusText"),
+        lrclibSearchInput: document.getElementById("lrclibSearchInput"),
+        searchLrclibBtn: document.getElementById("searchLrclibBtn"),
+        searchResultsBox: document.getElementById("searchResultsBox"),
+        manualLrcInput: document.getElementById("manualLrcInput"),
+        applyManualLrcBtn: document.getElementById("applyManualLrcBtn"),
+
+        // Section 3: Trimmer & Offset
+        snippetWindowBadge: document.getElementById("snippetWindowBadge"),
+        startTimeInput: document.getElementById("startTimeInput"),
+        endTimeInput: document.getElementById("endTimeInput"),
+        useNowStartBtn: document.getElementById("useNowStartBtn"),
+        useNowEndBtn: document.getElementById("useNowEndBtn"),
+        resetFullSongBtn: document.getElementById("resetFullSongBtn"),
+        lyricPickerWrapper: document.getElementById("lyricPickerWrapper"),
+        lyricPickerList: document.getElementById("lyricPickerList"),
+        offsetSlider: document.getElementById("offsetSlider"),
+        offsetLabel: document.getElementById("offsetLabel"),
+        offsetMinusBtn: document.getElementById("offsetMinusBtn"),
+        offsetPlusBtn: document.getElementById("offsetPlusBtn"),
+        offsetResetBtn: document.getElementById("offsetResetBtn"),
+
+        // Section 4: Lock-Screen Clock
+        drawerTimeToggleBtn: document.getElementById("drawerTimeToggleBtn"),
+        clockModeBtns: document.querySelectorAll(".clock-mode-btn"),
+        customClockInputs: document.getElementById("customClockInputs"),
+        customDateInput: document.getElementById("customDateInput"),
+        customTimeInput: document.getElementById("customTimeInput"),
+        lockHintToggleBtn: document.getElementById("lockHintToggleBtn"),
+
+        // Section 5: Optics, Fonts, Themes
+        fisheyeSlider: document.getElementById("fisheyeSlider"),
+        fisheyeValLabel: document.getElementById("fisheyeValLabel"),
+        chromaticToggleBtn: document.getElementById("chromaticToggleBtn"),
+        chromaticState: document.getElementById("chromaticState"),
+        cutoutToggleBtn: document.getElementById("cutoutToggleBtn"),
+        cutoutState: document.getElementById("cutoutState"),
+        fontBtns: document.querySelectorAll(".font-btn"),
+        themeBtns: document.querySelectorAll(".theme-btn"),
+      };
+
+      /* ----------------------------------------------------------
+         5. UTILITIES (TOAST, TIME, ESCAPE, LRC PARSER)
+         ---------------------------------------------------------- */
+      let toastTimeout = null;
+      function showToast(msg, type = "info") {
+        el.toastText.textContent = msg;
+        el.toastDot.className = "w-2 h-2 rounded-full shrink-0 " + (
+          type === "error" ? "bg-rose-500" :
+          type === "success" ? "bg-emerald-400" :
+          "bg-amber-400"
+        );
+        clearTimeout(toastTimeout);
+
+        if (window.anime) {
+          anime.remove(el.toastPill);
+          anime({
+            targets: el.toastPill,
+            translateX: ["-50%", "-50%"],
+            translateY: [-24, 0],
+            opacity: [0, 1],
+            scale: [0.92, 1],
+            duration: 400,
+            easing: "easeOutElastic(1, 0.72)",
+          });
+        } else {
+          el.toastPill.style.opacity = "1";
+          el.toastPill.style.transform = "translateX(-50%) translateY(0)";
+        }
+
+        toastTimeout = setTimeout(() => {
+          if (window.anime) {
+            anime({
+              targets: el.toastPill,
+              translateX: ["-50%", "-50%"],
+              translateY: [0, -18],
+              opacity: [1, 0],
+              duration: 280,
+              easing: "easeInQuad",
+            });
+          } else {
+            el.toastPill.style.opacity = "0";
+          }
+        }, 3000);
+      }
+
+      function formatTime(sec) {
+        if (!Number.isFinite(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+
+      function parseTimeInput(str) {
+        if (!str) return null;
+        const clean = str.trim();
+        if (/^\d+(\.\d+)?$/.test(clean)) return parseFloat(clean);
+        const m = clean.match(/^(\d+):(\d{1,2})(?:\.(\d+))?$/);
+        if (!m) return null;
+        const mins = parseInt(m[1], 10);
+        const secs = parseInt(m[2], 10);
+        if (secs >= 60) return null;
+        const frac = m[3] ? parseFloat("0." + m[3]) : 0;
+        return mins * 60 + secs + frac;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      /**
+       * Parses standard [mm:ss.xx] LRC lines (and strips inline <mm:ss.xx> tags cleanly).
+       */
+      function parseLRC(rawText) {
+        if (!rawText || typeof rawText !== "string") return [];
+        const rawLines = rawText.split(/\r?\n/);
+        const timeRx = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+        const parsed = [];
+
+        for (const raw of rawLines) {
+          const stamps = [];
+          let m;
+          timeRx.lastIndex = 0;
+          while ((m = timeRx.exec(raw)) !== null) {
+            const mins = parseInt(m[1], 10);
+            const secs = parseInt(m[2], 10);
+            const msStr = m[3] || "0";
+            const ms = msStr.length === 1
+              ? parseInt(msStr, 10) / 10
+              : msStr.length === 2
+              ? parseInt(msStr, 10) / 100
+              : parseInt(msStr.slice(0, 3), 10) / 1000;
+            stamps.push(mins * 60 + secs + ms);
+          }
+          if (!stamps.length) continue;
+          const cleanText = raw
+            .replace(timeRx, "")
+            .replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, "")
+            .trim();
+          if (!cleanText) continue;
+          for (const t of stamps) {
+            parsed.push({ time: Number(t.toFixed(3)), text: cleanText });
+          }
+        }
+
+        parsed.sort((a, b) => a.time - b.time);
+        return parsed;
+      }
+
+      function getLockScreenDateTime() {
+        if (state.clockMode === "custom") {
+          return {
+            dateStr: state.customDate.trim() || "Sun Oct 25",
+            timeStr: state.customTime.trim() || "12:39",
+          };
+        }
+        const now = new Date();
+        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const dateStr = `${days[now.getDay()]} ${months[now.getMonth()]} ${now.getDate()}`;
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mm = String(now.getMinutes()).padStart(2, "0");
+        return { dateStr, timeStr: `${hh}:${mm}` };
+      }
+
+      /* ----------------------------------------------------------
+         6. WEBGL OPTICAL FISHEYE LENS SHADER + CANVAS2D FALLBACK
+         ---------------------------------------------------------- */
+      const VERT_SRC = `
+        attribute vec2 aPos;
+        varying vec2 vUv;
+        void main() {
+          vUv = vec2(aPos.x * 0.5 + 0.5, 0.5 - aPos.y * 0.5);
+          gl_Position = vec4(aPos, 0.0, 1.0);
+        }
+      `;
+
+      const FRAG_SRC = `
+        precision mediump float;
+        uniform sampler2D uTex;
+        uniform float uStrength;
+        uniform float uChromatic;
+        uniform float uAspect;
+        uniform float uTime;
+        uniform float uBass;
+        uniform vec3 uGlowRgb;
+        varying vec2 vUv;
+
+        vec2 barrelDistort(vec2 uv, float k) {
+          // Normalized [-1, 1] coordinates keep fisheye full-bleed on desktop, ultrawide & mobile
+          vec2 p = (uv - 0.5) * 2.0;
+          // Gentle aspect harmonization prevents r^2 blowup on 16:9 widescreen monitors
+          vec2 aspectFix = uAspect > 1.0
+            ? vec2(1.0, mix(1.0, 1.0 / uAspect, 0.16))
+            : vec2(mix(1.0, uAspect, 0.16), 1.0);
+          vec2 pa = p * aspectFix;
+          float r2 = dot(pa, pa);
+          float factor = 1.0 + k * r2 + (k * 0.14) * r2 * r2;
+          // Edge-fitted zoom hugs all 4 screen edges cleanly with zero huge side/top gaps
+          float edgeRef = 1.0 + k + (k * 0.14);
+          float zoom = edgeRef * 0.992;
+          vec2 d = (p * factor) / zoom;
+          return d * 0.5 + 0.5;
+        }
+
+        float randGrain(vec2 co) {
+          return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+
+        void main() {
+          float k = uStrength * (0.34 + uBass * 0.04);
+          vec2 baseUv = barrelDistort(vUv, k);
+
+          if (baseUv.x < 0.0 || baseUv.x > 1.0 || baseUv.y < 0.0 || baseUv.y > 1.0) {
+            gl_FragColor = vec4(0.01, 0.008, 0.008, 1.0);
+            return;
+          }
+
+          vec2 centered = (vUv - 0.5) * 2.0;
+          float radial = length(centered);
+
+          vec3 col;
+          if (uChromatic > 0.5 && uStrength > 0.02) {
+            float ca = 0.0042 * uStrength * (0.32 + radial * 1.1);
+            vec2 dir = normalize(centered + vec2(0.0001));
+            vec2 rUv = clamp(baseUv + dir * ca, 0.001, 0.999);
+            vec2 bUv = clamp(baseUv - dir * ca, 0.001, 0.999);
+            col.r = texture2D(uTex, rUv).r;
+            col.g = texture2D(uTex, baseUv).g;
+            col.b = texture2D(uTex, bUv).b;
+          } else {
+            col = texture2D(uTex, baseUv).rgb;
+          }
+
+          // Subtle optical halation bloom
+          float px = 0.0036;
+          vec3 blurSample = (
+            texture2D(uTex, clamp(baseUv + vec2(px, 0.0), 0.001, 0.999)).rgb +
+            texture2D(uTex, clamp(baseUv - vec2(px, 0.0), 0.001, 0.999)).rgb +
+            texture2D(uTex, clamp(baseUv + vec2(0.0, px), 0.001, 0.999)).rgb +
+            texture2D(uTex, clamp(baseUv - vec2(0.0, px), 0.001, 0.999)).rgb
+          ) * 0.25;
+          col += blurSample * (0.14 + uBass * 0.08);
+
+          // Soft optical lens vignette
+          float vig = smoothstep(1.56, 0.62, radial);
+          col *= mix(0.72, 1.03, vig);
+
+          // Subtle 35mm cinema grain to eliminate dark banding
+          float g = (randGrain(vUv * 420.0 + fract(uTime * 1.3)) - 0.5) * 0.026;
+          col += vec3(g);
+
+          gl_FragColor = vec4(max(col, vec3(0.0)), 1.0);
+        }
+      `;
+
+      function compileShader(gl, type, src) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, src);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          gl.deleteShader(shader);
+          return null;
+        }
+        return shader;
+      }
+
+      function initRenderPipeline() {
+        state.srcCanvas = document.createElement("canvas");
+        state.srcCtx = state.srcCanvas.getContext("2d");
+
+        let gl = null;
+        try {
+          gl = el.canvas.getContext("webgl", { alpha: false, antialias: true, powerPreference: "high-performance" }) ||
+               el.canvas.getContext("experimental-webgl", { alpha: false, antialias: true });
+        } catch (_) {
+          gl = null;
+        }
+
+        if (gl) {
+          const vs = compileShader(gl, gl.VERTEX_SHADER, VERT_SRC);
+          const fs = compileShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
+          if (vs && fs) {
+            const prog = gl.createProgram();
+            gl.attachShader(prog, vs);
+            gl.attachShader(prog, fs);
+            gl.linkProgram(prog);
+
+            if (gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+              state.gl = gl;
+              state.glProgram = prog;
+              gl.useProgram(prog);
+
+              const buf = gl.createBuffer();
+              gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+              gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+                gl.STATIC_DRAW
+              );
+              const aPos = gl.getAttribLocation(prog, "aPos");
+              gl.enableVertexAttribArray(aPos);
+              gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+              const tex = gl.createTexture();
+              gl.bindTexture(gl.TEXTURE_2D, tex);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+              state.glTex = tex;
+
+              state.glUniforms = {
+                uTex: gl.getUniformLocation(prog, "uTex"),
+                uStrength: gl.getUniformLocation(prog, "uStrength"),
+                uChromatic: gl.getUniformLocation(prog, "uChromatic"),
+                uAspect: gl.getUniformLocation(prog, "uAspect"),
+                uTime: gl.getUniformLocation(prog, "uTime"),
+                uBass: gl.getUniformLocation(prog, "uBass"),
+                uGlowRgb: gl.getUniformLocation(prog, "uGlowRgb"),
+              };
+
+              el.rendererBadge.textContent = "WebGL Optical Lens";
+            }
+          }
+        }
+
+        if (!state.gl) {
+          state.fallback2dCtx = el.canvas.getContext("2d");
+          el.rendererBadge.textContent = "2D Lens Mode";
+        }
+
+        resizeCanvasPipeline();
+      }
+
+      function resizeCanvasPipeline() {
+        const w = Math.max(260, el.stageFrame.clientWidth || window.innerWidth);
+        const h = Math.max(360, el.stageFrame.clientHeight || window.innerHeight);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        state.canvasW = w;
+        state.canvasH = h;
+        state.dpr = dpr;
+
+        const pxW = Math.round(w * dpr);
+        const pxH = Math.round(h * dpr);
+
+        el.canvas.width = pxW;
+        el.canvas.height = pxH;
+        if (state.srcCanvas) {
+          state.srcCanvas.width = pxW;
+          state.srcCanvas.height = pxH;
+        }
+        if (state.gl) {
+          state.gl.viewport(0, 0, pxW, pxH);
+        }
+
+        // Invalidate lyric layout cache so wrapping adapts immediately
+        state.layoutCache.key = "";
+        scrollToLyricLine(state.activeIndex, true);
+      }
+
+      /* ----------------------------------------------------------
+         7. PERIMETER GLOW, LOCK-SCREEN CLOCK & SMOOTH SCROLL LYRICS
+         ---------------------------------------------------------- */
+
+      /**
+       * Draws a clean continuous glowing perimeter rim around the stage (no top notch).
+       */
+      function drawPerimeterGlow(ctx, w, h, theme, bass) {
+        const isNarrow = w < 580 || state.isReelMode;
+        const insetX = Math.max(12, Math.min(26, w * (isNarrow ? 0.026 : 0.02)));
+        const insetTop = Math.max(12, Math.min(24, h * (isNarrow ? 0.024 : 0.024)));
+        const insetBot = Math.max(12, Math.min(26, h * (isNarrow ? 0.026 : 0.026)));
+        const cornerR = Math.min(26, w * 0.032);
+
+        const left = insetX;
+        const right = w - insetX;
+        const top = insetTop;
+        const bot = h - insetBot;
+
+        function traceScreenPath() {
+          ctx.beginPath();
+          ctx.moveTo(left + cornerR, top);
+          ctx.lineTo(right - cornerR, top);
+          ctx.quadraticCurveTo(right, top, right, top + cornerR);
+          ctx.lineTo(right, bot - cornerR);
+          ctx.quadraticCurveTo(right, bot, right - cornerR, bot);
+          ctx.lineTo(left + cornerR, bot);
+          ctx.quadraticCurveTo(left, bot, left, bot - cornerR);
+          ctx.lineTo(left, top + cornerR);
+          ctx.quadraticCurveTo(left, top, left + cornerR, top);
+          ctx.closePath();
+        }
+
+        // Warm atmospheric horizon light bleeds hugging top and bottom edges
+        const glowR = Math.round(theme.glowRgb[0] * 255);
+        const glowG = Math.round(theme.glowRgb[1] * 255);
+        const glowB = Math.round(theme.glowRgb[2] * 255);
+
+        const topBleed = ctx.createLinearGradient(0, top, 0, top + h * 0.15);
+        topBleed.addColorStop(0, `rgba(${glowR}, ${glowG}, ${glowB}, ${(0.16 + bass * 0.14).toFixed(3)})`);
+        topBleed.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = topBleed;
+        ctx.fillRect(left, top, right - left, h * 0.15);
+
+        const botBleed = ctx.createLinearGradient(0, bot, 0, bot - h * 0.15);
+        botBleed.addColorStop(0, `rgba(${glowR}, ${glowG}, ${glowB}, ${(0.2 + bass * 0.15).toFixed(3)})`);
+        botBleed.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = botBleed;
+        ctx.fillRect(left, bot - h * 0.15, right - left, h * 0.15);
+
+        // Multi-pass luminous edge stroke
+        ctx.save();
+        traceScreenPath();
+        ctx.strokeStyle = theme.edgeOuter;
+        ctx.lineWidth = 10 + bass * 6;
+        ctx.shadowColor = theme.edgeMid;
+        ctx.shadowBlur = 32 + bass * 22;
+        ctx.globalAlpha = 0.44 + bass * 0.24;
+        ctx.stroke();
+
+        ctx.strokeStyle = theme.edgeMid;
+        ctx.lineWidth = 3.8 + bass * 2.2;
+        ctx.shadowColor = theme.edgeMid;
+        ctx.shadowBlur = 16 + bass * 12;
+        ctx.globalAlpha = 0.8 + bass * 0.18;
+        ctx.stroke();
+
+        ctx.strokeStyle = theme.edgeCore;
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 6;
+        ctx.globalAlpha = 0.88;
+        ctx.stroke();
+        ctx.restore();
+
+        return { insetTop, insetBot };
+      }
+
+      function drawLockScreenClock(ctx, w, h, theme, frameMetrics) {
+        const isNarrow = w < 580 || state.isReelMode;
+        const cx = w * 0.5;
+        let clockBottomY = frameMetrics.insetTop + 20;
+
+        if (anim.clockOpacity > 0.01) {
+          const { dateStr, timeStr } = getLockScreenDateTime();
+          const baseTopY = frameMetrics.insetTop + (isNarrow ? h * 0.044 : h * 0.052);
+          const yOff = anim.clockY;
+
+          const dateSize = Math.round(Math.max(12, Math.min(18, h * 0.022)));
+          const timeSize = Math.round(Math.max(46, Math.min(92, h * (isNarrow ? 0.095 : 0.115))));
+
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, anim.clockOpacity));
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillStyle = theme.clockColor;
+
+          // Date line
+          ctx.font = `600 ${dateSize}px "Inter", -apple-system, sans-serif`;
+          ctx.fillText(dateStr, cx, baseTopY + yOff);
+
+          // Large sleek lock-screen digits
+          ctx.font = `300 ${timeSize}px "Inter", -apple-system, sans-serif`;
+          ctx.shadowColor = "rgba(0,0,0,0.55)";
+          ctx.shadowBlur = 12;
+          ctx.fillText(timeStr, cx, baseTopY + dateSize + 4 + yOff);
+          ctx.restore();
+
+          clockBottomY = baseTopY + dateSize + 4 + timeSize;
+        }
+
+        // Optional Bottom Lock Hint
+        if (anim.hintOpacity > 0.01) {
+          const hintY = h - frameMetrics.insetBot - (isNarrow ? 64 : 58);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, anim.hintOpacity)) * 0.56;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = theme.clockColor;
+          ctx.font = `500 ${isNarrow ? 10 : 11}px "Inter", -apple-system, sans-serif`;
+          ctx.fillText("Touch ID or Enter Password", cx, hintY);
+          ctx.restore();
+        }
+
+        return clockBottomY;
+      }
+
+      /**
+       * Computes wrapped multi-line vertical lyric layout for smooth Apple Music / Theme 1 scrolling.
+       */
+      function ensureVerticalLyricLayout(ctx, w, h) {
+        if (!ctx) return { lines: [] };
+
+        const fontCfg = FONTS[state.font] || FONTS.bricolage;
+        const isNarrow = w < 580 || state.isReelMode;
+        const baseFontPx = Math.round(
+          Math.max(24, Math.min(isNarrow ? 38 : 62, Math.min(w * (isNarrow ? 0.088 : 0.056), h * 0.074))) *
+          fontCfg.scale
+        );
+        const maxLineWidth = w * (isNarrow ? 0.8 : 0.72);
+        const key = `${Math.round(w)}x${Math.round(h)}|${state.font}|${state.snippetLines.length}|${state.snippetLines[0]?.text || ""}`;
+
+        if (state.layoutCache.key === key && state.layoutCache.lines.length) {
+          return state.layoutCache;
+        }
+
+        ctx.save();
+        ctx.font = `${fontCfg.style} ${fontCfg.weight} ${baseFontPx}px ${fontCfg.family}`;
+
+        const lineHeight = baseFontPx * fontCfg.lineGap;
+        const blockGap = Math.max(24, baseFontPx * 0.72);
+        const items = [];
+        let cursorY = 0;
+
+        state.snippetLines.forEach((lineObj, idx) => {
+          const words = lineObj.text.split(/\s+/).filter(Boolean);
+          const wrappedRows = [];
+          let currentRow = [];
+
+          words.forEach((word) => {
+            const candidate = currentRow.length ? currentRow.join(" ") + " " + word : word;
+            const width = ctx.measureText(candidate).width;
+            if (width > maxLineWidth && currentRow.length > 0) {
+              wrappedRows.push(currentRow);
+              currentRow = [word];
+            } else {
+              currentRow.push(word);
+            }
+          });
+          if (currentRow.length) wrappedRows.push(currentRow);
+          if (!wrappedRows.length) wrappedRows.push([""]);
+
+          // Pick one focal word (longest meaningful word, >= 3 chars) for optional tilted marker cutout
+          let focalRow = wrappedRows.length - 1;
+          let focalWordIdx = wrappedRows[focalRow].length - 1;
+          let bestScore = -1;
+          wrappedRows.forEach((rowWords, rIdx) => {
+            rowWords.forEach((word, wIdx) => {
+              const clean = word.replace(/[^a-zA-Z0-9\u0900-\u097f]/g, "");
+              const score = clean.length + (rIdx === wrappedRows.length - 1 ? 1.5 : 0);
+              if (clean.length >= 3 && score > bestScore) {
+                bestScore = score;
+                focalRow = rIdx;
+                focalWordIdx = wIdx;
+              }
+            });
+          });
+
+          const totalWords = Math.max(1, words.length);
+          const blockHeight = wrappedRows.length * lineHeight;
+          const centerY = cursorY + blockHeight * 0.5;
+
+          items.push({
+            index: idx,
+            time: lineObj.time,
+            wrappedRows,
+            totalWords,
+            focalRow,
+            focalWordIdx,
+            fontPx: baseFontPx,
+            lineHeight,
+            blockHeight,
+            topY: cursorY,
+            centerY,
+          });
+
+          cursorY += blockHeight + blockGap;
+        });
+
+        ctx.restore();
+        state.layoutCache = { key, lines: items };
+        return state.layoutCache;
+      }
+
+      /**
+       * Draws the smoothly scrolling vertical lyric column with real-time word-by-word
+       * highlight sweep, kinetic lift/glow, and animated marker cutout swipe.
+       */
+      function drawScrollingLyricColumn(ctx, w, h, theme, bass, clockBottomY, frameMetrics) {
+        const layout = ensureVerticalLyricLayout(ctx, w, h);
+        if (!layout.lines.length) return;
+
+        const smooth01 = (v) => {
+          const c = Math.max(0, Math.min(1, v));
+          return c * c * (3 - 2 * c);
+        };
+
+        const fontCfg = FONTS[state.font] || FONTS.bricolage;
+        const isNarrow = w < 580 || state.isReelMode;
+        const cx = w * 0.5;
+
+        const safeTop = anim.clockOpacity > 0.05 ? clockBottomY + 22 : frameMetrics.insetTop + 34;
+        const safeBottom = h - frameMetrics.insetBot - (isNarrow ? 92 : 84);
+        const viewportH = Math.max(180, safeBottom - safeTop);
+        const anchorY = safeTop + viewportH * 0.48;
+
+        // Compute real-time karaoke progress (0 -> 1) across the currently active line
+        const effectiveNow = getCurrentTime() + state.syncOffset;
+        const activeItem = layout.lines[state.activeIndex];
+        let activeLineProg = 1.0;
+        const isInitialPausedFrame = !state.isPlaying && Math.abs(effectiveNow - state.startTime) < 0.25;
+
+        if (activeItem && !isInitialPausedFrame) {
+          const nextItem = layout.lines[state.activeIndex + 1];
+          const lineDur = nextItem
+            ? Math.max(0.65, Math.min(8.0, nextItem.time - activeItem.time))
+            : Math.max(1.8, Math.min(5.0, state.endTime - activeItem.time));
+          activeLineProg = Math.max(0, Math.min(1, (effectiveNow - activeItem.time + 0.14) / (lineDur * 0.88)));
+        }
+
+        ctx.save();
+        // Soft clip region so scrolling lyrics glide cleanly below the clock and above the dock
+        ctx.beginPath();
+        ctx.rect(0, safeTop - 16, w, viewportH + 32);
+        ctx.clip();
+
+        layout.lines.forEach((item, idx) => {
+          const lineCenterY = anchorY + (item.centerY - anim.scrollY);
+          const halfH = item.blockHeight * 0.65;
+          if (lineCenterY + halfH < safeTop - 60 || lineCenterY - halfH > safeBottom + 60) {
+            return;
+          }
+
+          const distFromActive = Math.abs(idx - anim.activeLineFloat);
+          const closeness = Math.max(0, 1 - distFromActive);
+          const isActiveLine = idx === state.activeIndex;
+          const isPast = idx < state.activeIndex;
+
+          // Scale & opacity hierarchy matching Theme 1 / Apple Music
+          const scale = 0.78 + closeness * 0.27 + (closeness > 0.7 ? bass * 0.032 : 0);
+          let alpha = closeness > 0.01
+            ? 0.30 + closeness * 0.70
+            : Math.max(0.14, (isPast ? 0.24 : 0.32) - Math.min(0.14, (distFromActive - 1) * 0.06));
+
+          // Vertical edge fade mask near top & bottom of lyric viewport
+          const distTop = lineCenterY - safeTop;
+          const distBot = safeBottom - lineCenterY;
+          const edgeFade = Math.min(1, Math.max(0, Math.min(distTop, distBot) / 64));
+          alpha *= edgeFade;
+          if (alpha <= 0.015) return;
+
+          ctx.save();
+          ctx.translate(cx, lineCenterY);
+          ctx.scale(scale, scale);
+          ctx.font = `${fontCfg.style} ${fontCfg.weight} ${item.fontPx}px ${fontCfg.family}`;
+          ctx.textBaseline = "middle";
+
+          const totalBlockH = item.wrappedRows.length * item.lineHeight;
+          const startRowY = -totalBlockH * 0.5 + item.lineHeight * 0.5;
+          const spaceW = ctx.measureText(" ").width;
+
+          let flatWordIdx = 0;
+
+          item.wrappedRows.forEach((rowWords, rIdx) => {
+            const rowY = startRowY + rIdx * item.lineHeight;
+            const widths = rowWords.map((word) => ctx.measureText(word).width);
+            const totalRowW = widths.reduce((a, b) => a + b, 0) + spaceW * Math.max(0, rowWords.length - 1);
+            let drawX = -totalRowW * 0.5;
+
+            rowWords.forEach((word, wIdx) => {
+              const wordW = widths[wIdx];
+              const isFocal = state.cutoutEnabled && closeness > 0.45 && rIdx === item.focalRow && wIdx === item.focalWordIdx;
+
+              // Per-word staggered entrance + real-time vocal highlight sweep
+              const staggerDelay = (flatWordIdx / Math.max(1, item.totalWords)) * 0.38;
+              const enterProg = isActiveLine
+                ? smooth01((anim.lineEnter - staggerDelay) / Math.max(0.25, 1 - staggerDelay))
+                : 1;
+              const wordLiftY = isActiveLine ? (1 - enterProg) * 11 : 0;
+
+              let wordLit = 0;
+              let wordPeak = 0;
+              if (isActiveLine) {
+                if (isInitialPausedFrame) {
+                  wordLit = 1;
+                  wordPeak = 0;
+                } else {
+                  const wStart = flatWordIdx / item.totalWords;
+                  const wSpan = 1 / item.totalWords;
+                  const rawLit = (activeLineProg - wStart) / Math.max(0.08, wSpan);
+                  wordLit = smooth01(rawLit);
+                  wordPeak = Math.sin(wordLit * Math.PI);
+                }
+              }
+
+              if (isFocal) {
+                const boxSweep = isInitialPausedFrame
+                  ? Math.max(0.01, Math.min(1, anim.boxReveal * closeness))
+                  : smooth01(Math.max(0, wordLit * 1.15));
+
+                if (boxSweep < 0.03) {
+                  // Word waiting dimly before highlighter sweeps across it
+                  ctx.save();
+                  ctx.globalAlpha = Math.max(0, Math.min(1, alpha * (0.44 + 0.14 * enterProg)));
+                  ctx.fillStyle = theme.textPrimary;
+                  ctx.textAlign = "left";
+                  ctx.fillText(word, drawX, rowY + wordLiftY);
+                  ctx.restore();
+                } else {
+                  const padX = Math.max(8, item.fontPx * 0.22);
+                  const padY = Math.max(4, item.fontPx * 0.11);
+                  const boxW = wordW + padX * 2;
+                  const boxH = item.fontPx * 1.06 + padY;
+                  const rx = -boxW * 0.5;
+                  const ry = -boxH * 0.52;
+                  const rad = Math.min(10, item.fontPx * 0.16);
+                  const popScale = (0.93 + 0.07 * boxSweep) + wordPeak * 0.08;
+
+                  // Faint base word visible ahead of the marker wipe edge
+                  if (boxSweep < 0.99) {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, Math.min(1, alpha * 0.48));
+                    ctx.fillStyle = theme.textPrimary;
+                    ctx.textAlign = "left";
+                    ctx.fillText(word, drawX, rowY + wordLiftY);
+                    ctx.restore();
+                  }
+
+                  ctx.save();
+                  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+                  ctx.translate(drawX + wordW * 0.5, rowY + wordLiftY - wordPeak * 4.0);
+                  ctx.rotate(-0.042);
+                  ctx.scale(popScale, popScale);
+
+                  // Smooth left-to-right highlighter swipe clip
+                  const clipW = 24 + boxW * boxSweep + (boxSweep >= 0.98 ? 28 : 0);
+                  ctx.beginPath();
+                  ctx.rect(rx - 24, ry - 24, clipW, boxH + 48);
+                  ctx.clip();
+
+                  ctx.fillStyle = theme.boxBg;
+                  ctx.shadowColor = theme.edgeMid;
+                  ctx.shadowBlur = 18 + bass * 16 + wordPeak * 16;
+                  ctx.beginPath();
+                  ctx.roundRect(rx, ry, boxW, boxH, rad);
+                  ctx.fill();
+
+                  ctx.shadowBlur = 0;
+                  ctx.fillStyle = theme.boxText;
+                  ctx.textAlign = "center";
+                  ctx.fillText(word, 0, 1);
+                  ctx.restore();
+                }
+              } else {
+                const wScale = isActiveLine ? 1 + wordPeak * 0.068 : 1;
+                const wAlpha = isActiveLine
+                  ? alpha * (0.42 + 0.58 * wordLit) * (0.35 + 0.65 * enterProg)
+                  : alpha;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, Math.min(1, wAlpha));
+                ctx.translate(drawX + wordW * 0.5, rowY + wordLiftY - wordPeak * 4.8);
+                ctx.scale(wScale, wScale);
+                ctx.textAlign = "center";
+
+                if (isActiveLine && wordLit > 0.08) {
+                  ctx.fillStyle = wordPeak > 0.3 ? "#ffffff" : theme.textActive;
+                  ctx.shadowColor = theme.edgeMid;
+                  ctx.shadowBlur = (10 + bass * 14) * wordLit + wordPeak * 20;
+                } else {
+                  ctx.fillStyle = theme.textPrimary;
+                  ctx.shadowBlur = 0;
+                }
+                ctx.fillText(word, 0, 0);
+                ctx.restore();
+              }
+
+              drawX += wordW + spaceW;
+              flatWordIdx++;
+            });
+          });
+
+          ctx.restore();
+        });
+
+        ctx.restore();
+      }
+
+      /**
+       * Renders one complete frame onto offscreen 2D canvas, then warps through WebGL fisheye shader.
+       */
+      function renderSceneFrame(ts) {
+        const ctx = state.srcCtx;
+        if (!ctx) return;
+
+        const w = state.canvasW;
+        const h = state.canvasH;
+        const dpr = state.dpr;
+        const theme = THEMES[state.theme] || THEMES.amber;
+
+        ctx.save();
+        ctx.scale(dpr, dpr);
+
+        // 1. Deep Nocturne Backdrop
+        ctx.fillStyle = theme.bg;
+        ctx.fillRect(0, 0, w, h);
+
+        // 2. Clean Continuous Glowing Perimeter Rim (no notch)
+        const frameMetrics = drawPerimeterGlow(ctx, w, h, theme, state.bassEnergy);
+
+        // 3. Optional Lock-Screen Date, Large Clock & Bottom Hint
+        const clockBottomY = drawLockScreenClock(ctx, w, h, theme, frameMetrics);
+
+        // 4. Smooth Vertical Scrolling Lyric Column (Zero Emojis)
+        drawScrollingLyricColumn(ctx, w, h, theme, state.bassEnergy, clockBottomY, frameMetrics);
+
+        ctx.restore();
+
+        // 5. Pipe offscreen canvas into WebGL Fisheye Fragment Shader (or 2D fallback)
+        if (state.gl && state.glProgram && state.glTex) {
+          const gl = state.gl;
+          gl.useProgram(state.glProgram);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, state.glTex);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, state.srcCanvas);
+
+          gl.uniform1i(state.glUniforms.uTex, 0);
+          gl.uniform1f(state.glUniforms.uStrength, anim.fisheye);
+          gl.uniform1f(state.glUniforms.uChromatic, state.chromaticEnabled ? 1.0 : 0.0);
+          gl.uniform1f(state.glUniforms.uAspect, w / h);
+          gl.uniform1f(state.glUniforms.uTime, ts * 0.001);
+          gl.uniform1f(state.glUniforms.uBass, state.bassEnergy);
+          gl.uniform3fv(state.glUniforms.uGlowRgb, theme.glowRgb);
+
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        } else if (state.fallback2dCtx) {
+          state.fallback2dCtx.drawImage(state.srcCanvas, 0, 0);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         8. SMOOTH VERTICAL LYRIC SCROLLING CONTROLLER (GSAP)
+         ---------------------------------------------------------- */
+      function scrollToLyricLine(idx, instant = false) {
+        if (!state.srcCtx || !state.snippetLines.length) return;
+        const clamped = Math.max(0, Math.min(state.snippetLines.length - 1, idx));
+        const layout = ensureVerticalLyricLayout(state.srcCtx, state.canvasW, state.canvasH);
+        const item = layout.lines[clamped];
+        if (!item) return;
+
+        if (instant || !window.gsap) {
+          anim.scrollY = item.centerY;
+          anim.activeLineFloat = clamped;
+          anim.lineEnter = 1;
+          anim.boxReveal = 1;
+          return;
+        }
+
+        gsap.to(anim, {
+          scrollY: item.centerY,
+          activeLineFloat: clamped,
+          duration: 0.72,
+          ease: "power3.out",
+          overwrite: "auto",
+        });
+
+        anim.lineEnter = 0;
+        gsap.to(anim, {
+          lineEnter: 1,
+          duration: 0.68,
+          ease: "power3.out",
+          overwrite: "auto",
+        });
+
+        anim.boxReveal = 0.2;
+        gsap.to(anim, {
+          boxReveal: 1,
+          duration: 0.56,
+          ease: "back.out(1.7)",
+          overwrite: "auto",
+        });
+      }
+
+      function updateActiveLyric(effectiveTime, force = false) {
+        if (!state.snippetLines.length) return;
+        let idx = 0;
+        for (let i = 0; i < state.snippetLines.length; i++) {
+          if (state.snippetLines[i].time <= effectiveTime + 0.05) {
+            idx = i;
+          } else {
+            break;
+          }
+        }
+        if (!force && idx === state.activeIndex) return;
+        state.activeIndex = idx;
+        scrollToLyricLine(idx, force && !state.isPlaying);
+      }
+
+      /* ----------------------------------------------------------
+         9. WEB AUDIO API: WARM R&B DEMO SYNTH + BASS ANALYSER
+         ---------------------------------------------------------- */
+      function ensureAudioGraph() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return false;
+
+        if (!state.audioCtx) {
+          state.audioCtx = new AudioCtx();
+          state.masterGain = state.audioCtx.createGain();
+          state.masterGain.gain.value = 0.82;
+
+          state.analyser = state.audioCtx.createAnalyser();
+          state.analyser.fftSize = 128;
+          state.analyser.smoothingTimeConstant = 0.84;
+          state.freqData = new Uint8Array(state.analyser.frequencyBinCount);
+
+          state.masterGain.connect(state.analyser);
+          state.analyser.connect(state.audioCtx.destination);
+        }
+
+        if (state.audioCtx.state === "suspended") {
+          state.audioCtx.resume().catch(() => {});
+        }
+        return true;
+      }
+
+      function connectMediaElementOnce() {
+        if (!ensureAudioGraph() || state.mediaConnected) return;
+        try {
+          const src = state.audioCtx.createMediaElementSource(el.audio);
+          src.connect(state.masterGain);
+          state.mediaConnected = true;
+        } catch (_) {}
+      }
+
+      const VELVET_CHORDS = [
+        { bass: 65.41, pad: [130.81, 196.0, 246.94, 293.66, 329.63] },  // Cmaj9
+        { bass: 55.00, pad: [110.0, 164.81, 196.0, 246.94, 261.63] },   // Am9
+        { bass: 73.42, pad: [146.83, 174.61, 220.0, 261.63, 329.63] },  // Dm9
+        { bass: 49.00, pad: [146.83, 196.0, 246.94, 293.66, 349.23] },  // G13
+      ];
+
+      function triggerDemoChord() {
+        if (state.mode !== "demo" || !state.isPlaying || !ensureAudioGraph()) return;
+        const ctx = state.audioCtx;
+        const now = ctx.currentTime;
+        const chord = VELVET_CHORDS[state.demoStep % VELVET_CHORDS.length];
+        state.demoStep++;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(340, now);
+        filter.frequency.exponentialRampToValueAtTime(1180, now + 1.1);
+        filter.frequency.exponentialRampToValueAtTime(420, now + 3.2);
+        filter.Q.value = 1.5;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.11, now + 0.42);
+        gain.gain.setValueAtTime(0.095, now + 2.2);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
+
+        filter.connect(gain);
+        gain.connect(state.masterGain);
+
+        const nodes = [];
+        // Warm heartbeat sub-bass
+        [0, 1.6].forEach((offset) => {
+          const bOsc = ctx.createOscillator();
+          const bGain = ctx.createGain();
+          bOsc.type = "sine";
+          bOsc.frequency.setValueAtTime(chord.bass, now + offset);
+          bGain.gain.setValueAtTime(0.0001, now + offset);
+          bGain.gain.exponentialRampToValueAtTime(0.3, now + offset + 0.06);
+          bGain.gain.exponentialRampToValueAtTime(0.001, now + offset + 1.45);
+          bOsc.connect(bGain);
+          bGain.connect(state.masterGain);
+          bOsc.start(now + offset);
+          bOsc.stop(now + offset + 1.55);
+          nodes.push(bOsc);
+        });
+
+        chord.pad.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          osc.type = idx % 2 === 0 ? "triangle" : "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          osc.detune.setValueAtTime((idx - 2) * 5.2, now);
+          osc.connect(filter);
+          osc.start(now + idx * 0.035);
+          osc.stop(now + 3.6);
+          nodes.push(osc);
+        });
+
+        state.demoNodes.push(...nodes);
+        if (state.demoNodes.length > 44) state.demoNodes = state.demoNodes.slice(-22);
+      }
+
+      function startDemoSynth() {
+        stopDemoSynth();
+        if (state.mode !== "demo") return;
+        triggerDemoChord();
+        state.demoTimer = setInterval(triggerDemoChord, 3200);
+      }
+
+      function stopDemoSynth() {
+        if (state.demoTimer) {
+          clearInterval(state.demoTimer);
+          state.demoTimer = null;
+        }
+        state.demoNodes.forEach((n) => {
+          try { n.stop(); } catch (_) {}
+        });
+        state.demoNodes = [];
+      }
+
+      function updateAudioReactivity() {
+        let bass = 0;
+        const eqVals = [0.16, 0.24, 0.2, 0.14];
+
+        if (state.isPlaying && state.analyser && state.freqData) {
+          state.analyser.getByteFrequencyData(state.freqData);
+          let sum = 0;
+          for (let i = 0; i < 6; i++) sum += state.freqData[i];
+          bass = Math.min(1, sum / (6 * 215));
+          [1, 4, 8, 15].forEach((bin, i) => {
+            eqVals[i] = Math.max(0.18, (state.freqData[bin] || 0) / 255);
+          });
+        } else if (state.isPlaying) {
+          const t = performance.now() * 0.0035;
+          bass = 0.24 + Math.sin(t) * 0.14;
+          for (let i = 0; i < 4; i++) {
+            eqVals[i] = 0.24 + Math.abs(Math.sin(t * (1.2 + i * 0.35))) * 0.55;
+          }
+        }
+
+        state.bassEnergy += (bass - state.bassEnergy) * 0.18;
+        el.eqBars.forEach((bar, i) => {
+          bar.style.height = state.isPlaying ? `${Math.round(3 + eqVals[i] * 11)}px` : "3.5px";
+        });
+      }
+
+      /* ----------------------------------------------------------
+         10. PLAYBACK ENGINE, SNIPPET BOUNDS & MASTER 60FPS LOOP
+         ---------------------------------------------------------- */
+      function getCurrentTime() {
+        return state.mode === "audio" ? el.audio.currentTime : state.currentTime;
+      }
+
+      function seekTo(sec) {
+        const clamped = Math.max(0, Math.min(state.duration, sec));
+        if (state.mode === "audio") {
+          try { el.audio.currentTime = clamped; } catch (_) {}
+        } else {
+          state.currentTime = clamped;
+        }
+        updateProgressUI(clamped);
+        updateActiveLyric(clamped + state.syncOffset, true);
+      }
+
+      function updateProgressUI(nowSec) {
+        const clipLen = Math.max(0.1, state.endTime - state.startTime);
+        const rel = Math.max(0, Math.min(clipLen, nowSec - state.startTime));
+        const pct = (rel / clipLen) * 100;
+        el.progressFill.style.width = `${pct}%`;
+        el.progressKnob.style.left = `${pct}%`;
+        el.timeElapsed.textContent = formatTime(rel);
+      }
+
+      function setPlayUI(playing) {
+        state.isPlaying = playing;
+        el.playIcon.classList.toggle("hidden", playing);
+        el.pauseIcon.classList.toggle("hidden", !playing);
+        if (window.anime) {
+          anime({
+            targets: el.playPauseBtn,
+            scale: [0.88, 1.07, 1],
+            duration: 360,
+            easing: "easeOutElastic(1, 0.7)",
+          });
+        }
+        resetIdleDockTimer();
+      }
+
+      function startPlayback() {
+        ensureAudioGraph();
+        const now = getCurrentTime();
+        if (now < state.startTime || now >= state.endTime - 0.08) {
+          seekTo(state.startTime);
+        }
+
+        if (state.mode === "audio") {
+          connectMediaElementOnce();
+          el.audio.play().then(() => {
+            setPlayUI(true);
+            state.lastFrameTs = performance.now();
+          }).catch(() => {
+            showToast("Tap Play again to start audio", "error");
+            setPlayUI(false);
+          });
+        } else {
+          setPlayUI(true);
+          startDemoSynth();
+          state.lastFrameTs = performance.now();
+        }
+      }
+
+      function pausePlayback() {
+        if (state.mode === "audio") {
+          el.audio.pause();
+        } else {
+          stopDemoSynth();
+        }
+        setPlayUI(false);
+      }
+
+      function togglePlay() {
+        if (state.isPlaying) pausePlayback();
+        else startPlayback();
+      }
+
+      function computeSnippetLines() {
+        const tol = 0.25;
+        const filtered = state.lines.filter(
+          (l) => l.time >= state.startTime - tol && l.time <= state.endTime + tol
+        );
+        state.snippetLines = filtered.length ? filtered : state.lines.slice();
+        state.layoutCache.key = "";
+      }
+
+      function setSnippetBounds(start, end) {
+        const maxDur = Math.max(2, state.duration);
+        const s = Math.max(0, Math.min(start, maxDur - 1));
+        const e = Math.max(s + 1, Math.min(end, maxDur));
+
+        state.startTime = Number(s.toFixed(2));
+        state.endTime = Number(e.toFixed(2));
+
+        el.startTimeInput.value = formatTime(state.startTime);
+        el.endTimeInput.value = formatTime(state.endTime);
+
+        const clipLen = Math.max(0, state.endTime - state.startTime);
+        el.snippetWindowBadge.textContent = `${formatTime(state.startTime)} → ${formatTime(state.endTime)} (${Math.round(clipLen)}s)`;
+        el.timeTotal.textContent = formatTime(clipLen);
+
+        computeSnippetLines();
+        renderLyricPicker();
+
+        const now = getCurrentTime();
+        updateProgressUI(now);
+        updateActiveLyric(now + state.syncOffset, true);
+      }
+
+      function renderLyricPicker() {
+        el.lyricsCountBadge.textContent = `${state.lines.length} lines`;
+        el.lyricPickerList.innerHTML = "";
+
+        if (!state.lines.length) {
+          el.lyricPickerList.innerHTML =
+            '<p class="p-4 text-xs text-white/45 text-center">No synced lyrics loaded yet.</p>';
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        state.lines.forEach((line, idx) => {
+          const inRange = line.time >= state.startTime - 0.25 && line.time <= state.endTime + 0.25;
+          const row = document.createElement("div");
+          row.className = `flex items-center justify-between gap-2 px-3 py-2.5 text-xs transition ${
+            inRange
+              ? "bg-white/[0.1] text-white border-l-2 border-[color:var(--accent)]"
+              : "text-white/55 hover:bg-white/[0.04]"
+          }`;
+
+          const left = document.createElement("button");
+          left.type = "button";
+          left.className = "flex-1 min-w-0 text-left flex items-center gap-2.5 truncate";
+          left.innerHTML = `
+            <span class="font-mono text-[10px] opacity-60 shrink-0">${formatTime(line.time)}</span>
+            <span class="truncate font-medium">${escapeHtml(line.text)}</span>
+          `;
+          left.addEventListener("click", () => {
+            const target = Math.max(0, Math.min(state.duration - 0.2, line.time - state.syncOffset));
+            if (target < state.startTime || target >= state.endTime) {
+              setSnippetBounds(target, Math.min(state.duration, target + 22));
+            }
+            seekTo(target);
+            if (!state.isPlaying) startPlayback();
+          });
+
+          const actions = document.createElement("div");
+          actions.className = "flex items-center gap-1 shrink-0";
+
+          const btnStart = document.createElement("button");
+          btnStart.type = "button";
+          btnStart.textContent = "Start";
+          btnStart.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnStart.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newStart = Math.max(0, line.time - state.syncOffset);
+            const newEnd = state.endTime <= newStart + 1.5
+              ? Math.min(state.duration, newStart + 22)
+              : state.endTime;
+            setSnippetBounds(newStart, newEnd);
+            seekTo(newStart);
+            showToast(`Snippet starts at ${formatTime(newStart)}`, "success");
+          });
+
+          const btnEnd = document.createElement("button");
+          btnEnd.type = "button";
+          btnEnd.textContent = "End";
+          btnEnd.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnEnd.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const next = state.lines[idx + 1];
+            const naturalEnd = next ? next.time - 0.05 : line.time + 4.0;
+            const newEnd = Math.min(state.duration, Math.max(1.5, naturalEnd - state.syncOffset));
+            const newStart = state.startTime >= newEnd - 1 ? Math.max(0, newEnd - 18) : state.startTime;
+            setSnippetBounds(newStart, newEnd);
+            showToast(`Snippet ends at ${formatTime(newEnd)}`, "success");
+          });
+
+          actions.appendChild(btnStart);
+          actions.appendChild(btnEnd);
+          row.appendChild(left);
+          row.appendChild(actions);
+          frag.appendChild(row);
+        });
+
+        el.lyricPickerList.appendChild(frag);
+        state.lenisPicker?.resize();
+      }
+
+      function startMasterLoop() {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+
+        const tick = (ts) => {
+          if (state.isPlaying) {
+            let now;
+            if (state.mode === "audio") {
+              now = el.audio.currentTime;
+            } else {
+              const dt = Math.min(0.2, (ts - state.lastFrameTs) / 1000);
+              state.lastFrameTs = ts;
+              state.currentTime += dt;
+              now = state.currentTime;
+            }
+
+            if (now >= state.endTime) {
+              if (state.isLooping) {
+                seekTo(state.startTime);
+                now = state.startTime;
+                if (state.mode === "audio" && el.audio.paused) {
+                  el.audio.play().catch(() => {});
+                }
+              } else {
+                pausePlayback();
+                seekTo(state.startTime);
+              }
+            }
+
+            updateProgressUI(now);
+            updateActiveLyric(now + state.syncOffset, false);
+          }
+
+          updateAudioReactivity();
+          renderSceneFrame(ts);
+          state.rafId = requestAnimationFrame(tick);
+        };
+
+        state.lastFrameTs = performance.now();
+        state.rafId = requestAnimationFrame(tick);
+      }
+
+      /* ----------------------------------------------------------
+         11. LOCAL MP3 UPLOAD & LRCLIB.NET API INTEGRATION
+         ---------------------------------------------------------- */
+      function handleAudioFile(file) {
+        if (!file) return;
+        const ok = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|aac|flac)$/i.test(file.name);
+        if (!ok) {
+          showToast("Please upload a valid MP3, WAV, M4A, or OGG file", "error");
+          return;
+        }
+
+        pausePlayback();
+        stopDemoSynth();
+
+        if (state.audioObjectUrl) URL.revokeObjectURL(state.audioObjectUrl);
+        state.audioObjectUrl = URL.createObjectURL(file);
+        state.mode = "audio";
+        el.audio.src = state.audioObjectUrl;
+        el.audio.load();
+
+        el.audioDropLabel.textContent = file.name;
+        el.audioFileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · Loaded locally`;
+        el.audioStatusBadge.textContent = "Local Audio Active";
+        el.audioStatusBadge.className = "text-[11px] font-semibold text-emerald-400";
+
+        if (el.titleInput.value === "Midnight Velvet") {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+          el.titleInput.value = cleanName;
+          el.hudTitle.textContent = cleanName;
+          el.artistInput.value = "Local Audio";
+          el.hudArtist.textContent = "Local Audio";
+        }
+
+        showToast(`Loaded "${file.name}"`, "success");
+      }
+
+      el.audio.addEventListener("loadedmetadata", () => {
+        if (!Number.isFinite(el.audio.duration) || el.audio.duration <= 0) return;
+        state.duration = el.audio.duration;
+        if (state.endTime > state.duration || state.endTime === 24.6) {
+          setSnippetBounds(0, Math.min(state.duration, 26));
+        } else {
+          setSnippetBounds(state.startTime, state.endTime);
+        }
+        seekTo(state.startTime);
+      });
+
+      el.audio.addEventListener("ended", () => {
+        if (state.isLooping) {
+          seekTo(state.startTime);
+          el.audio.play().catch(() => {});
+        } else {
+          pausePlayback();
+          seekTo(state.startTime);
+        }
+      });
+
+      function handleCoverFile(file) {
+        if (!file || !file.type.startsWith("image/")) {
+          showToast("Please select a valid image file", "error");
+          return;
+        }
+        if (state.coverObjectUrl) URL.revokeObjectURL(state.coverObjectUrl);
+        state.coverObjectUrl = URL.createObjectURL(file);
+
+        el.hudCoverImg.src = state.coverObjectUrl;
+        el.hudCoverImg.classList.remove("hidden");
+        el.hudCoverGlyph.classList.add("hidden");
+
+        el.drawerCoverImg.src = state.coverObjectUrl;
+        el.drawerCoverImg.classList.remove("hidden");
+        el.drawerCoverPlaceholder.classList.add("hidden");
+        showToast("Cover thumbnail updated", "success");
+      }
+
+      function applyTrackData(data, sourceLabel = "LRCLIB") {
+        if (data.trackName) {
+          el.titleInput.value = data.trackName;
+          el.hudTitle.textContent = data.trackName;
+        }
+        if (data.artistName) {
+          el.artistInput.value = data.artistName;
+          el.hudArtist.textContent = data.artistName;
+        }
+
+        if (data.syncedLyrics) {
+          const parsed = parseLRC(data.syncedLyrics);
+          if (!parsed.length) {
+            showToast("Fetched track had empty synced timestamps", "error");
+            return false;
+          }
+
+          state.lines = parsed;
+          el.manualLrcInput.value = data.syncedLyrics;
+
+          if (state.mode === "demo") {
+            const lastT = parsed[parsed.length - 1].time;
+            state.duration = Math.max(data.duration || 0, lastT + 4.5, 24);
+            const firstT = parsed[0].time;
+            setSnippetBounds(firstT, Math.min(state.duration, firstT + 24));
+          } else {
+            const inside = parsed.some((l) => l.time >= state.startTime && l.time <= state.endTime);
+            if (!inside && parsed[0].time < state.duration - 2) {
+              setSnippetBounds(parsed[0].time, Math.min(state.duration, parsed[0].time + 24));
+            } else {
+              computeSnippetLines();
+              renderLyricPicker();
+            }
+          }
+
+          seekTo(state.startTime);
+          el.lrclibStatusText.innerHTML = `<span class="text-emerald-400 font-semibold">Loaded ${parsed.length} synced lines from ${escapeHtml(sourceLabel)}!</span>`;
+          showToast(`Loaded ${parsed.length} synced lines from ${sourceLabel}`, "success");
+          return true;
+        } else if (data.plainLyrics) {
+          el.manualLrcInput.value = data.plainLyrics;
+          switchLrcTab("manual");
+          el.lrclibStatusText.innerHTML = `<span class="text-amber-400">Plain lyrics only (no timestamps). Try Search for a synced entry or add timestamps manually.</span>`;
+          showToast("No synced timestamps on this entry", "error");
+          return false;
+        }
+
+        el.lrclibStatusText.innerHTML = `<span class="text-rose-400">No lyrics found for this track.</span>`;
+        showToast("No lyrics available", "error");
+        return false;
+      }
+
+      async function fetchLrclibByUrl() {
+        const raw = el.lrclibUrlInput.value.trim();
+        if (!raw) {
+          showToast("Paste an lrclib.net/tracks/{id} link or Track ID", "error");
+          return;
+        }
+
+        const idMatch = raw.match(/(?:tracks|get)\/(\d+)/i) || raw.match(/^(\d+)$/) || raw.match(/(\d{4,})/);
+        if (!idMatch) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">Invalid LRCLIB link. Example: https://lrclib.net/tracks/28185115</span>`;
+          showToast("Invalid LRCLIB link or ID", "error");
+          return;
+        }
+
+        const trackId = idMatch[1];
+        el.fetchLrclibBtn.disabled = true;
+        el.fetchBtnLabel.textContent = "...";
+        el.fetchSpinner.classList.remove("hidden");
+        el.lrclibStatusText.textContent = `Fetching track #${trackId} from lrclib.net...`;
+
+        try {
+          const resp = await fetch(`https://lrclib.net/api/get/${trackId}`, {
+            headers: { Accept: "application/json" },
+          });
+          if (!resp.ok) {
+            throw new Error(resp.status === 404 ? `Track #${trackId} not found on LRCLIB.` : `HTTP ${resp.status}`);
+          }
+          const data = await resp.json();
+          applyTrackData(data, `LRCLIB #${trackId}`);
+        } catch (err) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">${escapeHtml(err.message || "Network error")}</span>`;
+          showToast(err.message || "Failed to fetch from LRCLIB", "error");
+        } finally {
+          el.fetchLrclibBtn.disabled = false;
+          el.fetchBtnLabel.textContent = "Fetch";
+          el.fetchSpinner.classList.add("hidden");
+        }
+      }
+
+      async function searchLrclib() {
+        const q = el.lrclibSearchInput.value.trim();
+        if (!q) {
+          showToast("Enter a song title or artist", "error");
+          return;
+        }
+
+        el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/55 text-center py-4">Searching LRCLIB for "${escapeHtml(q)}"...</p>`;
+        try {
+          const resp = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, {
+            headers: { Accept: "application/json" },
+          });
+          if (!resp.ok) throw new Error(`Search failed (${resp.status})`);
+          const list = await resp.json();
+
+          if (!Array.isArray(list) || !list.length) {
+            el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/45 text-center py-4">No matching tracks found.</p>`;
+            return;
+          }
+
+          list.sort((a, b) => (b.syncedLyrics ? 1 : 0) - (a.syncedLyrics ? 1 : 0));
+          el.searchResultsBox.innerHTML = "";
+          const frag = document.createDocumentFragment();
+
+          list.slice(0, 16).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const hasSync = Boolean(item.syncedLyrics);
+            btn.className = "w-full text-left p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] transition flex items-center justify-between gap-2";
+            btn.innerHTML = `
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${escapeHtml(item.trackName || "Untitled")}</p>
+                <p class="text-[11px] text-white/50 truncate">${escapeHtml(item.artistName || "Unknown")} · ${formatTime(item.duration || 0)}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                hasSync ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/25" : "bg-white/10 text-white/45"
+              }">${hasSync ? "Synced" : "Plain"}</span>
+            `;
+            btn.addEventListener("click", () => {
+              el.lrclibUrlInput.value = `https://lrclib.net/tracks/${item.id}`;
+              applyTrackData(item, `LRCLIB #${item.id}`);
+            });
+            frag.appendChild(btn);
+          });
+
+          el.searchResultsBox.appendChild(frag);
+        } catch (err) {
+          el.searchResultsBox.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-4">${escapeHtml(err.message)}</p>`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         12. UI CONTROLS: TIME, FISHEYE CYCLE, THEME, FONT, DRAWER
+         ---------------------------------------------------------- */
+      function setClockVisible(visible, announce = true) {
+        state.showClock = visible;
+        el.dockTimeLabel.textContent = visible ? "Time: ON" : "Time: OFF";
+        el.drawerTimeToggleBtn.textContent = visible ? "Time: ON (T)" : "Time: OFF (T)";
+
+        el.dockTimeToggleBtn.classList.toggle("bg-white/14", visible);
+        el.dockTimeToggleBtn.classList.toggle("border-white/15", visible);
+        el.dockTimeToggleBtn.classList.toggle("bg-white/[0.04]", !visible);
+        el.dockTimeToggleBtn.classList.toggle("text-white/55", !visible);
+
+        if (window.gsap) {
+          gsap.to(anim, {
+            clockOpacity: visible ? 1 : 0,
+            clockY: visible ? 0 : -18,
+            duration: 0.48,
+            ease: "power3.out",
+          });
+        } else {
+          anim.clockOpacity = visible ? 1 : 0;
+          anim.clockY = visible ? 0 : -18;
+        }
+
+        if (announce) showToast(visible ? "Lock-Screen Time Shown" : "Lock-Screen Time Hidden");
+      }
+
+      function setLockHintVisible(visible) {
+        state.showLockHint = visible;
+        el.lockHintToggleBtn.textContent = visible ? "ON" : "OFF";
+        el.lockHintToggleBtn.className = visible
+          ? "px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/25 text-emerald-300 transition"
+          : "px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white/10 text-white/60 transition";
+
+        if (window.gsap) {
+          gsap.to(anim, { hintOpacity: visible ? 1 : 0, duration: 0.35, ease: "power2.out" });
+        } else {
+          anim.hintOpacity = visible ? 1 : 0;
+        }
+      }
+
+      function setClockMode(mode) {
+        state.clockMode = mode;
+        el.customClockInputs.classList.toggle("hidden", mode !== "custom");
+        el.clockModeBtns.forEach((btn) => {
+          const active = btn.dataset.clockMode === mode;
+          btn.className = `clock-mode-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setFisheyePercent(pct, smooth = true) {
+        const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+        state.fisheyeStrength = clamped / 100;
+        el.fisheyeSlider.value = String(clamped);
+        el.fisheyeValLabel.textContent = `${clamped}%`;
+        el.dockFisheyeLabel.textContent = clamped === 0 ? "Lens: Flat" : `Lens: ${clamped}%`;
+
+        const isActive = clamped > 0;
+        el.dockFisheyeCycleBtn.classList.toggle("bg-white/14", isActive);
+        el.dockFisheyeCycleBtn.classList.toggle("border-white/15", isActive);
+        el.dockFisheyeCycleBtn.classList.toggle("bg-white/[0.04]", !isActive);
+        el.dockFisheyeCycleBtn.classList.toggle("text-white/55", !isActive);
+
+        if (smooth && window.gsap) {
+          gsap.to(anim, { fisheye: state.fisheyeStrength, duration: 0.52, ease: "power3.out" });
+        } else {
+          anim.fisheye = state.fisheyeStrength;
+        }
+      }
+
+      function cycleFisheyeStrength() {
+        const curPct = Math.round(state.fisheyeStrength * 100);
+        const nextPreset = FISHEYE_PRESETS.find((p) => p.pct > curPct + 2) || FISHEYE_PRESETS[0];
+        setFisheyePercent(nextPreset.pct, true);
+
+        if (window.anime) {
+          anime({
+            targets: el.dockFisheyeCycleBtn,
+            scale: [0.92, 1.05, 1],
+            duration: 340,
+            easing: "easeOutElastic(1, 0.72)",
+          });
+        }
+        showToast(`Fisheye Lens: ${nextPreset.label} (${nextPreset.pct}%)`);
+      }
+
+      function setTheme(themeId) {
+        state.theme = themeId;
+        document.body.setAttribute("data-theme", themeId);
+        el.themeBtns.forEach((btn) => {
+          const active = btn.dataset.themePick === themeId;
+          btn.classList.toggle("bg-white/14", active);
+          btn.classList.toggle("border-white/40", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+      }
+
+      function setFont(fontId) {
+        state.font = fontId;
+        state.layoutCache.key = "";
+        el.fontBtns.forEach((btn) => {
+          const active = btn.dataset.fontPick === fontId;
+          btn.classList.toggle("bg-white/14", active);
+          btn.classList.toggle("border-white/40", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+        scrollToLyricLine(state.activeIndex, true);
+      }
+
+      function switchLrcTab(tab) {
+        el.lrcTabUrl.classList.toggle("hidden", tab !== "url");
+        el.lrcTabSearch.classList.toggle("hidden", tab !== "search");
+        el.lrcTabManual.classList.toggle("hidden", tab !== "manual");
+        el.lrcTabBtns.forEach((btn) => {
+          const active = btn.dataset.lrcTab === tab;
+          btn.className = `lrc-tab-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setSyncOffset(val) {
+        const clamped = Math.max(-5, Math.min(5, Math.round(val * 20) / 20));
+        state.syncOffset = clamped;
+        el.offsetSlider.value = String(clamped);
+        el.offsetLabel.textContent = `${clamped > 0 ? "+" : ""}${clamped.toFixed(2)}s`;
+        updateActiveLyric(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !state.isDrawerOpen;
+        state.isDrawerOpen = open;
+        el.drawerBackdrop.style.pointerEvents = open ? "auto" : "none";
+
+        if (window.gsap) {
+          gsap.to(el.studioDrawer, {
+            x: open ? "0%" : "105%",
+            duration: 0.52,
+            ease: open ? "power3.out" : "power3.inOut",
+          });
+          gsap.to(el.drawerBackdrop, {
+            opacity: open ? 1 : 0,
+            duration: 0.38,
+            ease: "power2.out",
+          });
+        } else {
+          el.studioDrawer.style.transform = open ? "translateX(0)" : "translateX(105%)";
+          el.drawerBackdrop.style.opacity = open ? "1" : "0";
+        }
+
+        if (open) {
+          el.bottomDock.classList.remove("is-idle-dim");
+          setTimeout(() => {
+            state.lenisDrawer?.resize();
+            state.lenisPicker?.resize();
+          }, 120);
+        } else {
+          resetIdleDockTimer();
+        }
+      }
+
+      function toggleCleanMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isCleanMode;
+        state.isCleanMode = next;
+        if (next && state.isDrawerOpen) toggleDrawer(false);
+        document.body.classList.toggle("clean-mode", next);
+
+        if (window.gsap) {
+          gsap.to(el.topHud, {
+            opacity: next ? 0 : 1,
+            y: next ? -22 : 0,
+            duration: 0.4,
+            ease: "power3.out",
+          });
+          gsap.to(el.bottomDock, {
+            opacity: next ? 0 : 1,
+            y: next ? 28 : 0,
+            duration: 0.42,
+            ease: "power3.out",
+            onStart: () => {
+              if (!next) el.bottomDock.style.pointerEvents = "auto";
+            },
+            onComplete: () => {
+              if (next) el.bottomDock.style.pointerEvents = "none";
+            },
+          });
+        } else {
+          el.topHud.style.opacity = next ? "0" : "1";
+          el.bottomDock.style.opacity = next ? "0" : "1";
+        }
+
+        if (next) showToast("Clean Mode — Tap anywhere or press H to restore");
+      }
+
+      function toggleReelMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isReelMode;
+        state.isReelMode = next;
+        document.body.classList.toggle("reel-mode", next);
+        el.dockReelLabel.textContent = next ? "9:16" : "16:9";
+        showToast(next ? "9:16 Vertical Reel Preview" : "Full 16:9 Cinema Stage");
+      }
+
+      function resetIdleDockTimer() {
+        clearTimeout(state.idleTimer);
+        el.bottomDock.classList.remove("is-idle-dim");
+        if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+          state.idleTimer = setTimeout(() => {
+            if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+              el.bottomDock.classList.add("is-idle-dim");
+            }
+          }, 3600);
+        }
+      }
+
+      function initLenisSmoothScroll() {
+        if (!window.Lenis || state.isCoarsePointer) return;
+
+        state.lenisDrawer = new Lenis({
+          wrapper: el.drawerScrollWrapper,
+          content: el.drawerScrollContent,
+          duration: 1.15,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+        });
+
+        state.lenisPicker = new Lenis({
+          wrapper: el.lyricPickerWrapper,
+          content: el.lyricPickerList,
+          duration: 1.05,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+        });
+
+        el.lyricPickerWrapper.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+
+        if (window.gsap) {
+          gsap.ticker.add((time) => {
+            state.lenisDrawer?.raf(time * 1000);
+            state.lenisPicker?.raf(time * 1000);
+          });
+          gsap.ticker.lagSmoothing(0);
+        }
+      }
+
+      function initResizeObserver() {
+        let timer = null;
+        const onResize = () => {
+          clearTimeout(timer);
+          timer = setTimeout(resizeCanvasPipeline, 75);
+        };
+
+        if (window.ResizeObserver) {
+          state.resizeObserver = new ResizeObserver(onResize);
+          state.resizeObserver.observe(el.stageFrame);
+        }
+        window.addEventListener("resize", onResize);
+        window.addEventListener("orientationchange", onResize);
+      }
+
+      /* ----------------------------------------------------------
+         13. EVENT LISTENERS & KEYBOARD SHORTCUTS
+         ---------------------------------------------------------- */
+      el.playPauseBtn.addEventListener("click", togglePlay);
+      el.restartBtn.addEventListener("click", () => {
+        seekTo(state.startTime);
+        if (!state.isPlaying) startPlayback();
+      });
+
+      el.loopBtn.addEventListener("click", () => {
+        state.isLooping = !state.isLooping;
+        el.loopBtn.classList.toggle("text-[color:var(--accent)]", state.isLooping);
+        el.loopBtn.classList.toggle("bg-white/10", state.isLooping);
+        el.loopBtn.classList.toggle("text-white/40", !state.isLooping);
+        showToast(state.isLooping ? "Snippet Loop ON" : "Snippet Loop OFF");
+      });
+
+      // Scrubber (Mouse + Touch)
+      function scrubProgress(clientX) {
+        const rect = el.progressTrack.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        seekTo(state.startTime + ratio * (state.endTime - state.startTime));
+      }
+      el.progressTrack.addEventListener("click", (e) => scrubProgress(e.clientX));
+      el.progressTrack.addEventListener("touchstart", (e) => {
+        if (e.touches[0]) scrubProgress(e.touches[0].clientX);
+      }, { passive: true });
+
+      // Prominent Time Hide/Unhide & Cycle Fisheye Lens Controls (Dock + Drawer)
+      el.dockTimeToggleBtn.addEventListener("click", () => setClockVisible(!state.showClock));
+      el.drawerTimeToggleBtn.addEventListener("click", () => setClockVisible(!state.showClock));
+      el.dockFisheyeCycleBtn.addEventListener("click", cycleFisheyeStrength);
+      el.lockHintToggleBtn.addEventListener("click", () => setLockHintVisible(!state.showLockHint));
+
+      el.clockModeBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setClockMode(btn.dataset.clockMode));
+      });
+      el.customDateInput.addEventListener("input", () => {
+        state.customDate = el.customDateInput.value;
+      });
+      el.customTimeInput.addEventListener("input", () => {
+        state.customTime = el.customTimeInput.value;
+      });
+
+      // Optics, Fonts & Themes
+      el.fisheyeSlider.addEventListener("input", () => {
+        setFisheyePercent(parseFloat(el.fisheyeSlider.value), false);
+      });
+      el.chromaticToggleBtn.addEventListener("click", () => {
+        state.chromaticEnabled = !state.chromaticEnabled;
+        el.chromaticState.textContent = state.chromaticEnabled ? "ON" : "OFF";
+        el.chromaticState.className = state.chromaticEnabled ? "text-[10px] text-emerald-300" : "text-[10px] text-white/45";
+      });
+      el.cutoutToggleBtn.addEventListener("click", () => {
+        state.cutoutEnabled = !state.cutoutEnabled;
+        el.cutoutState.textContent = state.cutoutEnabled ? "ON" : "OFF";
+        el.cutoutState.className = state.cutoutEnabled ? "text-[10px] text-emerald-300" : "text-[10px] text-white/45";
+      });
+
+      el.fontBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setFont(btn.dataset.fontPick));
+      });
+      el.themeBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setTheme(btn.dataset.themePick));
+      });
+
+      // Drawer, Reel & Clean Mode
+      el.openStudioBtn.addEventListener("click", () => toggleDrawer(true));
+      el.trackPillBtn.addEventListener("click", () => toggleDrawer(true));
+      el.closeStudioBtn.addEventListener("click", () => toggleDrawer(false));
+      el.drawerBackdrop.addEventListener("click", () => toggleDrawer(false));
+
+      el.dockReelBtn.addEventListener("click", () => toggleReelMode());
+      el.cleanModeBtn.addEventListener("click", () => toggleCleanMode(true));
+      el.cleanExitBtn.addEventListener("click", () => toggleCleanMode(false));
+
+      el.stageFrame.addEventListener("click", () => {
+        if (state.isCleanMode) toggleCleanMode(false);
+      });
+
+      ["pointermove", "touchstart", "keydown"].forEach((evt) => {
+        window.addEventListener(evt, resetIdleDockTimer, { passive: true });
+      });
+
+      // Audio & Cover Upload + Drag-and-Drop
+      el.audioFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleAudioFile(e.target.files[0]);
+      });
+      ["dragenter", "dragover"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.add("border-[color:var(--accent)]", "bg-white/[0.08]");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.remove("border-[color:var(--accent)]", "bg-white/[0.08]");
+        });
+      });
+      el.audioDropZone.addEventListener("drop", (e) => {
+        if (e.dataTransfer?.files?.[0]) handleAudioFile(e.dataTransfer.files[0]);
+      });
+
+      el.coverFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleCoverFile(e.target.files[0]);
+      });
+
+      el.titleInput.addEventListener("input", () => {
+        el.hudTitle.textContent = el.titleInput.value.trim() || "Untitled";
+      });
+      el.artistInput.addEventListener("input", () => {
+        el.hudArtist.textContent = el.artistInput.value.trim() || "Unknown Artist";
+      });
+
+      // LRCLIB Controls
+      el.lrcTabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => switchLrcTab(btn.dataset.lrcTab));
+      });
+      el.fetchLrclibBtn.addEventListener("click", fetchLrclibByUrl);
+      el.lrclibUrlInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") fetchLrclibByUrl();
+      });
+      el.searchLrclibBtn.addEventListener("click", searchLrclib);
+      el.lrclibSearchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") searchLrclib();
+      });
+      el.applyManualLrcBtn.addEventListener("click", () => {
+        const parsed = parseLRC(el.manualLrcInput.value);
+        if (!parsed.length) {
+          showToast("Include [mm:ss.xx] timestamps before lyric lines", "error");
+          return;
+        }
+        state.lines = parsed;
+        computeSnippetLines();
+        renderLyricPicker();
+        updateActiveLyric(getCurrentTime() + state.syncOffset, true);
+        showToast(`Applied ${parsed.length} synced lines`, "success");
+      });
+
+      // Snippet Trimmer Inputs
+      el.startTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.startTimeInput.value);
+        if (p === null) {
+          el.startTimeInput.value = formatTime(state.startTime);
+          showToast("Use M:SS format (e.g. 0:45)", "error");
+          return;
+        }
+        setSnippetBounds(p, Math.max(p + 1, state.endTime));
+        seekTo(state.startTime);
+      });
+      el.endTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.endTimeInput.value);
+        if (p === null) {
+          el.endTimeInput.value = formatTime(state.endTime);
+          showToast("Use M:SS format (e.g. 1:15)", "error");
+          return;
+        }
+        setSnippetBounds(Math.min(state.startTime, p - 1), p);
+      });
+      el.useNowStartBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(now, Math.max(now + 2, state.endTime));
+        showToast(`Start set to ${formatTime(now)}`);
+      });
+      el.useNowEndBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(Math.min(state.startTime, Math.max(0, now - 2)), Math.max(1.5, now));
+        showToast(`End set to ${formatTime(now)}`);
+      });
+      el.resetFullSongBtn.addEventListener("click", () => {
+        setSnippetBounds(0, state.duration);
+        showToast("Snippet reset to full song");
+      });
+
+      // Sync Offset Controls
+      el.offsetSlider.addEventListener("input", () => setSyncOffset(parseFloat(el.offsetSlider.value)));
+      el.offsetMinusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset - 0.1));
+      el.offsetPlusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset + 0.1));
+      el.offsetResetBtn.addEventListener("click", () => setSyncOffset(0));
+
+      // Global Keyboard Shortcuts: Space, T (Time), F (Lens), H (Clean), R (Restart), S (Studio), Esc
+      window.addEventListener("keydown", (e) => {
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "TEXTAREA";
+
+        if (e.key === "Escape") {
+          if (state.isCleanMode) toggleCleanMode(false);
+          else if (state.isDrawerOpen) toggleDrawer(false);
+          return;
+        }
+        if (typing) return;
+
+        const key = e.key.toLowerCase();
+        if (e.code === "Space") {
+          e.preventDefault();
+          togglePlay();
+        } else if (key === "t") {
+          setClockVisible(!state.showClock);
+        } else if (key === "f") {
+          cycleFisheyeStrength();
+        } else if (key === "h") {
+          toggleCleanMode();
+        } else if (key === "s") {
+          toggleDrawer();
+        } else if (key === "r") {
+          seekTo(state.startTime);
+          if (!state.isPlaying) startPlayback();
+        }
+      });
+
+      /* ----------------------------------------------------------
+         14. BOOTSTRAP APPLICATION (PIPELINE FIRST, THEN LAYOUT)
+         ---------------------------------------------------------- */
+      function init() {
+        state.isCoarsePointer = Boolean(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+
+        state.lines = parseLRC(DEMO_LRC);
+        el.manualLrcInput.value = DEMO_LRC;
+
+        // Initialize WebGL / Offscreen 2D Canvas BEFORE any lyric layout calculations
+        initRenderPipeline();
+
+        setTheme("amber");
+        setFont("bricolage");
+        setClockMode("live");
+        setClockVisible(true, false);
+        setLockHintVisible(false);
+        setFisheyePercent(58, false);
+        setSnippetBounds(0, 24.6);
+
+        initLenisSmoothScroll();
+        initResizeObserver();
+        startMasterLoop();
+
+        // Recompute layout once Google Fonts finish loading so text metrics are exact
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => {
+            state.layoutCache.key = "";
+            scrollToLyricLine(state.activeIndex, true);
+          });
+        }
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

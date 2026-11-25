@@ -1,0 +1,2986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>3D Corner Kinetic Lyric Studio — Architectural Wall Typography Engine</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Animation Libraries: GSAP 3 & Anime.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+  <!-- Bold Tight Swiss Grotesk & Tall Impact Display Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@700;800;900&family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@700;800&family=Syne:wght@700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       1. CRIMSON-NOIR 3D CORNER DESIGN TOKENS
+       ============================================================ */
+    :root {
+      --bg-void: #020001;
+      --glow-1: #9e0008;
+      --glow-2: #590005;
+      --text-white: #f7f7f7;
+      --text-accent: #ff1826;
+      --accent-rgb: 255, 24, 38;
+      --hud-accent: #ff1826;
+
+      --typo-font: "Inter", "Helvetica Neue", Arial, sans-serif;
+      --typo-tall: "Anton", "Inter", sans-serif;
+      --user-text-scale: 1;
+      --wall-angle: 90deg;
+    }
+
+    [data-font="swiss"] {
+      --typo-font: "Inter", "Helvetica Neue", Arial, sans-serif;
+      --typo-tall: "Anton", "Inter", sans-serif;
+    }
+
+    [data-font="archivo"] {
+      --typo-font: "Archivo", "Inter", sans-serif;
+      --typo-tall: "Anton", "Archivo", sans-serif;
+    }
+
+    [data-font="jakarta"] {
+      --typo-font: "Plus Jakarta Sans", "Inter", sans-serif;
+      --typo-tall: "Anton", "Plus Jakarta Sans", sans-serif;
+    }
+
+    [data-font="syne"] {
+      --typo-font: "Syne", "Inter", sans-serif;
+      --typo-tall: "Anton", "Syne", sans-serif;
+    }
+
+    /* ============================================================
+       2. GLOBAL BASE & RESPONSIVE STAGE (16:9 FULL & 9:16 REEL)
+       ============================================================ */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #020001;
+      color: #ffffff;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+
+    .studio-desk {
+      position: relative;
+      width: 100vw;
+      max-width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 48%, #160304 0%, #020001 100%);
+      overflow: hidden;
+    }
+
+    .stage-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-void);
+      transition:
+        width 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.58s ease;
+    }
+
+    body.reel-mode .stage-frame {
+      height: min(88dvh, 820px);
+      width: min(92vw, calc(min(88dvh, 820px) * 0.5625));
+      border-radius: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow:
+        0 38px 110px rgba(0, 0, 0, 0.94),
+        0 0 90px -24px rgba(var(--accent-rgb), 0.36);
+    }
+
+    /* ============================================================
+       3. ATMOSPHERIC CRIMSON-NOIR LIGHT POOLS & FILM GRAIN
+       ============================================================ */
+    .noir-glow-layer {
+      position: absolute;
+      inset: -12%;
+      width: 124%;
+      height: 124%;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 56% 58% at 14% 26%, var(--glow-1) 0%, transparent 66%),
+        radial-gradient(ellipse 50% 52% at 86% 78%, var(--glow-2) 0%, transparent 64%),
+        radial-gradient(circle at 82% 18%, rgba(0, 0, 0, 0.95) 0%, transparent 48%);
+      opacity: 0.92;
+      will-change: transform, opacity;
+      transition: opacity 0.35s ease;
+    }
+
+    body.glow-off .noir-glow-layer {
+      opacity: 0.18;
+    }
+
+    .stage-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 14;
+      pointer-events: none;
+      background: radial-gradient(ellipse 84% 82% at 50% 50%, transparent 42%, rgba(0, 0, 0, 0.68) 100%);
+    }
+
+    .film-grain {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0.05;
+      mix-blend-mode: screen;
+      transition: opacity 0.3s ease;
+    }
+    body.grain-off .film-grain {
+      opacity: 0;
+    }
+
+    /* ============================================================
+       4. TRUE 3D ARCHITECTURAL CORNER-WALL TYPOGRAPHY WORLD
+       ============================================================ */
+    .camera-viewport {
+      position: absolute;
+      inset: 0;
+      z-index: 6;
+      perspective: 840px;
+      perspective-origin: 50% 50%;
+      overflow: hidden;
+    }
+
+    .camera-world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+      will-change: transform, filter;
+    }
+
+    /* The 3D Corner Spine & Two Perpendicular Walls meeting at X = 0 */
+    .corner-pillar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+    }
+
+    /* Optional subtle glowing edge crease along the 3D corner seam */
+    .corner-spine-glow {
+      position: absolute;
+      left: -1px;
+      top: -120px;
+      width: 2px;
+      height: 2600px;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(var(--accent-rgb), 0.18) 15%,
+        rgba(255, 255, 255, 0.14) 50%,
+        rgba(var(--accent-rgb), 0.18) 85%,
+        transparent 100%
+      );
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.45s ease;
+    }
+    body.spine-visible .corner-spine-glow {
+      opacity: 1;
+    }
+
+    /* LEFT WALL: Anchored at right edge (X = 0), angled into convex 3D corner facing front-left */
+    .wall-plane {
+      position: absolute;
+      top: 0;
+      width: 660px;
+      transform-style: preserve-3d;
+      backface-visibility: visible;
+    }
+
+    .wall-left {
+      right: 0;
+      transform-origin: right top;
+      transform: rotateY(calc(var(--wall-angle) * -0.5));
+      text-align: right;
+      padding-right: 12px;
+    }
+
+    /* RIGHT WALL: Anchored at left edge (X = 0), angled into convex 3D corner facing front-right */
+    .wall-right {
+      left: 0;
+      transform-origin: left top;
+      transform: rotateY(calc(var(--wall-angle) * 0.5));
+      text-align: left;
+      padding-left: 12px;
+    }
+
+    /* Individual 3D Wall Word Block */
+    .w-block {
+      position: absolute;
+      font-family: var(--typo-font);
+      font-weight: 800;
+      letter-spacing: -0.058em;
+      line-height: 0.84;
+      white-space: nowrap;
+      color: var(--text-white);
+      opacity: 0;
+      will-change: transform, opacity, filter;
+      text-shadow: 0 6px 26px rgba(0, 0, 0, 0.52);
+    }
+
+    .wall-left .w-block {
+      right: 12px;
+      transform-origin: right center;
+    }
+
+    .wall-right .w-block {
+      left: 12px;
+      transform-origin: left center;
+    }
+
+    /* Typography Size & Accent Variants matching video (White Bold, Small Sub, Tall Punch Red) */
+    .w-block.is-accent {
+      color: var(--text-accent);
+      text-shadow:
+        0 0 28px rgba(var(--accent-rgb), 0.36),
+        0 8px 26px rgba(0, 0, 0, 0.62);
+    }
+
+    .w-block.is-tall {
+      font-family: var(--typo-tall);
+      font-weight: 400;
+      letter-spacing: -0.025em;
+      line-height: 0.82;
+      transform-origin: inherit;
+    }
+
+    .w-block.is-sub {
+      font-weight: 700;
+      letter-spacing: -0.045em;
+      opacity: 0;
+    }
+
+    .w-block.is-dimmed {
+      filter: brightness(0.76);
+      transition: filter 0.65s ease;
+    }
+
+    .w-block.is-fresh {
+      filter: brightness(1.06);
+    }
+
+    /* Subtle dark depth shading on the Left Wall so the 3D corner crease pops like real architecture */
+    .wall-left .w-block.is-dimmed {
+      filter: brightness(0.68);
+    }
+
+    /* ============================================================
+       5. FROSTED GLASS HUD, BOTTOM DOCK & STUDIO DRAWER
+       ============================================================ */
+    .glass-hud {
+      background: rgba(12, 6, 7, 0.72);
+      backdrop-filter: blur(26px) saturate(165%);
+      -webkit-backdrop-filter: blur(26px) saturate(165%);
+      border: 1px solid rgba(255, 224, 226, 0.14);
+      box-shadow:
+        0 18px 46px rgba(0, 0, 0, 0.72),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    }
+
+    .top-hud {
+      position: fixed;
+      top: max(0.85rem, calc(env(safe-area-inset-top) + 0.4rem));
+      left: max(0.85rem, env(safe-area-inset-left));
+      right: max(0.85rem, env(safe-area-inset-right));
+      z-index: 32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .bottom-dock {
+      position: fixed;
+      bottom: max(0.9rem, calc(env(safe-area-inset-bottom) + 0.45rem));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      max-width: calc(100vw - 1rem);
+      transition: opacity 0.45s ease;
+    }
+
+    .bottom-dock.is-idle-dim {
+      opacity: 0.26;
+    }
+    .bottom-dock.is-idle-dim:hover,
+    .bottom-dock.is-idle-dim:focus-within {
+      opacity: 1;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .micro-eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .micro-eq-bar {
+      width: 2.5px;
+      height: 3.5px;
+      border-radius: 999px;
+      background: var(--text-accent);
+      box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7);
+      will-change: height;
+    }
+
+    .clean-exit-btn {
+      position: fixed;
+      top: max(0.9rem, env(safe-area-inset-top));
+      right: max(0.9rem, env(safe-area-inset-right));
+      z-index: 48;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    body.clean-mode .clean-exit-btn {
+      pointer-events: auto;
+    }
+    body.clean-mode .clean-exit-btn:hover,
+    body.clean-mode .clean-exit-btn:focus-visible {
+      opacity: 0.96;
+    }
+
+    /* Studio Drawer */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(5, 2, 3, 0.62);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .studio-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(100vw, 468px);
+      height: 100dvh;
+      z-index: 60;
+      background: rgba(11, 7, 8, 0.93);
+      backdrop-filter: blur(36px) saturate(175%);
+      -webkit-backdrop-filter: blur(36px) saturate(175%);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: -28px 0 88px rgba(0, 0, 0, 0.88);
+      transform: translateX(105%);
+      display: flex;
+      flex-direction: column;
+      user-select: text;
+      overflow: hidden;
+    }
+
+    .drawer-scroll-area {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+    }
+
+    .inner-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    }
+    .inner-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .inner-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .inner-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+
+    input[type="range"].studio-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--text-accent);
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.72);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    input[type="color"].color-swatch-input {
+      -webkit-appearance: none;
+      appearance: none;
+      border: none;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="color"].color-swatch-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    input[type="color"].color-swatch-input::-webkit-color-swatch {
+      border: 1.5px solid rgba(255, 255, 255, 0.28);
+      border-radius: 9px;
+    }
+
+    .toast-pill {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-28px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+      .studio-drawer {
+        width: 100vw;
+        border-left: none;
+      }
+    }
+  </style>
+</head>
+<body data-font="swiss">
+
+  <!-- Hidden HTML5 Audio Element -->
+  <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+
+  <!-- Inline SVG Directional Motion Blur Filter for Crisp 3D Camera Whips -->
+  <svg width="0" height="0" style="position:absolute;pointer-events:none;" aria-hidden="true">
+    <defs>
+      <filter id="cornerWhipBlur" x="-15%" y="-15%" width="130%" height="130%">
+        <feGaussianBlur id="cornerBlurNode" in="SourceGraphic" stdDeviation="0 0" />
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Anime.js Toast Notification -->
+  <div id="toastPill" class="toast-pill glass-hud px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs sm:text-sm font-medium text-white max-w-[92vw]">
+    <span id="toastDot" class="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+    <span id="toastText" class="truncate">Ready</span>
+  </div>
+
+  <!-- ============================================================
+       TOP FLOATING HUD
+       ============================================================ -->
+  <header id="topHud" class="top-hud">
+    <button
+      id="trackPillBtn"
+      type="button"
+      title="Open Studio Settings (Press S)"
+      class="pointer-events-auto glass-hud pl-2.5 pr-3.5 py-1.5 rounded-full flex items-center gap-2.5 max-w-[56vw] sm:max-w-[300px] hover:bg-white/[0.1] transition text-left"
+    >
+      <div
+        id="hudCubeSwatch"
+        class="w-7 h-7 rounded-full shrink-0 border border-white/20 flex items-center justify-center shadow-sm"
+        style="background: linear-gradient(135deg, #100203 35%, #ff1826 100%);"
+      >
+        <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+          <line x1="12" y1="22.08" x2="12" y2="12" />
+        </svg>
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <p id="hudTitle" class="text-[11px] sm:text-xs font-bold text-white truncate leading-tight">Katleaam 3D</p>
+        <p id="hudArtist" class="text-[10px] text-white/55 truncate leading-tight mt-0.5">Hip-Hop 808 Demo</p>
+      </div>
+
+      <div class="micro-eq pl-1 shrink-0" aria-hidden="true">
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+      </div>
+    </button>
+
+    <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+      <!-- Quick Color Palette Cycle (C) -->
+      <button
+        id="quickPaletteBtn"
+        type="button"
+        title="Cycle Color Theme (Press C)"
+        class="glass-hud h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-2 text-[11px] font-semibold text-white/90 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <span
+          id="quickPaletteDot"
+          class="w-3.5 h-3.5 rounded-full border border-white/30 shrink-0"
+          style="background: linear-gradient(135deg, #0c0001 40%, #ff1826 100%);"
+        ></span>
+        <span id="quickPaletteName" class="hidden md:inline">Crimson Noir</span>
+      </button>
+
+      <!-- Clean Record Mode (H) -->
+      <button
+        id="cleanModeBtn"
+        type="button"
+        title="Clean Screen-Record Mode (Press H)"
+        class="glass-hud w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
+      <!-- Open Studio Drawer (S) -->
+      <button
+        id="openStudioBtn"
+        type="button"
+        title="Open Studio (Press S)"
+        class="glass-hud h-9 px-3 sm:px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition active:scale-95"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="2" y1="14" x2="6" y2="14" />
+          <line x1="10" y1="8" x2="14" y2="8" />
+          <line x1="18" y1="16" x2="22" y2="16" />
+        </svg>
+        <span>Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <button
+    id="cleanExitBtn"
+    type="button"
+    title="Exit Clean Mode (H or Esc)"
+    class="clean-exit-btn glass-hud px-3.5 py-1.5 rounded-full text-xs font-semibold text-white/90"
+  >
+    Exit Clean Mode
+  </button>
+
+  <!-- ============================================================
+       MAIN 3D ARCHITECTURAL CORNER STAGE
+       ============================================================ -->
+  <div class="studio-desk">
+    <main id="stageFrame" class="stage-frame">
+      <!-- Atmospheric Crimson-Black Corner Light Pools -->
+      <div id="noirGlowLayer" class="noir-glow-layer" aria-hidden="true"></div>
+
+      <!-- True 3D Perspective Camera World (Blur applied to viewport so preserve-3d never flattens!) -->
+      <div id="cameraViewport" class="camera-viewport">
+        <div id="cameraWorld" class="camera-world">
+          <div id="cornerPillar" class="corner-pillar" aria-live="polite">
+            <div class="corner-spine-glow" aria-hidden="true"></div>
+            <div id="wallLeft" class="wall-plane wall-left"></div>
+            <div id="wallRight" class="wall-plane wall-right"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cinema Vignette & Fine 35mm Grain -->
+      <div class="stage-vignette" aria-hidden="true"></div>
+      <svg class="film-grain" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <filter id="cornerGrain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.86" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#cornerGrain)" />
+      </svg>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM FLOATING GLASS DOCK
+       ============================================================ -->
+  <nav id="bottomDock" class="bottom-dock glass-hud px-2.5 sm:px-3.5 py-2 rounded-full flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+    <!-- Restart Snippet (R) -->
+    <button
+      id="restartBtn"
+      type="button"
+      title="Restart Snippet (Press R)"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/10 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+        <path d="M3 3v5h5" />
+      </svg>
+    </button>
+
+    <!-- Play / Pause (Space) -->
+    <button
+      id="playPauseBtn"
+      type="button"
+      title="Play / Pause (Space)"
+      class="w-10 h-10 rounded-full shrink-0 bg-white text-black hover:scale-105 active:scale-95 transition flex items-center justify-center shadow-[0_0_24px_rgba(255,255,255,0.3)]"
+    >
+      <svg id="playIcon" class="w-4 h-4 translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="6 4 20 12 6 20 6 4" />
+      </svg>
+      <svg id="pauseIcon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4.5" height="16" rx="1.2" />
+        <rect x="13.5" y="4" width="4.5" height="16" rx="1.2" />
+      </svg>
+    </button>
+
+    <!-- Scrubber -->
+    <div class="flex items-center gap-2 min-w-[110px] sm:min-w-[172px] px-1">
+      <span id="timeElapsed" class="text-[11px] font-mono text-white/75 tabular-nums shrink-0">0:00</span>
+      <div id="progressTrack" class="relative flex-1 h-6 flex items-center cursor-pointer group">
+        <div class="w-full h-[3.5px] rounded-full bg-white/16 overflow-hidden">
+          <div id="progressFill" class="h-full rounded-full bg-gradient-to-r from-red-600 via-red-400 to-white" style="width: 0%"></div>
+        </div>
+        <div
+          id="progressKnob"
+          class="absolute w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_#ffffff] -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style="left: 0%"
+        ></div>
+      </div>
+      <span id="timeTotal" class="text-[11px] font-mono text-white/45 tabular-nums shrink-0">0:14</span>
+    </div>
+
+    <!-- Loop Toggle -->
+    <button
+      id="loopBtn"
+      type="button"
+      title="Loop Active Snippet"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-red-400 bg-white/12 hover:bg-white/18 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m17 2 4 4-4 4" />
+        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+        <path d="m7 22-4-4 4-4" />
+        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+      </svg>
+    </button>
+
+    <div class="w-px h-5 bg-white/15 shrink-0"></div>
+
+    <!-- Cycle 3D Camera Style (V) -->
+    <button
+      id="dockCamCycleBtn"
+      type="button"
+      title="Cycle 3D Corner Camera Mode (Press V)"
+      class="h-9 px-2.5 sm:px-3 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold bg-white/12 hover:bg-white/22 text-white transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
+      </svg>
+      <span id="dockCamLabel">Corner Orbit</span>
+    </button>
+
+    <!-- 16:9 / 9:16 Vertical Reel Toggle -->
+    <button
+      id="dockReelBtn"
+      type="button"
+      title="Toggle 16:9 / 9:16 Vertical Reel Frame"
+      class="h-9 px-2.5 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold text-white/80 hover:text-white hover:bg-white/10 transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="2" width="12" height="20" rx="2.5" />
+      </svg>
+      <span id="dockReelLabel">16:9</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       STUDIO DRAWER (SMOOTH NATIVE SCROLL)
+       ============================================================ -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <aside id="studioDrawer" class="studio-drawer" aria-label="3D Corner Kinetic Lyric Studio Settings">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <div>
+        <h2 class="text-base font-extrabold text-white tracking-tight">3D Corner Kinetic Studio</h2>
+        <p class="text-[11px] text-white/50">3D Orthogonal Walls · Camera Orbit · MP3 &amp; LRCLIB</p>
+      </div>
+      <button
+        id="closeStudioBtn"
+        type="button"
+        aria-label="Close Studio"
+        class="w-9 h-9 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center text-white/80 hover:text-white transition"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="drawerScrollWrapper" class="drawer-scroll-area">
+      <div class="px-5 py-5 space-y-6">
+
+        <!-- SECTION 1: 3D CAMERA RIG, WALL GEOMETRY & TYPOGRAPHY -->
+        <section class="space-y-3.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">1. 3D Corner Camera &amp; Type</h3>
+            <span id="activeCamBadge" class="text-[11px] font-semibold text-red-400">Corner Orbit</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-cam-pick="orbit" class="cam-btn p-2.5 rounded-xl text-left bg-white/15 border border-white/45 transition">
+              <p class="text-xs font-bold text-white">Corner Orbit (Video)</p>
+              <p class="text-[10px] text-white/55">Smooth 3D descent &amp; wall swing</p>
+            </button>
+            <button type="button" data-cam-pick="whip" class="cam-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Aggressive Whip</p>
+              <p class="text-[10px] text-white/50">Fast rap cuts &amp; tilt snaps</p>
+            </button>
+            <button type="button" data-cam-pick="tower" class="cam-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Hero Tower Glide</p>
+              <p class="text-[10px] text-white/50">Low-angle wide 3D monument</p>
+            </button>
+            <button type="button" data-cam-pick="iso" class="cam-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Isometric Lock</p>
+              <p class="text-[10px] text-white/50">Clean steady 45° descent</p>
+            </button>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-3">
+            <!-- Font Family Selector -->
+            <div class="space-y-1.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-white/50">Grotesk Typography</span>
+              <div class="grid grid-cols-4 gap-1 p-1 rounded-xl bg-black/40 border border-white/10 text-[10px] font-bold">
+                <button type="button" data-font-pick="swiss" class="font-btn py-1.5 rounded-lg bg-white text-black transition">Swiss</button>
+                <button type="button" data-font-pick="archivo" class="font-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Archivo</button>
+                <button type="button" data-font-pick="jakarta" class="font-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Jakarta</button>
+                <button type="button" data-font-pick="syne" class="font-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Syne</button>
+              </div>
+            </div>
+
+            <!-- Sliders -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-white/80">Text &amp; Tower Scale</span>
+                <div class="flex items-center gap-1.5">
+                  <span id="textSizeLabel" class="font-mono font-bold text-red-400">100%</span>
+                  <button id="textSizeResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-white/75 transition">Reset</button>
+                </div>
+              </div>
+              <input id="textSizeSlider" type="range" min="0.7" max="1.4" step="0.05" value="1" class="studio-slider w-full" aria-label="Text scale" />
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-white/80">3D Corner Fold Angle</span>
+                <span id="wallAngleLabel" class="font-mono font-bold text-red-400">90°</span>
+              </div>
+              <input id="wallAngleSlider" type="range" min="60" max="110" step="2" value="90" class="studio-slider w-full" aria-label="Corner wall angle" />
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-white/80">Camera Whip &amp; Motion Blur</span>
+                <span id="camEnergyLabel" class="font-mono font-bold text-red-400">90%</span>
+              </div>
+              <input id="camEnergySlider" type="range" min="0" max="100" step="5" value="90" class="studio-slider w-full" aria-label="Camera whip energy" />
+            </div>
+
+            <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-white/10">
+              <button id="toggleGlowBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">Red Glow: ON</button>
+              <button id="toggleGrainBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">Film Grain: ON</button>
+              <button id="toggleSpineBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/[0.04] border border-white/12 text-[10px] font-bold text-white/55 transition">Spine: OFF</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: COLOR THEMES & CUSTOM PICKERS -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">2. Color Palette</h3>
+            <span id="activePaletteLabel" class="text-[11px] font-semibold text-red-400">Crimson Noir</span>
+          </div>
+
+          <div id="paletteGrid" class="grid grid-cols-5 gap-1.5"></div>
+
+          <div class="p-3 rounded-2xl bg-white/[0.05] border border-white/10 grid grid-cols-3 gap-2">
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customGlowPicker" type="color" value="#9e0008" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">BG Glow</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customAccentPicker" type="color" value="#ff1826" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">Accent</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customWhitePicker" type="color" value="#f7f7f7" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">Main</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- SECTION 3: SONG MP3 & TRACK INFO -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">3. Song MP3 &amp; Track Info</h3>
+            <span id="audioStatusBadge" class="text-[11px] font-semibold text-red-400">808 Beat Ready</span>
+          </div>
+
+          <label
+            id="audioDropZone"
+            for="audioFileInput"
+            class="block w-full p-3.5 rounded-2xl border border-dashed border-white/20 hover:border-red-400/80 bg-white/[0.03] hover:bg-white/[0.06] transition cursor-pointer text-center"
+          >
+            <input id="audioFileInput" type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" class="hidden" />
+            <div class="flex items-center justify-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-red-400 shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+              <div class="text-left min-w-0">
+                <p id="audioDropLabel" class="text-xs font-bold text-white truncate">Drop MP3 / WAV / M4A or tap to upload</p>
+                <p id="audioFileMeta" class="text-[11px] text-white/45">100% browser-local · 808 bass-reactive 3D camera kick</p>
+              </div>
+            </div>
+          </label>
+
+          <div class="grid grid-cols-2 gap-2">
+            <input
+              id="titleInput"
+              type="text"
+              value="Katleaam 3D"
+              placeholder="Track Title"
+              class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-red-400/70 focus:outline-none text-xs font-semibold text-white placeholder-white/35"
+            />
+            <input
+              id="artistInput"
+              type="text"
+              value="Hip-Hop 808 Demo"
+              placeholder="Artist Name"
+              class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-red-400/70 focus:outline-none text-xs text-white/85 placeholder-white/35"
+            />
+          </div>
+        </section>
+
+        <!-- SECTION 4: SYNCED LYRICS (LRCLIB.NET) -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">4. Synced Lyrics (LRCLIB.net)</h3>
+            <span id="lyricsCountBadge" class="text-[11px] font-mono text-white/55">14 lines</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-bold">
+            <button type="button" data-lrc-tab="url" class="lrc-tab-btn py-1.5 rounded-lg bg-white text-black transition">LRCLIB Link</button>
+            <button type="button" data-lrc-tab="search" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Search</button>
+            <button type="button" data-lrc-tab="manual" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Manual LRC</button>
+          </div>
+
+          <div id="lrcTabUrl" class="space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibUrlInput"
+                type="text"
+                placeholder="https://lrclib.net/tracks/28185115 or 28185115"
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-red-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="fetchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95 flex items-center gap-1.5"
+              >
+                <span id="fetchBtnLabel">Fetch</span>
+                <svg id="fetchSpinner" class="hidden w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25" />
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p id="lrclibStatusText" class="text-[11px] text-white/48">
+              Paste any <span class="text-white/80 font-medium">lrclib.net/tracks/{id}</span> link to load synced lyrics instantly.
+            </p>
+          </div>
+
+          <div id="lrcTabSearch" class="hidden space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibSearchInput"
+                type="text"
+                placeholder="Search song name or artist..."
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-red-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="searchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95"
+              >
+                Search
+              </button>
+            </div>
+            <div id="searchResultsBox" class="max-h-48 inner-scroll space-y-1.5 pr-0.5">
+              <p class="text-[11px] text-white/45 text-center py-4">Search LRCLIB's synced library and click any track.</p>
+            </div>
+          </div>
+
+          <div id="lrcTabManual" class="hidden space-y-2">
+            <textarea
+              id="manualLrcInput"
+              rows="5"
+              placeholder="[00:00.10] Maine kare *kaand* kitne&#10;[00:01.20] kaam mera chale"
+              class="w-full p-3 rounded-xl bg-white/[0.07] border border-white/14 focus:border-red-400/70 focus:outline-none text-xs font-mono text-white placeholder-white/35 resize-y"
+            ></textarea>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] text-white/45">Tip: Wrap words in <code class="text-red-400">*stars*</code> for giant red punch!</span>
+              <button
+                id="applyManualLrcBtn"
+                type="button"
+                class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/24 border border-white/15 text-xs font-bold text-white shrink-0 transition"
+              >
+                Apply LRC
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 5: EXACT SONG PART TRIMMER & SYNC OFFSET -->
+        <section class="space-y-3.5 pt-3 border-t border-white/10 pb-8">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">5. Exact Song Part (Loop)</h3>
+            <span id="snippetWindowBadge" class="text-[11px] font-mono font-semibold text-red-400">0:00 → 0:14 (14s)</span>
+          </div>
+
+          <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">Start</span>
+                <button id="useNowStartBtn" type="button" class="text-[10px] font-bold text-red-400 hover:underline">Now</button>
+              </div>
+              <input id="startTimeInput" type="text" value="0:00" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">End</span>
+                <button id="useNowEndBtn" type="button" class="text-[10px] font-bold text-red-400 hover:underline">Now</button>
+              </div>
+              <input id="endTimeInput" type="text" value="0:14" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <button
+              id="resetFullSongBtn"
+              type="button"
+              class="h-[54px] px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-[11px] font-bold text-white/80 hover:text-white transition"
+            >
+              Reset<br/>Full
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <p class="text-[11px] text-white/55">Tap <span class="text-white font-semibold">Start</span> / <span class="text-white font-semibold">End</span> on any line to loop just that part:</p>
+            <div class="h-44 inner-scroll rounded-2xl bg-black/45 border border-white/10">
+              <div id="lyricPickerList" class="divide-y divide-white/[0.06]"></div>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-white/85">Lyric Sync Offset</span>
+              <div class="flex items-center gap-1.5">
+                <button id="offsetMinusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">-0.1s</button>
+                <span id="offsetLabel" class="min-w-[54px] text-center font-mono text-xs font-bold text-white">0.00s</span>
+                <button id="offsetPlusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">+0.1s</button>
+                <button id="offsetResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/8 hover:bg-white/16 text-[10px] text-white/70 transition">0</button>
+              </div>
+            </div>
+            <input id="offsetSlider" type="range" min="-5" max="5" step="0.05" value="0" class="studio-slider w-full" aria-label="Lyric sync offset" />
+
+            <!-- Intra-Line Word Pacing Slider (Fixes Fast/Slow Vocal Delivery) -->
+            <div class="pt-2.5 border-t border-white/10 space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold text-white/85">Word Pacing (Line Spread)</span>
+                <div class="flex items-center gap-1.5">
+                  <span id="wordSpreadLabel" class="font-mono text-xs font-bold text-red-400">90%</span>
+                  <button id="wordSpreadResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/8 hover:bg-white/16 text-[10px] text-white/70 transition">Reset</button>
+                </div>
+              </div>
+              <input id="wordSpreadSlider" type="range" min="45" max="100" step="2" value="90" class="studio-slider w-full" aria-label="Word pacing across line duration" />
+              <p class="text-[10px] text-white/45">Lower % = words finish faster · Higher % = spreads evenly till next line</p>
+            </div>
+          </div>
+
+          <p class="text-[10px] text-white/40 text-center">
+            Shortcuts: <span class="text-white/75 font-semibold">Space</span> Play · <span class="text-white/75 font-semibold">V</span> Camera · <span class="text-white/75 font-semibold">C</span> Palette · <span class="text-white/75 font-semibold">R</span> Restart · <span class="text-white/75 font-semibold">S</span> Studio · <span class="text-white/75 font-semibold">H</span> Clean
+          </p>
+        </section>
+
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    /* ============================================================
+       3D CORNER KINETIC LYRIC STUDIO — ARCHITECTURAL WALL ENGINE
+       True Orthogonal 3D Walls (Left -90deg / Right 0deg / Top 90deg)
+       Smooth 3D Camera Orbit & Downward Spine Glide + 808 Beat Synth
+       ============================================================ */
+    (() => {
+      "use strict";
+
+      /* ----------------------------------------------------------
+         1. RAPID-FIRE DEMO LYRICS (EXACT VIDEO FLOW & ACCENTS!)
+         ---------------------------------------------------------- */
+      const DEMO_LRC = `
+[00:00.10] Maine kare *kaand* kitne
+[00:01.05] kaam mera chale
+[00:01.85] naam *gireban* me bhi
+[00:02.70] gire *Bomb*
+[00:03.40] lage Vietnam dere
+[00:04.25] Jaan dere *balidaan*
+[00:05.10] wo bhi sare-aam
+[00:05.85] Maine kare *harm*
+[00:06.60] *katleaam* main na pareshaan
+[00:07.80] aag lage jab mic pe aau
+[00:08.95] shor mache har *sheher* mein
+[00:10.05] naam chale mera *top* pe
+[00:11.15] raat ke *andhere* mein
+[00:12.30] koi nahi *barabar* yahaan
+      `.trim();
+
+      /* ----------------------------------------------------------
+         2. 5 CURATED NOIR COLOR PALETTES & CAMERA PRESETS
+         ---------------------------------------------------------- */
+      const PALETTES = [
+        {
+          id: "crimson-noir",
+          name: "Crimson Noir",
+          voidBg: "#020001",
+          glow1: "#a6000a",
+          glow2: "#5e0006",
+          textWhite: "#f7f7f7",
+          accent: "#ff1826",
+          rgb: "255, 24, 38",
+        },
+        {
+          id: "acid-noir",
+          name: "Toxic Acid",
+          voidBg: "#010301",
+          glow1: "#1a6e00",
+          glow2: "#0c3d00",
+          textWhite: "#f5fff0",
+          accent: "#b8ff2c",
+          rgb: "184, 255, 44",
+        },
+        {
+          id: "cobalt-noir",
+          name: "Cyber Cobalt",
+          voidBg: "#010207",
+          glow1: "#003fa8",
+          glow2: "#001d5e",
+          textWhite: "#f2f8ff",
+          accent: "#24d2ff",
+          rgb: "36, 210, 255",
+        },
+        {
+          id: "gold-noir",
+          name: "Royal Gold",
+          voidBg: "#040200",
+          glow1: "#944c00",
+          glow2: "#4d2300",
+          textWhite: "#fffaf0",
+          accent: "#ffbe2e",
+          rgb: "255, 190, 46",
+        },
+        {
+          id: "violet-noir",
+          name: "Ultraviolet",
+          voidBg: "#030106",
+          glow1: "#6c009c",
+          glow2: "#3b0057",
+          textWhite: "#fbf4ff",
+          accent: "#e03cff",
+          rgb: "224, 60, 255",
+        },
+      ];
+
+      const CAM_MODES = [
+        { id: "orbit", label: "Corner Orbit", badge: "Corner Orbit" },
+        { id: "whip",  label: "Whip Cuts",    badge: "Aggressive Whip" },
+        { id: "tower", label: "Tower Glide",  badge: "Hero Tower Glide" },
+        { id: "iso",   label: "Iso Lock",     badge: "Isometric Lock" },
+      ];
+
+      /* ----------------------------------------------------------
+         3. APPLICATION STATE
+         ---------------------------------------------------------- */
+      const state = {
+        mode: "demo",
+        audioObjectUrl: null,
+        isPlaying: false,
+        isLooping: true,
+        isDrawerOpen: false,
+        isCleanMode: false,
+        isReelMode: false,
+
+        // Visual & Camera Settings
+        paletteId: "crimson-noir",
+        palette: { ...PALETTES[0] },
+        camMode: "orbit",           // "orbit" | "whip" | "tower" | "iso"
+        fontId: "swiss",
+        textScale: 1.0,
+        wallAngle: 90,
+        camEnergy: 0.90,
+        glowEnabled: true,
+        grainEnabled: true,
+        spineEnabled: false,
+
+        // Playback & Snippet Bounds
+        duration: 14.0,
+        startTime: 0.0,
+        endTime: 14.0,
+        syncOffset: 0.0,
+        wordSpread: 0.90,
+        currentTime: 0.0,
+
+        lines: [],
+        snippetLines: [],
+        // Pre-built 3D architectural blocks placed across wallTop, wallLeft, wallRight
+        // [{ id, lineIdx, wall, time, text, y, height, fontSize, isAccent, isTall, isSub, el, revealed }]
+        blocks: [],
+        lastRevealedIdx: -1,
+
+        // Smooth 3D Virtual Camera Rig Physics
+        cam: {
+          x: 0,
+          y: 0,
+          z: 0,
+          tx: 0,
+          ty: 0,
+          tz: 0,
+          scale: 1.15,
+          tScale: 1.15,
+          rx: 0,
+          ry: 0,
+          rz: 0,
+          trx: 0,
+          try: 0,
+          trz: 0,
+          whipTimer: 0,
+        },
+
+        // Web Audio API (Punchy 808 Hip-Hop Demo Beat)
+        audioCtx: null,
+        masterGain: null,
+        analyser: null,
+        freqData: null,
+        mediaConnected: false,
+        demoTimer: null,
+        demoStep: 0,
+        demoNodes: [],
+        bassEnergy: 0,
+
+        // Loops
+        rafId: null,
+        lastFrameTs: 0,
+        idleTimer: null,
+      };
+
+      /* ----------------------------------------------------------
+         4. DOM REFERENCES
+         ---------------------------------------------------------- */
+      const el = {
+        audio: document.getElementById("audioPlayer"),
+        stageFrame: document.getElementById("stageFrame"),
+        noirGlowLayer: document.getElementById("noirGlowLayer"),
+        cameraViewport: document.getElementById("cameraViewport"),
+        cameraWorld: document.getElementById("cameraWorld"),
+        cornerPillar: document.getElementById("cornerPillar"),
+        wallLeft: document.getElementById("wallLeft"),
+        wallRight: document.getElementById("wallRight"),
+        cornerBlurNode: document.getElementById("cornerBlurNode"),
+
+        // Toast & Top HUD
+        toastPill: document.getElementById("toastPill"),
+        toastDot: document.getElementById("toastDot"),
+        toastText: document.getElementById("toastText"),
+        topHud: document.getElementById("topHud"),
+        trackPillBtn: document.getElementById("trackPillBtn"),
+        hudCubeSwatch: document.getElementById("hudCubeSwatch"),
+        hudTitle: document.getElementById("hudTitle"),
+        hudArtist: document.getElementById("hudArtist"),
+        eqBars: document.querySelectorAll(".micro-eq-bar"),
+        quickPaletteBtn: document.getElementById("quickPaletteBtn"),
+        quickPaletteDot: document.getElementById("quickPaletteDot"),
+        quickPaletteName: document.getElementById("quickPaletteName"),
+        cleanModeBtn: document.getElementById("cleanModeBtn"),
+        cleanExitBtn: document.getElementById("cleanExitBtn"),
+        openStudioBtn: document.getElementById("openStudioBtn"),
+
+        // Bottom Dock
+        bottomDock: document.getElementById("bottomDock"),
+        restartBtn: document.getElementById("restartBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        playIcon: document.getElementById("playIcon"),
+        pauseIcon: document.getElementById("pauseIcon"),
+        progressTrack: document.getElementById("progressTrack"),
+        progressFill: document.getElementById("progressFill"),
+        progressKnob: document.getElementById("progressKnob"),
+        timeElapsed: document.getElementById("timeElapsed"),
+        timeTotal: document.getElementById("timeTotal"),
+        loopBtn: document.getElementById("loopBtn"),
+        dockCamCycleBtn: document.getElementById("dockCamCycleBtn"),
+        dockCamLabel: document.getElementById("dockCamLabel"),
+        dockReelBtn: document.getElementById("dockReelBtn"),
+        dockReelLabel: document.getElementById("dockReelLabel"),
+
+        // Studio Drawer
+        drawerBackdrop: document.getElementById("drawerBackdrop"),
+        studioDrawer: document.getElementById("studioDrawer"),
+        closeStudioBtn: document.getElementById("closeStudioBtn"),
+
+        // Section 1: Camera & Typography
+        activeCamBadge: document.getElementById("activeCamBadge"),
+        camBtns: document.querySelectorAll(".cam-btn"),
+        fontBtns: document.querySelectorAll(".font-btn"),
+        textSizeSlider: document.getElementById("textSizeSlider"),
+        textSizeLabel: document.getElementById("textSizeLabel"),
+        textSizeResetBtn: document.getElementById("textSizeResetBtn"),
+        wallAngleSlider: document.getElementById("wallAngleSlider"),
+        wallAngleLabel: document.getElementById("wallAngleLabel"),
+        camEnergySlider: document.getElementById("camEnergySlider"),
+        camEnergyLabel: document.getElementById("camEnergyLabel"),
+        toggleGlowBtn: document.getElementById("toggleGlowBtn"),
+        toggleGrainBtn: document.getElementById("toggleGrainBtn"),
+        toggleSpineBtn: document.getElementById("toggleSpineBtn"),
+
+        // Section 2: Palettes
+        activePaletteLabel: document.getElementById("activePaletteLabel"),
+        paletteGrid: document.getElementById("paletteGrid"),
+        customGlowPicker: document.getElementById("customGlowPicker"),
+        customAccentPicker: document.getElementById("customAccentPicker"),
+        customWhitePicker: document.getElementById("customWhitePicker"),
+
+        // Section 3: Audio
+        audioStatusBadge: document.getElementById("audioStatusBadge"),
+        audioDropZone: document.getElementById("audioDropZone"),
+        audioFileInput: document.getElementById("audioFileInput"),
+        audioDropLabel: document.getElementById("audioDropLabel"),
+        audioFileMeta: document.getElementById("audioFileMeta"),
+        titleInput: document.getElementById("titleInput"),
+        artistInput: document.getElementById("artistInput"),
+
+        // Section 4: LRCLIB
+        lyricsCountBadge: document.getElementById("lyricsCountBadge"),
+        lrcTabBtns: document.querySelectorAll(".lrc-tab-btn"),
+        lrcTabUrl: document.getElementById("lrcTabUrl"),
+        lrcTabSearch: document.getElementById("lrcTabSearch"),
+        lrcTabManual: document.getElementById("lrcTabManual"),
+        lrclibUrlInput: document.getElementById("lrclibUrlInput"),
+        fetchLrclibBtn: document.getElementById("fetchLrclibBtn"),
+        fetchBtnLabel: document.getElementById("fetchBtnLabel"),
+        fetchSpinner: document.getElementById("fetchSpinner"),
+        lrclibStatusText: document.getElementById("lrclibStatusText"),
+        lrclibSearchInput: document.getElementById("lrclibSearchInput"),
+        searchLrclibBtn: document.getElementById("searchLrclibBtn"),
+        searchResultsBox: document.getElementById("searchResultsBox"),
+        manualLrcInput: document.getElementById("manualLrcInput"),
+        applyManualLrcBtn: document.getElementById("applyManualLrcBtn"),
+
+        // Section 5: Trimmer & Offset
+        snippetWindowBadge: document.getElementById("snippetWindowBadge"),
+        startTimeInput: document.getElementById("startTimeInput"),
+        endTimeInput: document.getElementById("endTimeInput"),
+        useNowStartBtn: document.getElementById("useNowStartBtn"),
+        useNowEndBtn: document.getElementById("useNowEndBtn"),
+        resetFullSongBtn: document.getElementById("resetFullSongBtn"),
+        lyricPickerList: document.getElementById("lyricPickerList"),
+        offsetSlider: document.getElementById("offsetSlider"),
+        offsetLabel: document.getElementById("offsetLabel"),
+        offsetMinusBtn: document.getElementById("offsetMinusBtn"),
+        offsetPlusBtn: document.getElementById("offsetPlusBtn"),
+        offsetResetBtn: document.getElementById("offsetResetBtn"),
+        wordSpreadSlider: document.getElementById("wordSpreadSlider"),
+        wordSpreadLabel: document.getElementById("wordSpreadLabel"),
+        wordSpreadResetBtn: document.getElementById("wordSpreadResetBtn"),
+      };
+
+      /* ----------------------------------------------------------
+         5. UTILITIES (TOAST, TIME, HEX->RGB, LRC PARSER)
+         ---------------------------------------------------------- */
+      let toastTimer = null;
+      function showToast(msg, type = "info") {
+        el.toastText.textContent = msg;
+        el.toastDot.className = "w-2 h-2 rounded-full shrink-0 " + (
+          type === "error" ? "bg-rose-500" :
+          type === "success" ? "bg-emerald-400" :
+          "bg-red-500"
+        );
+        clearTimeout(toastTimer);
+
+        if (window.anime) {
+          anime.remove(el.toastPill);
+          anime({
+            targets: el.toastPill,
+            translateX: ["-50%", "-50%"],
+            translateY: [-24, 0],
+            opacity: [0, 1],
+            scale: [0.92, 1],
+            duration: 360,
+            easing: "easeOutElastic(1, 0.72)",
+          });
+        } else {
+          el.toastPill.style.opacity = "1";
+          el.toastPill.style.transform = "translateX(-50%) translateY(0)";
+        }
+
+        toastTimer = setTimeout(() => {
+          if (window.anime) {
+            anime({
+              targets: el.toastPill,
+              translateX: ["-50%", "-50%"],
+              translateY: [0, -18],
+              opacity: [1, 0],
+              duration: 240,
+              easing: "easeInQuad",
+            });
+          } else {
+            el.toastPill.style.opacity = "0";
+          }
+        }, 2600);
+      }
+
+      function formatTime(sec) {
+        if (!Number.isFinite(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+
+      function parseTimeInput(str) {
+        if (!str) return null;
+        const clean = str.trim();
+        if (/^\d+(\.\d+)?$/.test(clean)) return parseFloat(clean);
+        const m = clean.match(/^(\d+):(\d{1,2})(?:\.(\d+))?$/);
+        if (!m) return null;
+        const mins = parseInt(m[1], 10);
+        const secs = parseInt(m[2], 10);
+        if (secs >= 60) return null;
+        const frac = m[3] ? parseFloat("0." + m[3]) : 0;
+        return mins * 60 + secs + frac;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function hexToRgbStr(hex) {
+        const clean = (hex || "#ff1826").replace("#", "");
+        if (clean.length !== 6) return "255, 24, 38";
+        return `${parseInt(clean.slice(0, 2), 16)}, ${parseInt(clean.slice(2, 4), 16)}, ${parseInt(clean.slice(4, 6), 16)}`;
+      }
+
+      function parseLRC(rawText) {
+        if (!rawText || typeof rawText !== "string") return [];
+        const rawLines = rawText.split(/\r?\n/);
+        const timeRx = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+        const wordTagRx = /<(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?>\s*([^<]+)/g;
+        const parsed = [];
+
+        const toSec = (m1, m2, m3) => {
+          const mins = parseInt(m1, 10);
+          const secs = parseInt(m2, 10);
+          const msStr = m3 || "0";
+          const ms = msStr.length === 1
+            ? parseInt(msStr, 10) / 10
+            : msStr.length === 2
+            ? parseInt(msStr, 10) / 100
+            : parseInt(msStr.slice(0, 3), 10) / 1000;
+          return Number((mins * 60 + secs + ms).toFixed(3));
+        };
+
+        for (const raw of rawLines) {
+          const stamps = [];
+          let m;
+          timeRx.lastIndex = 0;
+          while ((m = timeRx.exec(raw)) !== null) {
+            stamps.push(toSec(m[1], m[2], m[3]));
+          }
+          if (!stamps.length) continue;
+
+          const body = raw.replace(timeRx, "").trim();
+          if (!body) continue;
+
+          // Preserve enhanced word-level <mm:ss.xx> timestamps when provided
+          const wordTimings = [];
+          let wm;
+          wordTagRx.lastIndex = 0;
+          while ((wm = wordTagRx.exec(body)) !== null) {
+            const wt = toSec(wm[1], wm[2], wm[3]);
+            const wordsInTag = wm[4].trim().split(/\s+/).filter(Boolean);
+            wordsInTag.forEach((w, idx) => {
+              wordTimings.push({ text: w, time: Number((wt + idx * 0.22).toFixed(3)) });
+            });
+          }
+
+          const cleanText = body
+            .replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+          if (!cleanText) continue;
+
+          for (const t of stamps) {
+            parsed.push({
+              time: t,
+              text: cleanText,
+              wordTimings: wordTimings.length ? wordTimings : null,
+            });
+          }
+        }
+
+        parsed.sort((a, b) => a.time - b.time);
+        return parsed;
+      }
+
+      /* ----------------------------------------------------------
+         6. PALETTE ENGINE (5 NOIR PRESETS + CUSTOM PICKERS)
+         ---------------------------------------------------------- */
+      function buildPaletteGrid() {
+        el.paletteGrid.innerHTML = "";
+        const frag = document.createDocumentFragment();
+        PALETTES.forEach((p) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.dataset.palettePick = p.id;
+          btn.title = p.name;
+          btn.className = "palette-btn flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition";
+          btn.innerHTML = `
+            <span class="w-6 h-6 rounded-full border border-white/25" style="background: linear-gradient(135deg, ${p.glow1} 45%, ${p.accent} 100%);"></span>
+            <span class="text-[9px] font-bold text-white/80 truncate w-full text-center">${escapeHtml(p.name.split(" ")[0])}</span>
+          `;
+          btn.addEventListener("click", () => applyPalette(p.id, true));
+          frag.appendChild(btn);
+        });
+        el.paletteGrid.appendChild(frag);
+      }
+
+      function syncPaletteTokens() {
+        const p = state.palette;
+        const root = document.documentElement;
+        root.style.setProperty("--bg-void", p.voidBg);
+        root.style.setProperty("--glow-1", p.glow1);
+        root.style.setProperty("--glow-2", p.glow2);
+        root.style.setProperty("--text-white", p.textWhite);
+        root.style.setProperty("--text-accent", p.accent);
+        root.style.setProperty("--accent-rgb", hexToRgbStr(p.accent));
+        root.style.setProperty("--hud-accent", p.accent);
+
+        el.quickPaletteDot.style.background = `linear-gradient(135deg, ${p.glow1} 35%, ${p.accent} 100%)`;
+        el.hudCubeSwatch.style.background = `linear-gradient(135deg, ${p.glow2} 25%, ${p.accent} 100%)`;
+        el.customGlowPicker.value = p.glow1;
+        el.customAccentPicker.value = p.accent;
+        el.customWhitePicker.value = p.textWhite;
+      }
+
+      function applyPalette(paletteId, announce = false) {
+        const found = PALETTES.find((item) => item.id === paletteId) || PALETTES[0];
+        state.paletteId = found.id;
+        state.palette = { ...found };
+
+        el.activePaletteLabel.textContent = found.name;
+        el.quickPaletteName.textContent = found.name;
+
+        el.paletteGrid.querySelectorAll(".palette-btn").forEach((btn) => {
+          const active = btn.dataset.palettePick === found.id;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/45", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+
+        syncPaletteTokens();
+        if (announce) showToast(`Palette: ${found.name}`);
+      }
+
+      /* ----------------------------------------------------------
+         7. 3D ARCHITECTURAL CORNER WALL BUILDER
+            Splits every synced lyric line into punchy 1-2 word rows
+            alternating across the Left & Right Walls with accurate
+            syllable-weighted full-line vocal sync!
+         ---------------------------------------------------------- */
+      function estimateChunkWeight(text) {
+        const clean = text.replace(/[^a-zA-Z0-9\u0900-\u097f]/g, "");
+        const vowels = (clean.match(/[aeiouyAEIOUY]+/g) || []).length;
+        const punctPause = /[,;—-]$/.test(text) ? 1.4 : /[.!?]$/.test(text) ? 1.8 : 0;
+        return Math.max(2.2, vowels * 1.15 + clean.length * 0.42 + punctPause);
+      }
+
+      function chunkLineIntoVisualRows(lineObj, nextLineObj, lineIdx) {
+        const rawTokens = lineObj.wordTimings && lineObj.wordTimings.length
+          ? lineObj.wordTimings.map((wt) => ({ raw: wt.text, time: wt.time }))
+          : lineObj.text.split(/\s+/).filter(Boolean).map((raw) => ({ raw, time: null }));
+        if (!rawTokens.length) return [];
+
+        const gap = nextLineObj
+          ? Math.max(0.45, nextLineObj.time - lineObj.time)
+          : Math.max(1.4, Math.min(4.5, state.endTime - lineObj.time));
+
+        // Build clean visual phrases (1–2 short words per row, starred words stand solo as dramatic accents!)
+        const chunks = [];
+        let i = 0;
+        while (i < rawTokens.length) {
+          const tok = rawTokens[i].raw;
+          const tokTime = rawTokens[i].time;
+          const isExplicitAccent = /^\*.+\*$/.test(tok) || tok.includes("*");
+          const clean = tok.replace(/\*/g, "");
+
+          if (isExplicitAccent) {
+            chunks.push({ text: clean, explicitAccent: true, explicitTime: tokTime });
+            i++;
+          } else if (
+            i + 1 < rawTokens.length &&
+            !rawTokens[i + 1].raw.includes("*") &&
+            clean.length + rawTokens[i + 1].raw.length <= 10 &&
+            !(lineIdx === 0 && chunks.length < 2)
+          ) {
+            // Pair two short words cleanly like "mera chale", "me bhi", "wo bhi", "main na"
+            chunks.push({
+              text: `${clean} ${rawTokens[i + 1].raw}`,
+              explicitAccent: false,
+              isPair: true,
+              explicitTime: tokTime,
+            });
+            i += 2;
+          } else {
+            chunks.push({ text: clean, explicitAccent: false, explicitTime: tokTime });
+            i++;
+          }
+        }
+
+        // If enhanced word-level timestamps exist, use them directly!
+        if (chunks.every((c) => typeof c.explicitTime === "number")) {
+          return chunks.map((ch, idx) => ({ ...ch, time: ch.explicitTime, chunkIdx: idx }));
+        }
+
+        // Distribute word-row timestamps across the actual sung duration of the line
+        // (prevents chunks from rushing ahead of vocals while capping long instrumental breaks)
+        const weights = chunks.map((c) => estimateChunkWeight(c.text));
+        const totalWeight = weights.reduce((s, w) => s + w, 0) || 1;
+        const naturalMaxDur = Math.max(2.6, rawTokens.length * 0.95 + 0.8);
+        const sungSpan = Math.min(gap * state.wordSpread, naturalMaxDur);
+        let acc = 0;
+
+        return chunks.map((ch, idx) => {
+          const t = lineObj.time + (acc / totalWeight) * sungSpan;
+          acc += weights[idx];
+          return { ...ch, time: Number(t.toFixed(3)), chunkIdx: idx };
+        });
+      }
+
+      /**
+       * Rebuilds the complete 3D Corner Pillar DOM with exact vertical stacking coordinates
+       * across the convex Left (-angle/2) & Right (+angle/2) Walls so EVERY word stays 100% visible!
+       */
+      function rebuildCornerTower() {
+        el.wallLeft.innerHTML = "";
+        el.wallRight.innerHTML = "";
+        state.blocks = [];
+        state.lastRevealedIdx = -1;
+
+        if (!state.snippetLines.length) return;
+
+        let cursorLeftY = 0;
+        let cursorRightY = 0;
+        let globalBlockIdx = 0;
+
+        state.snippetLines.forEach((lineObj, lineIdx) => {
+          const nextLineObj = state.snippetLines[lineIdx + 1] || null;
+          const rows = chunkLineIntoVisualRows(lineObj, nextLineObj, lineIdx);
+
+          // Line 0 starts flat-to-3D on the Right Wall, then lines alternate cleanly Right <-> Left!
+          const wall = lineIdx % 2 === 0 ? "right" : "left";
+
+          // Keep Left and Right wall cursors tightly interlocked along the vertical corner spine
+          if (wall === "left" && cursorLeftY < cursorRightY - 68) {
+            cursorLeftY = Math.max(cursorLeftY, cursorRightY - 68);
+          } else if (wall === "right" && cursorRightY < cursorLeftY - 68) {
+            cursorRightY = Math.max(cursorRightY, cursorLeftY - 68);
+          }
+
+          rows.forEach((row, rIdx) => {
+            const len = row.text.length;
+            const autoAccent = !row.explicitAccent && (globalBlockIdx > 2 && globalBlockIdx % 4 === 3 && len >= 4);
+            const isAccent = row.explicitAccent || autoAccent;
+            const isTall = isAccent && len <= 10 && globalBlockIdx >= 2;
+            const isSub = !isAccent && (row.isPair || (rIdx > 0 && len >= 7));
+
+            // Dynamic Swiss Editorial Size Hierarchy with smart width fit so long words never clip
+            let fontSize;
+            if (isTall) {
+              fontSize = len <= 5 ? 108 : len <= 7 ? 90 : 74;
+            } else if (isAccent) {
+              fontSize = len <= 7 ? 70 : len <= 10 ? 58 : 46;
+            } else if (isSub) {
+              fontSize = len <= 8 ? 38 : len <= 12 ? 32 : 27;
+            } else {
+              fontSize = len <= 5 ? 74 : len <= 8 ? 60 : len <= 11 ? 48 : 40;
+            }
+
+            const rowHeight = Math.round(fontSize * (isTall ? 0.88 : 0.90));
+            const div = document.createElement("div");
+            div.className = "w-block" +
+              (isAccent ? " is-accent" : "") +
+              (isTall ? " is-tall" : "") +
+              (isSub ? " is-sub" : "");
+            div.textContent = row.text;
+            div.style.fontSize = `${fontSize}px`;
+
+            let posY = 0;
+            if (wall === "left") {
+              posY = cursorLeftY;
+              div.style.top = `${posY}px`;
+              cursorLeftY += rowHeight + 5;
+              el.wallLeft.appendChild(div);
+            } else {
+              posY = cursorRightY;
+              div.style.top = `${posY}px`;
+              cursorRightY += rowHeight + 5;
+              el.wallRight.appendChild(div);
+            }
+
+            state.blocks.push({
+              id: globalBlockIdx++,
+              lineIdx,
+              wall,
+              time: row.time,
+              text: row.text,
+              y: posY + rowHeight * 0.48,
+              height: rowHeight,
+              fontSize,
+              isAccent,
+              isTall,
+              isSub,
+              el: div,
+              revealed: false,
+            });
+          });
+        });
+
+        // Update corner spine height cleanly
+        const maxWallH = Math.max(600, cursorLeftY, cursorRightY) + 260;
+        const spine = el.cornerPillar.querySelector(".corner-spine-glow");
+        if (spine) spine.style.height = `${maxWallH}px`;
+      }
+
+      /* ----------------------------------------------------------
+         8. BLOCK SLAM ANIMATION & SYNC ENGINE
+         ---------------------------------------------------------- */
+      function animateBlockReveal(block, instant = false) {
+        if (!block || !block.el) return;
+        block.revealed = true;
+        block.el.classList.remove("is-dimmed");
+        block.el.classList.add("is-fresh");
+
+        if (instant || !window.gsap) {
+          block.el.style.opacity = "1";
+          block.el.style.transform = "none";
+          return;
+        }
+
+        gsap.killTweensOf(block.el);
+
+        // Direction-aware architectural slide & slam out of the 3D corner crease!
+        const slideFromX = block.wall === "left" ? 54 : -54;
+        if (block.isTall) {
+          gsap.fromTo(
+            block.el,
+            { opacity: 0, scaleY: 0.25, scaleX: 1.25, x: slideFromX * 0.5, filter: "blur(6px)" },
+            { opacity: 1, scaleY: 1, scaleX: 1, x: 0, filter: "blur(0px)", duration: 0.34, ease: "back.out(1.65)" }
+          );
+        } else {
+          gsap.fromTo(
+            block.el,
+            { opacity: 0, x: slideFromX, y: 14, scale: 0.86, filter: "blur(4px)" },
+            { opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)", duration: 0.32, ease: "expo.out" }
+          );
+        }
+      }
+
+      function syncCornerTowerToTime(effectiveNow, forceSnap = false) {
+        if (!state.blocks.length) return;
+
+        let targetIdx = -1;
+        for (let i = 0; i < state.blocks.length; i++) {
+          if (state.blocks[i].time <= effectiveNow + 0.02) {
+            targetIdx = i;
+          } else {
+            break;
+          }
+        }
+
+        // On initial paused load (0:00), show opening corner preview cleanly
+        const isInitialPaused = !state.isPlaying && Math.abs(effectiveNow - state.startTime) < 0.2;
+        if (isInitialPaused) {
+          targetIdx = Math.min(state.blocks.length - 1, Math.max(2, Math.min(7, state.blocks.length - 1)));
+        }
+
+        if (forceSnap || targetIdx < state.lastRevealedIdx) {
+          state.blocks.forEach((b, idx) => {
+            if (window.gsap) gsap.killTweensOf(b.el);
+            const show = idx <= targetIdx;
+            b.revealed = show;
+            b.el.style.opacity = show ? "1" : "0";
+            b.el.style.transform = "none";
+            b.el.style.filter = "";
+            b.el.classList.toggle("is-fresh", idx === targetIdx);
+            b.el.classList.toggle("is-dimmed", show && idx < targetIdx - 4);
+          });
+          state.lastRevealedIdx = targetIdx;
+          if (forceSnap) {
+            snapCameraToBlock(state.blocks[Math.max(0, targetIdx)]);
+          }
+          return;
+        }
+
+        if (targetIdx > state.lastRevealedIdx) {
+          for (let i = state.lastRevealedIdx + 1; i <= targetIdx; i++) {
+            const blk = state.blocks[i];
+            const prevBlk = i > 0 ? state.blocks[i - 1] : null;
+            animateBlockReveal(blk, false);
+
+            // Trigger crisp camera whip when switching walls!
+            if (prevBlk && prevBlk.wall !== blk.wall) {
+              state.cam.whipTimer = 0.34;
+            }
+          }
+
+          // Gently shade older blocks higher up the 3D tower for atmospheric depth
+          state.blocks.forEach((b, idx) => {
+            if (!b.revealed) return;
+            b.el.classList.toggle("is-fresh", idx >= targetIdx - 1);
+            b.el.classList.toggle("is-dimmed", idx < targetIdx - 4);
+          });
+
+          state.lastRevealedIdx = targetIdx;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         9. TRUE 3D CAMERA RIG PHYSICS (CORNER ORBIT & TOWER GLIDE)
+         ---------------------------------------------------------- */
+      function computeCameraPoseForBlock(block) {
+        const stageW = Math.max(280, el.stageFrame.clientWidth || window.innerWidth);
+        const isNarrow = stageW < 640 || state.isReelMode;
+        const e = state.camEnergy;
+        const mode = state.camMode;
+
+        const baseFit = (isNarrow ? Math.min(0.88, stageW / 460) : Math.min(1.16, stageW / 940)) * state.textScale;
+
+        if (!block) {
+          return { tx: 0, ty: 80, tScale: baseFit, trx: 12, try: 0, trz: -5 };
+        }
+
+        // Opening Shot (00:00): Look straight onto the Right Wall before whipping into the 3D corner!
+        if (block.lineIdx === 0 && block.id <= 1 && state.isPlaying && mode !== "iso") {
+          const halfWall = state.wallAngle * 0.5;
+          return {
+            tx: 96,
+            ty: block.y + 8,
+            tScale: baseFit * 1.12,
+            trx: 2 * e,
+            try: -halfWall * 0.92 * e,
+            trz: -2 * e,
+          };
+        }
+
+        const isLeft = block.wall === "left";
+        const depthProgress = Math.min(1, block.id / Math.max(10, state.blocks.length));
+
+        let trx, tryDeg, trz, scaleMult, offsetX, offsetY;
+
+        if (mode === "iso") {
+          // Balanced symmetric 3D corner spine view — both walls equally crisp
+          trx = 14 * e;
+          tryDeg = 0;
+          trz = 0;
+          scaleMult = 0.90;
+          offsetX = 0;
+          offsetY = -24;
+        } else if (mode === "tower") {
+          // Dramatic low-angle wide 3D monument view (like 00:05 - 00:06!)
+          trx = (20 + depthProgress * 10) * e;
+          tryDeg = (isLeft ? 10 : -10) * e;
+          trz = (-6 + (isLeft ? -2 : 2)) * e;
+          scaleMult = 0.80 - depthProgress * 0.10;
+          offsetX = isLeft ? -16 : 16;
+          offsetY = -64;
+        } else if (mode === "whip") {
+          // Aggressive rap whip-swings turning toward the active wall while keeping the other wall visible
+          trx = (12 + (block.id % 3) * 4.5) * e;
+          tryDeg = (isLeft ? 24 : -24) * e;
+          trz = (isLeft ? -9 : 6) * e;
+          scaleMult = 1.02 - depthProgress * 0.14;
+          offsetX = isLeft ? -34 : 34;
+          offsetY = -20;
+        } else {
+          // Default "Corner Orbit" — faithfully reproduces the 00:01 -> 00:06 reference video arc!
+          // Gently orbits around the convex corner spine so BOTH Left and Right walls stay crystal clear!
+          trx = (12 + depthProgress * 12) * e;
+          tryDeg = (isLeft ? 15 : -15) * e;
+          trz = (isLeft ? -7.5 : -3.5) * e;
+          scaleMult = 1.04 - depthProgress * 0.22;
+          offsetX = isLeft ? -20 : 20;
+          offsetY = -24 - depthProgress * 38;
+        }
+
+        return {
+          tx: offsetX,
+          ty: block.y + offsetY,
+          tScale: Math.max(0.52, baseFit * scaleMult),
+          trx,
+          try: tryDeg,
+          trz,
+        };
+      }
+
+      function snapCameraToBlock(block) {
+        const p = computeCameraPoseForBlock(block);
+        const c = state.cam;
+        c.x = c.tx = p.tx;
+        c.y = c.ty = p.ty;
+        c.scale = c.tScale = p.tScale;
+        c.rx = c.trx = p.trx;
+        c.ry = c.try = p.try;
+        c.rz = c.trz = p.trz;
+      }
+
+      function update3DCameraRig(ts, dt) {
+        const activeBlock = state.blocks[Math.max(0, state.lastRevealedIdx)] || state.blocks[0];
+        const target = computeCameraPoseForBlock(activeBlock);
+        const c = state.cam;
+
+        c.tx = target.tx;
+        c.ty = target.ty;
+        c.tScale = target.tScale * (1 + state.bassEnergy * 0.048 * state.camEnergy);
+        c.trx = target.trx;
+        c.try = target.try;
+        c.trz = target.trz;
+
+        // Smooth critically-damped tracking (extra snappy during wall whips!)
+        const posRate = c.whipTimer > 0 ? 10.5 : 6.4;
+        const rotRate = c.whipTimer > 0 ? 9.2 : 5.2;
+        const kp = 1 - Math.exp(-posRate * dt);
+        const kr = 1 - Math.exp(-rotRate * dt);
+
+        const prevX = c.x;
+        const prevY = c.y;
+        const prevRY = c.ry;
+
+        c.x += (c.tx - c.x) * kp;
+        c.y += (c.ty - c.y) * kp;
+        c.scale += (c.tScale - c.scale) * kr;
+        c.rx += (c.trx - c.rx) * kr;
+        c.ry += (c.try - c.ry) * kr;
+        c.rz += (c.trz - c.rz) * kr;
+
+        if (c.whipTimer > 0) c.whipTimer = Math.max(0, c.whipTimer - dt);
+
+        // Subtle continuous organic float + bass pulse on red glow backdrop
+        const t = ts * 0.0012;
+        const e = state.camEnergy;
+        const swayX = Math.sin(t * 1.1) * 5 * e;
+        const swayY = Math.cos(t * 0.85) * 4 * e;
+        const swayR = Math.sin(t * 0.7) * 0.8 * e;
+
+        // Directional motion blur applied on outer viewport so inner preserve-3d NEVER flattens!
+        const safeDt = Math.max(0.008, dt);
+        const velY = Math.abs(c.y - prevY) / safeDt;
+        const velRot = Math.abs(c.ry - prevRY) / safeDt;
+        const blurX = Math.min(7, Math.max(0, (velRot - 42) / 28) * e);
+        const blurY = Math.min(5, Math.max(0, (velY - 260) / 145) * e);
+
+        if (blurX > 0.35 || blurY > 0.35) {
+          el.cornerBlurNode.setAttribute("stdDeviation", `${blurX.toFixed(2)} ${blurY.toFixed(2)}`);
+          el.cameraViewport.style.filter = "url(#cornerWhipBlur)";
+        } else if (el.cameraViewport.style.filter) {
+          el.cameraViewport.style.filter = "";
+        }
+
+        const stageW = Math.max(280, el.stageFrame.clientWidth || window.innerWidth);
+        const stageH = Math.max(360, el.stageFrame.clientHeight || window.innerHeight);
+        const anchorX = stageW * 0.50 + swayX;
+        const anchorY = stageH * 0.50 + swayY;
+
+        el.cameraWorld.style.transform =
+          `translate3d(${anchorX.toFixed(1)}px, ${anchorY.toFixed(1)}px, 0px) ` +
+          `rotateZ(${(c.rz + swayR).toFixed(2)}deg) ` +
+          `rotateX(${c.rx.toFixed(2)}deg) ` +
+          `rotateY(${c.ry.toFixed(2)}deg) ` +
+          `scale(${c.scale.toFixed(4)}) ` +
+          `translate3d(${(-c.x).toFixed(1)}px, ${(-c.y).toFixed(1)}px, 0px)`;
+
+        // Subtle ambient crimson-glow breathing synced to bass + camera rotation
+        if (state.glowEnabled) {
+          const gx = Math.sin(t * 0.6) * 24 + c.ry * 0.45;
+          const gy = Math.cos(t * 0.5) * 18;
+          const gScale = 1 + state.bassEnergy * 0.06;
+          el.noirGlowLayer.style.transform = `translate3d(${gx.toFixed(1)}px, ${gy.toFixed(1)}px, 0) scale(${gScale.toFixed(4)})`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         10. WEB AUDIO API: HARD-HITTING DESI HIP-HOP / 808 DEMO BEAT
+         ---------------------------------------------------------- */
+      function ensureAudioGraph() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return false;
+
+        if (!state.audioCtx) {
+          state.audioCtx = new AudioCtx();
+          state.masterGain = state.audioCtx.createGain();
+          state.masterGain.gain.value = 0.85;
+
+          state.analyser = state.audioCtx.createAnalyser();
+          state.analyser.fftSize = 128;
+          state.analyser.smoothingTimeConstant = 0.76;
+          state.freqData = new Uint8Array(state.analyser.frequencyBinCount);
+
+          state.masterGain.connect(state.analyser);
+          state.analyser.connect(state.audioCtx.destination);
+        }
+
+        if (state.audioCtx.state === "suspended") {
+          state.audioCtx.resume().catch(() => {});
+        }
+        return true;
+      }
+
+      function connectMediaElementOnce() {
+        if (!ensureAudioGraph() || state.mediaConnected) return;
+        try {
+          const src = state.audioCtx.createMediaElementSource(el.audio);
+          src.connect(state.masterGain);
+          state.mediaConnected = true;
+        } catch (_) {}
+      }
+
+      const TRAP_NOTES = [293.66, 311.13, 293.66, 220.0, 293.66, 349.23, 311.13, 261.63];
+
+      function triggerHipHopBar() {
+        if (state.mode !== "demo" || !state.isPlaying || !ensureAudioGraph()) return;
+        const ctx = state.audioCtx;
+        const now = ctx.currentTime;
+        const step = 0.145; // Crisp ~103 BPM boom-bap / trap flow
+        const nodes = [];
+
+        // 1. Punchy 808 Sub-Kick hits
+        [0, 3, 6, 10, 14].forEach((s) => {
+          const t0 = now + s * step;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(140, t0);
+          osc.frequency.exponentialRampToValueAtTime(44, t0 + 0.11);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.42, t0 + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.36);
+          osc.connect(g);
+          g.connect(state.masterGain);
+          osc.start(t0);
+          osc.stop(t0 + 0.38);
+          nodes.push(osc);
+        });
+
+        // 2. Crisp Clap / Snare backbeat on beats 2 & 4 (steps 4 and 12)
+        [4, 12].forEach((s) => {
+          const t0 = now + s * step;
+          const bufLen = Math.floor(ctx.sampleRate * 0.12);
+          const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.25));
+
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          const hpf = ctx.createBiquadFilter();
+          hpf.type = "highpass";
+          hpf.frequency.value = 1100;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.24, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+          src.connect(hpf);
+          hpf.connect(g);
+          g.connect(state.masterGain);
+          src.start(t0);
+          nodes.push(src);
+        });
+
+        // 3. Dark Minor Trap Bell Melody Plucks
+        for (let i = 0; i < 8; i++) {
+          const t0 = now + i * 2 * step;
+          const freq = TRAP_NOTES[(state.demoStep * 8 + i) % TRAP_NOTES.length];
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, t0);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.075, t0 + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.34);
+          osc.connect(g);
+          g.connect(state.masterGain);
+          osc.start(t0);
+          osc.stop(t0 + 0.36);
+          nodes.push(osc);
+        }
+
+        state.demoStep++;
+        state.demoNodes.push(...nodes);
+        if (state.demoNodes.length > 64) state.demoNodes = state.demoNodes.slice(-32);
+      }
+
+      function startDemoBeat() {
+        stopDemoBeat();
+        if (state.mode !== "demo") return;
+        triggerHipHopBar();
+        state.demoTimer = setInterval(triggerHipHopBar, 2320);
+      }
+
+      function stopDemoBeat() {
+        if (state.demoTimer) {
+          clearInterval(state.demoTimer);
+          state.demoTimer = null;
+        }
+        state.demoNodes.forEach((n) => { try { n.stop(); } catch (_) {} });
+        state.demoNodes = [];
+      }
+
+      function updateAudioReactivity() {
+        let bass = 0;
+        const eqVals = [0.16, 0.24, 0.2, 0.14];
+
+        if (state.isPlaying && state.analyser && state.freqData) {
+          state.analyser.getByteFrequencyData(state.freqData);
+          let sum = 0;
+          for (let i = 0; i < 6; i++) sum += state.freqData[i];
+          bass = Math.min(1, sum / (6 * 205));
+          [1, 4, 8, 15].forEach((bin, i) => {
+            eqVals[i] = Math.max(0.18, (state.freqData[bin] || 0) / 255);
+          });
+        } else if (state.isPlaying) {
+          const t = performance.now() * 0.007;
+          bass = 0.24 + Math.abs(Math.sin(t)) * 0.34;
+          for (let i = 0; i < 4; i++) {
+            eqVals[i] = 0.26 + Math.abs(Math.sin(t * (1.2 + i * 0.35))) * 0.56;
+          }
+        }
+
+        state.bassEnergy += (bass - state.bassEnergy) * 0.24;
+        el.eqBars.forEach((bar, i) => {
+          bar.style.height = state.isPlaying ? `${Math.round(3 + eqVals[i] * 11)}px` : "3.5px";
+        });
+      }
+
+      /* ----------------------------------------------------------
+         11. PLAYBACK ENGINE, SNIPPET LOOP & MASTER 60FPS LOOP
+         ---------------------------------------------------------- */
+      function getCurrentTime() {
+        return state.mode === "audio" ? el.audio.currentTime : state.currentTime;
+      }
+
+      function seekTo(sec) {
+        const clamped = Math.max(0, Math.min(state.duration, sec));
+        if (state.mode === "audio") {
+          try { el.audio.currentTime = clamped; } catch (_) {}
+        } else {
+          state.currentTime = clamped;
+        }
+        updateProgressUI(clamped);
+        syncCornerTowerToTime(clamped + state.syncOffset, true);
+      }
+
+      function updateProgressUI(nowSec) {
+        const clipLen = Math.max(0.1, state.endTime - state.startTime);
+        const rel = Math.max(0, Math.min(clipLen, nowSec - state.startTime));
+        const pct = (rel / clipLen) * 100;
+        el.progressFill.style.width = `${pct}%`;
+        el.progressKnob.style.left = `${pct}%`;
+        el.timeElapsed.textContent = formatTime(rel);
+      }
+
+      function setPlayUI(playing) {
+        state.isPlaying = playing;
+        el.playIcon.classList.toggle("hidden", playing);
+        el.pauseIcon.classList.toggle("hidden", !playing);
+        if (window.anime) {
+          anime({
+            targets: el.playPauseBtn,
+            scale: [0.88, 1.07, 1],
+            duration: 340,
+            easing: "easeOutElastic(1, 0.7)",
+          });
+        }
+        resetIdleDockTimer();
+      }
+
+      function startPlayback() {
+        ensureAudioGraph();
+        const now = getCurrentTime();
+        if (now < state.startTime || now >= state.endTime - 0.08) {
+          seekTo(state.startTime);
+        }
+
+        if (state.mode === "audio") {
+          connectMediaElementOnce();
+          el.audio.play().then(() => {
+            setPlayUI(true);
+            state.lastFrameTs = performance.now();
+            syncCornerTowerToTime(getCurrentTime() + state.syncOffset, true);
+          }).catch(() => {
+            showToast("Tap Play again to start audio", "error");
+            setPlayUI(false);
+          });
+        } else {
+          setPlayUI(true);
+          startDemoBeat();
+          state.lastFrameTs = performance.now();
+          syncCornerTowerToTime(getCurrentTime() + state.syncOffset, true);
+        }
+      }
+
+      function pausePlayback() {
+        if (state.mode === "audio") el.audio.pause();
+        else stopDemoBeat();
+        setPlayUI(false);
+      }
+
+      function togglePlay() {
+        if (state.isPlaying) pausePlayback();
+        else startPlayback();
+      }
+
+      function computeSnippetLines() {
+        const tol = 0.25;
+        const filtered = state.lines.filter(
+          (l) => l.time >= state.startTime - tol && l.time <= state.endTime + tol
+        );
+        state.snippetLines = filtered.length ? filtered : state.lines.slice();
+        rebuildCornerTower();
+      }
+
+      function setSnippetBounds(start, end) {
+        const maxDur = Math.max(2, state.duration);
+        const s = Math.max(0, Math.min(start, maxDur - 1));
+        const e = Math.max(s + 1, Math.min(end, maxDur));
+
+        state.startTime = Number(s.toFixed(2));
+        state.endTime = Number(e.toFixed(2));
+
+        el.startTimeInput.value = formatTime(state.startTime);
+        el.endTimeInput.value = formatTime(state.endTime);
+
+        const clipLen = Math.max(0, state.endTime - state.startTime);
+        el.snippetWindowBadge.textContent = `${formatTime(state.startTime)} → ${formatTime(state.endTime)} (${Math.round(clipLen)}s)`;
+        el.timeTotal.textContent = formatTime(clipLen);
+
+        computeSnippetLines();
+        renderLyricPicker();
+
+        const now = getCurrentTime();
+        updateProgressUI(now);
+        syncCornerTowerToTime(now + state.syncOffset, true);
+      }
+
+      function renderLyricPicker() {
+        el.lyricsCountBadge.textContent = `${state.lines.length} lines`;
+        el.lyricPickerList.innerHTML = "";
+
+        if (!state.lines.length) {
+          el.lyricPickerList.innerHTML =
+            '<p class="p-4 text-xs text-white/45 text-center">No synced lyrics loaded yet.</p>';
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        state.lines.forEach((line, idx) => {
+          const inRange = line.time >= state.startTime - 0.25 && line.time <= state.endTime + 0.25;
+          const row = document.createElement("div");
+          row.className = `flex items-center justify-between gap-2 px-3 py-2.5 text-xs transition ${
+            inRange
+              ? "bg-red-500/18 text-white border-l-2 border-red-500"
+              : "text-white/55 hover:bg-white/[0.04]"
+          }`;
+
+          const left = document.createElement("button");
+          left.type = "button";
+          left.className = "flex-1 min-w-0 text-left flex items-center gap-2.5 truncate";
+          left.innerHTML = `
+            <span class="font-mono text-[10px] opacity-60 shrink-0">${formatTime(line.time)}</span>
+            <span class="truncate font-medium">${escapeHtml(line.text.replace(/\*/g, ""))}</span>
+          `;
+          left.addEventListener("click", () => {
+            const target = Math.max(0, Math.min(state.duration - 0.2, line.time - state.syncOffset));
+            if (target < state.startTime || target >= state.endTime) {
+              setSnippetBounds(target, Math.min(state.duration, target + 18));
+            }
+            seekTo(target);
+            if (!state.isPlaying) startPlayback();
+          });
+
+          const actions = document.createElement("div");
+          actions.className = "flex items-center gap-1 shrink-0";
+
+          const btnStart = document.createElement("button");
+          btnStart.type = "button";
+          btnStart.textContent = "Start";
+          btnStart.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnStart.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newStart = Math.max(0, line.time - state.syncOffset);
+            const newEnd = state.endTime <= newStart + 1.5
+              ? Math.min(state.duration, newStart + 18)
+              : state.endTime;
+            setSnippetBounds(newStart, newEnd);
+            seekTo(newStart);
+            showToast(`Snippet starts at ${formatTime(newStart)}`, "success");
+          });
+
+          const btnEnd = document.createElement("button");
+          btnEnd.type = "button";
+          btnEnd.textContent = "End";
+          btnEnd.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnEnd.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const next = state.lines[idx + 1];
+            const naturalEnd = next ? next.time - 0.05 : line.time + 2.5;
+            const newEnd = Math.min(state.duration, Math.max(1.5, naturalEnd - state.syncOffset));
+            const newStart = state.startTime >= newEnd - 1 ? Math.max(0, newEnd - 15) : state.startTime;
+            setSnippetBounds(newStart, newEnd);
+            showToast(`Snippet ends at ${formatTime(newEnd)}`, "success");
+          });
+
+          actions.appendChild(btnStart);
+          actions.appendChild(btnEnd);
+          row.appendChild(left);
+          row.appendChild(actions);
+          frag.appendChild(row);
+        });
+
+        el.lyricPickerList.appendChild(frag);
+      }
+
+      function startMasterLoop() {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+
+        const tick = (ts) => {
+          const dt = Math.min(0.12, (ts - (state.lastFrameTs || ts)) / 1000);
+          state.lastFrameTs = ts;
+
+          if (state.isPlaying) {
+            let now;
+            if (state.mode === "audio") {
+              now = el.audio.currentTime;
+            } else {
+              state.currentTime += dt;
+              now = state.currentTime;
+            }
+
+            if (now >= state.endTime) {
+              if (state.isLooping) {
+                seekTo(state.startTime);
+                now = state.startTime;
+                if (state.mode === "audio" && el.audio.paused) {
+                  el.audio.play().catch(() => {});
+                }
+              } else {
+                pausePlayback();
+                seekTo(state.startTime);
+              }
+            }
+
+            updateProgressUI(now);
+            syncCornerTowerToTime(now + state.syncOffset, false);
+          }
+
+          updateAudioReactivity();
+          update3DCameraRig(ts, dt);
+          state.rafId = requestAnimationFrame(tick);
+        };
+
+        state.lastFrameTs = performance.now();
+        state.rafId = requestAnimationFrame(tick);
+      }
+
+      /* ----------------------------------------------------------
+         12. LOCAL MP3 UPLOAD & LRCLIB.NET INTEGRATION
+         ---------------------------------------------------------- */
+      function handleAudioFile(file) {
+        if (!file) return;
+        const ok = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|aac|flac)$/i.test(file.name);
+        if (!ok) {
+          showToast("Please upload a valid MP3, WAV, M4A, or OGG file", "error");
+          return;
+        }
+
+        pausePlayback();
+        stopDemoBeat();
+
+        if (state.audioObjectUrl) URL.revokeObjectURL(state.audioObjectUrl);
+        state.audioObjectUrl = URL.createObjectURL(file);
+        state.mode = "audio";
+        el.audio.src = state.audioObjectUrl;
+        el.audio.load();
+
+        el.audioDropLabel.textContent = file.name;
+        el.audioFileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · Loaded locally`;
+        el.audioStatusBadge.textContent = "Local Audio Active";
+        el.audioStatusBadge.className = "text-[11px] font-semibold text-emerald-400";
+
+        if (el.titleInput.value === "Katleaam 3D") {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+          el.titleInput.value = cleanName;
+          el.hudTitle.textContent = cleanName;
+          el.artistInput.value = "Local Audio";
+          el.hudArtist.textContent = "Local Audio";
+        }
+
+        showToast(`Loaded "${file.name}"`, "success");
+      }
+
+      el.audio.addEventListener("loadedmetadata", () => {
+        if (!Number.isFinite(el.audio.duration) || el.audio.duration <= 0) return;
+        state.duration = el.audio.duration;
+        if (state.endTime > state.duration || state.endTime === 14.0) {
+          setSnippetBounds(0, Math.min(state.duration, 24));
+        } else {
+          setSnippetBounds(state.startTime, state.endTime);
+        }
+        seekTo(state.startTime);
+      });
+
+      el.audio.addEventListener("ended", () => {
+        if (state.isLooping) {
+          seekTo(state.startTime);
+          el.audio.play().catch(() => {});
+        } else {
+          pausePlayback();
+          seekTo(state.startTime);
+        }
+      });
+
+      function applyTrackData(data, sourceLabel = "LRCLIB") {
+        if (data.trackName) {
+          el.titleInput.value = data.trackName;
+          el.hudTitle.textContent = data.trackName;
+        }
+        if (data.artistName) {
+          el.artistInput.value = data.artistName;
+          el.hudArtist.textContent = data.artistName;
+        }
+
+        if (data.syncedLyrics) {
+          const parsed = parseLRC(data.syncedLyrics);
+          if (!parsed.length) {
+            showToast("Fetched track had empty synced timestamps", "error");
+            return false;
+          }
+
+          state.lines = parsed;
+          el.manualLrcInput.value = data.syncedLyrics;
+
+          if (state.mode === "demo") {
+            const lastT = parsed[parsed.length - 1].time;
+            state.duration = Math.max(data.duration || 0, lastT + 4.5, 20);
+            const firstT = parsed[0].time;
+            setSnippetBounds(firstT, Math.min(state.duration, firstT + 22));
+          } else {
+            const inside = parsed.some((l) => l.time >= state.startTime && l.time <= state.endTime);
+            if (!inside && parsed[0].time < state.duration - 2) {
+              setSnippetBounds(parsed[0].time, Math.min(state.duration, parsed[0].time + 22));
+            } else {
+              computeSnippetLines();
+              renderLyricPicker();
+            }
+          }
+
+          seekTo(state.startTime);
+          el.lrclibStatusText.innerHTML = `<span class="text-emerald-400 font-semibold">Loaded ${parsed.length} synced lines from ${escapeHtml(sourceLabel)}!</span>`;
+          showToast(`Loaded ${parsed.length} synced lines from ${sourceLabel}`, "success");
+          return true;
+        } else if (data.plainLyrics) {
+          el.manualLrcInput.value = data.plainLyrics;
+          switchLrcTab("manual");
+          el.lrclibStatusText.innerHTML = `<span class="text-amber-400">Plain lyrics only (no timestamps). Try Search for a synced entry.</span>`;
+          showToast("No synced timestamps on this entry", "error");
+          return false;
+        }
+
+        el.lrclibStatusText.innerHTML = `<span class="text-rose-400">No lyrics found on this track.</span>`;
+        showToast("No lyrics available", "error");
+        return false;
+      }
+
+      async function fetchLrclibByUrl() {
+        const raw = el.lrclibUrlInput.value.trim();
+        if (!raw) {
+          showToast("Paste an lrclib.net/tracks/{id} link or Track ID", "error");
+          return;
+        }
+        const idMatch = raw.match(/(?:tracks|get)\/(\d+)/i) || raw.match(/^(\d+)$/) || raw.match(/(\d{4,})/);
+        if (!idMatch) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">Invalid LRCLIB link. Example: https://lrclib.net/tracks/28185115</span>`;
+          showToast("Invalid LRCLIB link or ID", "error");
+          return;
+        }
+
+        const trackId = idMatch[1];
+        el.fetchLrclibBtn.disabled = true;
+        el.fetchBtnLabel.textContent = "...";
+        el.fetchSpinner.classList.remove("hidden");
+        el.lrclibStatusText.textContent = `Fetching track #${trackId} from lrclib.net...`;
+
+        try {
+          const resp = await fetch(`https://lrclib.net/api/get/${trackId}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(resp.status === 404 ? `Track #${trackId} not found.` : `HTTP ${resp.status}`);
+          const data = await resp.json();
+          applyTrackData(data, `LRCLIB #${trackId}`);
+        } catch (err) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">${escapeHtml(err.message || "Network error")}</span>`;
+          showToast(err.message || "Failed to fetch from LRCLIB", "error");
+        } finally {
+          el.fetchLrclibBtn.disabled = false;
+          el.fetchBtnLabel.textContent = "Fetch";
+          el.fetchSpinner.classList.add("hidden");
+        }
+      }
+
+      async function searchLrclib() {
+        const q = el.lrclibSearchInput.value.trim();
+        if (!q) {
+          showToast("Enter a song title or artist", "error");
+          return;
+        }
+
+        el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/55 text-center py-4">Searching LRCLIB for "${escapeHtml(q)}"...</p>`;
+        try {
+          const resp = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(`Search failed (${resp.status})`);
+          const list = await resp.json();
+          if (!Array.isArray(list) || !list.length) {
+            el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/45 text-center py-4">No matching tracks found.</p>`;
+            return;
+          }
+
+          list.sort((a, b) => (b.syncedLyrics ? 1 : 0) - (a.syncedLyrics ? 1 : 0));
+          el.searchResultsBox.innerHTML = "";
+          const frag = document.createDocumentFragment();
+
+          list.slice(0, 16).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const hasSync = Boolean(item.syncedLyrics);
+            btn.className = "w-full text-left p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] transition flex items-center justify-between gap-2";
+            btn.innerHTML = `
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${escapeHtml(item.trackName || "Untitled")}</p>
+                <p class="text-[11px] text-white/50 truncate">${escapeHtml(item.artistName || "Unknown")} · ${formatTime(item.duration || 0)}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                hasSync ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/25" : "bg-white/10 text-white/45"
+              }">${hasSync ? "Synced" : "Plain"}</span>
+            `;
+            btn.addEventListener("click", () => {
+              el.lrclibUrlInput.value = `https://lrclib.net/tracks/${item.id}`;
+              applyTrackData(item, `LRCLIB #${item.id}`);
+            });
+            frag.appendChild(btn);
+          });
+
+          el.searchResultsBox.appendChild(frag);
+        } catch (err) {
+          el.searchResultsBox.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-4">${escapeHtml(err.message)}</p>`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         13. UI SETTERS (CAMERA, FONTS, DRAWER, CLEAN, REEL)
+         ---------------------------------------------------------- */
+      function setCamMode(modeId, announce = false) {
+        state.camMode = modeId;
+        const meta = CAM_MODES.find((m) => m.id === modeId) || CAM_MODES[0];
+        el.dockCamLabel.textContent = meta.label;
+        el.activeCamBadge.textContent = meta.badge;
+
+        el.camBtns.forEach((btn) => {
+          const active = btn.dataset.camPick === modeId;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/45", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+
+        state.cam.whipTimer = 0.35;
+        if (announce) showToast(`Camera: ${meta.badge}`);
+      }
+
+      function setFont(fontId) {
+        state.fontId = fontId;
+        document.body.setAttribute("data-font", fontId);
+        el.fontBtns.forEach((btn) => {
+          const active = btn.dataset.fontPick === fontId;
+          btn.className = `font-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setTextScale(scale) {
+        const clamped = Math.max(0.7, Math.min(1.4, Number(scale) || 1));
+        state.textScale = clamped;
+        document.documentElement.style.setProperty("--user-text-scale", clamped.toFixed(2));
+        el.textSizeSlider.value = String(clamped);
+        el.textSizeLabel.textContent = `${Math.round(clamped * 100)}%`;
+      }
+
+      function switchLrcTab(tab) {
+        el.lrcTabUrl.classList.toggle("hidden", tab !== "url");
+        el.lrcTabSearch.classList.toggle("hidden", tab !== "search");
+        el.lrcTabManual.classList.toggle("hidden", tab !== "manual");
+        el.lrcTabBtns.forEach((btn) => {
+          const active = btn.dataset.lrcTab === tab;
+          btn.className = `lrc-tab-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setSyncOffset(val) {
+        const clamped = Math.max(-5, Math.min(5, Math.round(val * 20) / 20));
+        state.syncOffset = clamped;
+        el.offsetSlider.value = String(clamped);
+        el.offsetLabel.textContent = `${clamped > 0 ? "+" : ""}${clamped.toFixed(2)}s`;
+        syncCornerTowerToTime(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function setWordSpread(pct) {
+        const clamped = Math.max(45, Math.min(100, Math.round(pct)));
+        state.wordSpread = clamped / 100;
+        el.wordSpreadSlider.value = String(clamped);
+        el.wordSpreadLabel.textContent = `${clamped}%`;
+        rebuildCornerTower();
+        syncCornerTowerToTime(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !state.isDrawerOpen;
+        state.isDrawerOpen = open;
+        el.drawerBackdrop.style.pointerEvents = open ? "auto" : "none";
+
+        if (window.gsap) {
+          gsap.to(el.studioDrawer, {
+            x: open ? "0%" : "105%",
+            duration: 0.48,
+            ease: open ? "power3.out" : "power3.inOut",
+          });
+          gsap.to(el.drawerBackdrop, {
+            opacity: open ? 1 : 0,
+            duration: 0.34,
+            ease: "power2.out",
+          });
+        } else {
+          el.studioDrawer.style.transform = open ? "translateX(0)" : "translateX(105%)";
+          el.drawerBackdrop.style.opacity = open ? "1" : "0";
+        }
+
+        if (open) el.bottomDock.classList.remove("is-idle-dim");
+        else resetIdleDockTimer();
+      }
+
+      function toggleCleanMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isCleanMode;
+        state.isCleanMode = next;
+        if (next && state.isDrawerOpen) toggleDrawer(false);
+        document.body.classList.toggle("clean-mode", next);
+
+        if (window.gsap) {
+          gsap.to(el.topHud, {
+            opacity: next ? 0 : 1,
+            y: next ? -22 : 0,
+            duration: 0.38,
+            ease: "power3.out",
+          });
+          gsap.to(el.bottomDock, {
+            opacity: next ? 0 : 1,
+            y: next ? 28 : 0,
+            duration: 0.4,
+            ease: "power3.out",
+            onStart: () => { if (!next) el.bottomDock.style.pointerEvents = "auto"; },
+            onComplete: () => { if (next) el.bottomDock.style.pointerEvents = "none"; },
+          });
+        } else {
+          el.topHud.style.opacity = next ? "0" : "1";
+          el.bottomDock.style.opacity = next ? "0" : "1";
+        }
+
+        if (next) showToast("Clean Record Mode — Tap stage or press H / Esc to restore");
+      }
+
+      function toggleReelMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isReelMode;
+        state.isReelMode = next;
+        document.body.classList.toggle("reel-mode", next);
+        el.dockReelLabel.textContent = next ? "9:16" : "16:9";
+        showToast(next ? "9:16 Vertical 3D Corner Reel" : "Full 16:9 3D Corner Stage");
+      }
+
+      function resetIdleDockTimer() {
+        clearTimeout(state.idleTimer);
+        el.bottomDock.classList.remove("is-idle-dim");
+        if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+          state.idleTimer = setTimeout(() => {
+            if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+              el.bottomDock.classList.add("is-idle-dim");
+            }
+          }, 3400);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         14. EVENT LISTENERS & KEYBOARD SHORTCUTS
+         ---------------------------------------------------------- */
+      el.playPauseBtn.addEventListener("click", togglePlay);
+      el.restartBtn.addEventListener("click", () => {
+        seekTo(state.startTime);
+        if (!state.isPlaying) startPlayback();
+      });
+
+      el.loopBtn.addEventListener("click", () => {
+        state.isLooping = !state.isLooping;
+        el.loopBtn.classList.toggle("text-red-400", state.isLooping);
+        el.loopBtn.classList.toggle("bg-white/12", state.isLooping);
+        el.loopBtn.classList.toggle("text-white/40", !state.isLooping);
+        showToast(state.isLooping ? "Snippet Loop ON" : "Snippet Loop OFF");
+      });
+
+      function scrubProgress(clientX) {
+        const rect = el.progressTrack.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        seekTo(state.startTime + ratio * (state.endTime - state.startTime));
+      }
+      el.progressTrack.addEventListener("click", (e) => scrubProgress(e.clientX));
+      el.progressTrack.addEventListener("touchstart", (e) => {
+        if (e.touches[0]) scrubProgress(e.touches[0].clientX);
+      }, { passive: true });
+
+      function cycleCamMode() {
+        const idx = CAM_MODES.findIndex((m) => m.id === state.camMode);
+        const next = CAM_MODES[(idx + 1) % CAM_MODES.length];
+        setCamMode(next.id, true);
+      }
+
+      function cyclePalette() {
+        const idx = PALETTES.findIndex((p) => p.id === state.paletteId);
+        const next = PALETTES[(idx + 1) % PALETTES.length];
+        applyPalette(next.id, true);
+      }
+
+      el.dockCamCycleBtn.addEventListener("click", cycleCamMode);
+      el.quickPaletteBtn.addEventListener("click", cyclePalette);
+      el.dockReelBtn.addEventListener("click", () => toggleReelMode());
+
+      el.openStudioBtn.addEventListener("click", () => toggleDrawer(true));
+      el.trackPillBtn.addEventListener("click", () => toggleDrawer(true));
+      el.closeStudioBtn.addEventListener("click", () => toggleDrawer(false));
+      el.drawerBackdrop.addEventListener("click", () => toggleDrawer(false));
+      el.cleanModeBtn.addEventListener("click", () => toggleCleanMode(true));
+      el.cleanExitBtn.addEventListener("click", () => toggleCleanMode(false));
+
+      el.stageFrame.addEventListener("click", () => {
+        if (state.isCleanMode) toggleCleanMode(false);
+      });
+
+      ["pointermove", "touchstart", "keydown"].forEach((evt) => {
+        window.addEventListener(evt, resetIdleDockTimer, { passive: true });
+      });
+
+      // Studio Section 1 Controls
+      el.camBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setCamMode(btn.dataset.camPick, false));
+      });
+      el.fontBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setFont(btn.dataset.fontPick));
+      });
+      el.textSizeSlider.addEventListener("input", () => setTextScale(parseFloat(el.textSizeSlider.value)));
+      el.textSizeResetBtn.addEventListener("click", () => setTextScale(1));
+
+      el.wallAngleSlider.addEventListener("input", () => {
+        state.wallAngle = parseInt(el.wallAngleSlider.value, 10);
+        el.wallAngleLabel.textContent = `${state.wallAngle}°`;
+        document.documentElement.style.setProperty("--wall-angle", `${state.wallAngle}deg`);
+      });
+
+      el.camEnergySlider.addEventListener("input", () => {
+        const pct = parseInt(el.camEnergySlider.value, 10);
+        state.camEnergy = pct / 100;
+        el.camEnergyLabel.textContent = `${pct}%`;
+      });
+
+      el.toggleGlowBtn.addEventListener("click", () => {
+        state.glowEnabled = !state.glowEnabled;
+        document.body.classList.toggle("glow-off", !state.glowEnabled);
+        el.toggleGlowBtn.textContent = state.glowEnabled ? "Red Glow: ON" : "Red Glow: OFF";
+        el.toggleGlowBtn.classList.toggle("bg-white/14", state.glowEnabled);
+        el.toggleGlowBtn.classList.toggle("text-white/55", !state.glowEnabled);
+      });
+      el.toggleGrainBtn.addEventListener("click", () => {
+        state.grainEnabled = !state.grainEnabled;
+        document.body.classList.toggle("grain-off", !state.grainEnabled);
+        el.toggleGrainBtn.textContent = state.grainEnabled ? "Film Grain: ON" : "Film Grain: OFF";
+        el.toggleGrainBtn.classList.toggle("bg-white/14", state.grainEnabled);
+        el.toggleGrainBtn.classList.toggle("text-white/55", !state.grainEnabled);
+      });
+      el.toggleSpineBtn.addEventListener("click", () => {
+        state.spineEnabled = !state.spineEnabled;
+        document.body.classList.toggle("spine-visible", state.spineEnabled);
+        el.toggleSpineBtn.textContent = state.spineEnabled ? "Spine: ON" : "Spine: OFF";
+        el.toggleSpineBtn.classList.toggle("bg-white/14", state.spineEnabled);
+        el.toggleSpineBtn.classList.toggle("text-white", state.spineEnabled);
+        el.toggleSpineBtn.classList.toggle("text-white/55", !state.spineEnabled);
+      });
+
+      // Custom Color Pickers
+      el.customGlowPicker.addEventListener("input", () => {
+        state.palette.glow1 = el.customGlowPicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteTokens();
+      });
+      el.customAccentPicker.addEventListener("input", () => {
+        state.palette.accent = el.customAccentPicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteTokens();
+      });
+      el.customWhitePicker.addEventListener("input", () => {
+        state.palette.textWhite = el.customWhitePicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteTokens();
+      });
+
+      // Audio Upload + Drag & Drop
+      el.audioFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleAudioFile(e.target.files[0]);
+      });
+      ["dragenter", "dragover"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.add("border-red-400", "bg-white/[0.08]");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.remove("border-red-400", "bg-white/[0.08]");
+        });
+      });
+      el.audioDropZone.addEventListener("drop", (e) => {
+        if (e.dataTransfer?.files?.[0]) handleAudioFile(e.dataTransfer.files[0]);
+      });
+
+      el.titleInput.addEventListener("input", () => {
+        el.hudTitle.textContent = el.titleInput.value.trim() || "Untitled";
+      });
+      el.artistInput.addEventListener("input", () => {
+        el.hudArtist.textContent = el.artistInput.value.trim() || "Unknown Artist";
+      });
+
+      // LRCLIB Controls
+      el.lrcTabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => switchLrcTab(btn.dataset.lrcTab));
+      });
+      el.fetchLrclibBtn.addEventListener("click", fetchLrclibByUrl);
+      el.lrclibUrlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") fetchLrclibByUrl(); });
+      el.searchLrclibBtn.addEventListener("click", searchLrclib);
+      el.lrclibSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLrclib(); });
+      el.applyManualLrcBtn.addEventListener("click", () => {
+        const parsed = parseLRC(el.manualLrcInput.value);
+        if (!parsed.length) {
+          showToast("Include [mm:ss.xx] timestamps before lyric lines", "error");
+          return;
+        }
+        state.lines = parsed;
+        computeSnippetLines();
+        renderLyricPicker();
+        syncCornerTowerToTime(getCurrentTime() + state.syncOffset, true);
+        showToast(`Applied ${parsed.length} synced lines`, "success");
+      });
+
+      // Snippet Trimmer Inputs
+      el.startTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.startTimeInput.value);
+        if (p === null) {
+          el.startTimeInput.value = formatTime(state.startTime);
+          showToast("Use M:SS format (e.g. 0:45)", "error");
+          return;
+        }
+        setSnippetBounds(p, Math.max(p + 1, state.endTime));
+        seekTo(state.startTime);
+      });
+      el.endTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.endTimeInput.value);
+        if (p === null) {
+          el.endTimeInput.value = formatTime(state.endTime);
+          showToast("Use M:SS format (e.g. 1:15)", "error");
+          return;
+        }
+        setSnippetBounds(Math.min(state.startTime, p - 1), p);
+      });
+      el.useNowStartBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(now, Math.max(now + 2, state.endTime));
+        showToast(`Start set to ${formatTime(now)}`);
+      });
+      el.useNowEndBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(Math.min(state.startTime, Math.max(0, now - 2)), Math.max(1.5, now));
+        showToast(`End set to ${formatTime(now)}`);
+      });
+      el.resetFullSongBtn.addEventListener("click", () => {
+        setSnippetBounds(0, state.duration);
+        showToast("Snippet reset to full song");
+      });
+
+      el.offsetSlider.addEventListener("input", () => setSyncOffset(parseFloat(el.offsetSlider.value)));
+      el.offsetMinusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset - 0.1));
+      el.offsetPlusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset + 0.1));
+      el.offsetResetBtn.addEventListener("click", () => setSyncOffset(0));
+
+      el.wordSpreadSlider.addEventListener("input", () => setWordSpread(parseInt(el.wordSpreadSlider.value, 10)));
+      el.wordSpreadResetBtn.addEventListener("click", () => setWordSpread(90));
+
+      // Global Keyboard Shortcuts
+      window.addEventListener("keydown", (e) => {
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "TEXTAREA";
+
+        if (e.key === "Escape") {
+          if (state.isCleanMode) toggleCleanMode(false);
+          else if (state.isDrawerOpen) toggleDrawer(false);
+          return;
+        }
+        if (typing) return;
+
+        const key = e.key.toLowerCase();
+        if (e.code === "Space") {
+          e.preventDefault();
+          togglePlay();
+        } else if (key === "v") {
+          cycleCamMode();
+        } else if (key === "c") {
+          cyclePalette();
+        } else if (key === "h") {
+          toggleCleanMode();
+        } else if (key === "s") {
+          toggleDrawer();
+        } else if (key === "r") {
+          seekTo(state.startTime);
+          if (!state.isPlaying) startPlayback();
+        }
+      });
+
+      /* ----------------------------------------------------------
+         15. BOOTSTRAP APPLICATION
+         ---------------------------------------------------------- */
+      function init() {
+        buildPaletteGrid();
+        state.lines = parseLRC(DEMO_LRC);
+        el.manualLrcInput.value = DEMO_LRC;
+
+        applyPalette("crimson-noir", false);
+        setCamMode("orbit", false);
+        setFont("swiss");
+        setTextScale(1);
+        setSnippetBounds(0, 14.0);
+        startMasterLoop();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,3126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Code Editor Lyric Studio — 3D Macro Camera &amp; IDE Typography Engine</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Animation Engines: GSAP 3 & Anime.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+  <!-- Authentic Coding Monospace & UI Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       1. IDE SYNTAX & CAMERA THEME TOKENS (5 CURATED DARK THEMES)
+       ============================================================ */
+    :root {
+      --ide-bg: #07080a;
+      --ide-surface: #0d0f14;
+      --ide-line-hl: rgba(255, 255, 255, 0.032);
+      --ide-gutter: rgba(155, 165, 185, 0.34);
+      --ide-comment: rgba(162, 174, 195, 0.44);
+      --ide-text: #f3f5fa;
+      --ide-keyword: #ff2842;
+      --ide-string: #ff8c3a;
+      --ide-punct: #7bc7ff;
+      --ide-cursor: #ff1f3d;
+      --ide-cursor-glow: rgba(255, 31, 61, 0.82);
+      --ide-accent-rgb: 255, 31, 61;
+
+      --code-font: "JetBrains Mono", "Fira Code", monospace;
+      --code-scale: 1;
+      --dof-scale: 1;
+    }
+
+    [data-ide-theme="tokyo"] {
+      --ide-bg: #070912;
+      --ide-surface: #0e1222;
+      --ide-line-hl: rgba(125, 207, 255, 0.04);
+      --ide-gutter: rgba(138, 152, 194, 0.36);
+      --ide-comment: rgba(134, 152, 198, 0.46);
+      --ide-text: #eef3ff;
+      --ide-keyword: #f74c8c;
+      --ide-string: #7dcfff;
+      --ide-punct: #bb9af7;
+      --ide-cursor: #00e5ff;
+      --ide-cursor-glow: rgba(0, 229, 255, 0.8);
+      --ide-accent-rgb: 0, 229, 255;
+    }
+
+    [data-ide-theme="matrix"] {
+      --ide-bg: #040906;
+      --ide-surface: #09130c;
+      --ide-line-hl: rgba(52, 211, 153, 0.045);
+      --ide-gutter: rgba(110, 175, 138, 0.36);
+      --ide-comment: rgba(110, 175, 138, 0.46);
+      --ide-text: #e9fff1;
+      --ide-keyword: #22c55e;
+      --ide-string: #a3e635;
+      --ide-punct: #5eead4;
+      --ide-cursor: #22ff7a;
+      --ide-cursor-glow: rgba(34, 255, 122, 0.82);
+      --ide-accent-rgb: 34, 255, 122;
+    }
+
+    [data-ide-theme="amber"] {
+      --ide-bg: #0a0704;
+      --ide-surface: #140e08;
+      --ide-line-hl: rgba(251, 191, 36, 0.045);
+      --ide-gutter: rgba(196, 165, 126, 0.35);
+      --ide-comment: rgba(196, 165, 126, 0.46);
+      --ide-text: #fff5e6;
+      --ide-keyword: #ff6b2b;
+      --ide-string: #fbbf24;
+      --ide-punct: #fdba74;
+      --ide-cursor: #ff7a1a;
+      --ide-cursor-glow: rgba(255, 122, 26, 0.84);
+      --ide-accent-rgb: 255, 122, 26;
+    }
+
+    [data-ide-theme="mono"] {
+      --ide-bg: #060608;
+      --ide-surface: #0f1014;
+      --ide-line-hl: rgba(255, 255, 255, 0.04);
+      --ide-gutter: rgba(160, 165, 175, 0.35);
+      --ide-comment: rgba(160, 165, 175, 0.45);
+      --ide-text: #ffffff;
+      --ide-keyword: #d4d4d8;
+      --ide-string: #a1a1aa;
+      --ide-punct: #71717a;
+      --ide-cursor: #ffffff;
+      --ide-cursor-glow: rgba(255, 255, 255, 0.85);
+      --ide-accent-rgb: 255, 255, 255;
+    }
+
+    /* ============================================================
+       2. GLOBAL BASE & RESPONSIVE STAGE (16:9 FULL & 9:16 REEL)
+       ============================================================ */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #030304;
+      color: #ffffff;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+
+    .studio-desk {
+      position: relative;
+      width: 100vw;
+      max-width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 48%, #111218 0%, #030304 100%);
+      overflow: hidden;
+    }
+
+    .stage-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(ellipse at 50% 48%, #101219 0%, var(--ide-bg) 72%, #020203 100%);
+      transition:
+        width 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.58s ease;
+    }
+
+    body.reel-mode .stage-frame {
+      height: min(86dvh, 800px);
+      width: min(92vw, calc(min(86dvh, 800px) * 0.5625));
+      border-radius: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow:
+        0 36px 110px rgba(0, 0, 0, 0.92),
+        0 0 80px -24px rgba(var(--ide-accent-rgb), 0.34);
+    }
+
+    /* ============================================================
+       3. 3D MACRO CAMERA RIG & REALISTIC MONITOR DEPTH-OF-FIELD
+       ============================================================ */
+    .camera-viewport {
+      position: absolute;
+      inset: 0;
+      perspective: 1150px;
+      perspective-origin: 50% 50%;
+      overflow: hidden;
+      z-index: 5;
+    }
+
+    .camera-world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+      will-change: transform, filter;
+    }
+
+    /* The Virtual IDE Editor Sheet inside 3D Space */
+    .code-sheet {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: max-content;
+      min-width: 760px;
+      padding: 46px 96px 140px 44px;
+      font-family: var(--code-font);
+      font-size: calc(22px * var(--code-scale));
+      line-height: 1.72;
+      color: var(--ide-text);
+      transform-origin: 0 0;
+      text-rendering: geometricPrecision;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Authentic IDE Top Tab Bar (note_to_self.js) */
+    .ide-tab-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 46px;
+      margin-bottom: 24px;
+      padding: 6px 14px 8px 12px;
+      border-top: 2px solid var(--ide-cursor);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+      border-radius: 4px 4px 0 0;
+      font-size: 0.62em;
+      letter-spacing: 0.02em;
+      color: rgba(226, 232, 245, 0.68);
+      box-shadow: 0 -10px 26px -8px rgba(var(--ide-accent-rgb), 0.42);
+      transition: opacity 0.4s ease, filter 0.4s ease;
+    }
+
+    .ide-tab-icon {
+      width: 11px;
+      height: 11px;
+      border-radius: 2px;
+      background: rgba(123, 199, 255, 0.32);
+      border: 1px solid rgba(123, 199, 255, 0.55);
+      display: inline-block;
+    }
+
+    /* Individual Code Line Rows */
+    .code-line {
+      position: relative;
+      display: flex;
+      align-items: baseline;
+      white-space: nowrap;
+      padding: 2px 18px 2px 4px;
+      border-radius: 6px;
+      transition:
+        opacity 0.42s ease,
+        filter 0.42s ease,
+        background-color 0.25s ease;
+    }
+
+    .code-line.is-active-line {
+      background-color: var(--ide-line-hl);
+    }
+
+    .code-line.is-spacer {
+      height: 0.9em;
+    }
+
+    .code-line.dof-0 { opacity: 1; filter: blur(0px); }
+    .code-line.dof-1 { opacity: 0.74; filter: blur(calc(0.65px * var(--dof-scale))); }
+    .code-line.dof-2 { opacity: 0.46; filter: blur(calc(1.55px * var(--dof-scale))); }
+    .code-line.dof-3 { opacity: 0.25; filter: blur(calc(2.5px * var(--dof-scale))); }
+
+    body.overview-sharp .code-line {
+      opacity: 0.92 !important;
+      filter: blur(0px) !important;
+    }
+
+    .line-num {
+      display: inline-block;
+      width: 34px;
+      margin-right: 22px;
+      text-align: right;
+      font-size: 0.68em;
+      color: var(--ide-gutter);
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .code-line.is-active-line .line-num {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .code-content {
+      position: relative;
+      display: inline-flex;
+      align-items: baseline;
+      white-space: pre;
+    }
+
+    /* Syntax Token Colors with subtle OLED phosphor glow */
+    .tok-comment {
+      color: var(--ide-comment);
+      font-style: italic;
+    }
+    .tok-keyword {
+      color: var(--ide-keyword);
+      font-weight: 600;
+      text-shadow: 0 0 18px rgba(var(--ide-accent-rgb), 0.35);
+    }
+    .tok-string {
+      color: var(--ide-string);
+      font-weight: 500;
+      text-shadow: 0 0 14px rgba(255, 140, 58, 0.28);
+    }
+    .tok-punct {
+      color: var(--ide-punct);
+      font-weight: 500;
+      text-shadow: 0 0 12px rgba(123, 199, 255, 0.28);
+    }
+    .tok-ident {
+      color: var(--ide-text);
+      font-weight: 500;
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.22);
+    }
+
+    /* Subtle Red Wavy Syntax Error Underline + Hanging Thread Micro-FX */
+    .has-squiggle {
+      text-decoration-line: underline;
+      text-decoration-style: wavy;
+      text-decoration-color: var(--ide-keyword);
+      text-underline-offset: 5px;
+    }
+
+    .has-hang-threads {
+      position: relative;
+    }
+    .has-hang-threads::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      right: 4px;
+      top: 100%;
+      height: 15px;
+      background-image: repeating-linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.45) 0px,
+        rgba(255, 255, 255, 0.45) 1px,
+        transparent 1px,
+        transparent 11px
+      );
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
+      pointer-events: none;
+    }
+
+    /* Iconic Glowing Solid Block Cursor */
+    .ide-block-cursor {
+      position: relative;
+      display: inline-block;
+      width: 0.62em;
+      height: 1.18em;
+      margin-left: 1px;
+      vertical-align: -0.2em;
+      border-radius: 2px;
+      background: var(--ide-cursor);
+      box-shadow:
+        0 0 10px var(--ide-cursor-glow),
+        0 0 26px var(--ide-cursor-glow),
+        0 0 46px rgba(var(--ide-accent-rgb), 0.55);
+      animation: cursorPulse 0.9s steps(2, start) infinite;
+      will-change: opacity, transform;
+    }
+
+    .ide-block-cursor.is-typing {
+      animation: none;
+      opacity: 1;
+    }
+
+    @keyframes cursorPulse {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0.25; }
+    }
+
+    /* Inline Autocorrect Tooltip Pill inside Code Sheet */
+    .ide-autocorrect-pill {
+      position: absolute;
+      left: 58px;
+      top: -30px;
+      z-index: 20;
+      padding: 3px 10px;
+      border-radius: 5px;
+      background: rgba(18, 20, 28, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      font-size: 0.52em;
+      color: rgba(235, 240, 250, 0.72);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.7);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* ============================================================
+       4. SIGNATURE IDE POPUP MODAL ("mind.exe is not responding")
+       ============================================================ */
+    .ide-crash-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) perspective(900px) rotateX(6deg) rotateY(-6deg) rotateZ(-4deg) scale(0.86);
+      z-index: 18;
+      width: min(86vw, 355px);
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: rgba(12, 13, 18, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(var(--ide-accent-rgb), 0.52);
+      box-shadow:
+        0 26px 70px rgba(0, 0, 0, 0.88),
+        0 0 34px -4px rgba(var(--ide-accent-rgb), 0.4);
+      font-family: var(--code-font);
+      opacity: 0;
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+
+    /* ============================================================
+       5. MACRO CAMERA OPTICAL OVERLAYS (VIGNETTE, GRAIN, SCANLINES)
+       ============================================================ */
+    .macro-lens-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 12;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 76% 68% at 50% 50%, transparent 40%, rgba(2, 2, 4, 0.78) 100%);
+    }
+
+    /* Subtle CRT / Monitor Pixel Grid & Analog Film Grain */
+    .monitor-pixel-grid {
+      position: absolute;
+      inset: 0;
+      z-index: 13;
+      pointer-events: none;
+      opacity: 0.08;
+      background-image:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.08) 0px,
+          rgba(255, 255, 255, 0.08) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+      transition: opacity 0.3s ease;
+    }
+    body.grain-off .monitor-pixel-grid {
+      opacity: 0;
+    }
+
+    .film-grain {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 14;
+      pointer-events: none;
+      opacity: 0.09;
+      mix-blend-mode: screen;
+      transition: opacity 0.3s ease;
+    }
+    body.grain-off .film-grain {
+      opacity: 0;
+    }
+
+    /* Chromatic Edge Fringe Wash on High Whip Velocity */
+    .whip-rgb-flash {
+      position: absolute;
+      inset: 0;
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0;
+      background: linear-gradient(
+        90deg,
+        rgba(56, 224, 255, 0.14) 0%,
+        transparent 18%,
+        transparent 82%,
+        rgba(255, 31, 61, 0.16) 100%
+      );
+      mix-blend-mode: screen;
+    }
+
+    /* ============================================================
+       6. FROSTED GLASS HUD, BOTTOM DOCK & STUDIO DRAWER
+       ============================================================ */
+    .glass-hud {
+      background: rgba(10, 11, 16, 0.7);
+      backdrop-filter: blur(26px) saturate(165%);
+      -webkit-backdrop-filter: blur(26px) saturate(165%);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      box-shadow:
+        0 18px 46px rgba(0, 0, 0, 0.72),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    }
+
+    .top-hud {
+      position: fixed;
+      top: max(0.85rem, calc(env(safe-area-inset-top) + 0.4rem));
+      left: max(0.85rem, env(safe-area-inset-left));
+      right: max(0.85rem, env(safe-area-inset-right));
+      z-index: 32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .bottom-dock {
+      position: fixed;
+      bottom: max(0.9rem, calc(env(safe-area-inset-bottom) + 0.45rem));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      max-width: calc(100vw - 1rem);
+      transition: opacity 0.45s ease;
+    }
+
+    .bottom-dock.is-idle-dim {
+      opacity: 0.26;
+    }
+    .bottom-dock.is-idle-dim:hover,
+    .bottom-dock.is-idle-dim:focus-within {
+      opacity: 1;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .micro-eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .micro-eq-bar {
+      width: 2.5px;
+      height: 3.5px;
+      border-radius: 999px;
+      background: var(--ide-cursor);
+      box-shadow: 0 0 8px var(--ide-cursor-glow);
+      will-change: height;
+    }
+
+    .clean-exit-btn {
+      position: fixed;
+      top: max(0.9rem, env(safe-area-inset-top));
+      right: max(0.9rem, env(safe-area-inset-right));
+      z-index: 48;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    body.clean-mode .clean-exit-btn {
+      pointer-events: auto;
+    }
+    body.clean-mode .clean-exit-btn:hover,
+    body.clean-mode .clean-exit-btn:focus-visible {
+      opacity: 0.96;
+    }
+
+    /* Studio Drawer */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(3, 4, 7, 0.62);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .studio-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(100vw, 468px);
+      height: 100dvh;
+      z-index: 60;
+      background: rgba(10, 11, 16, 0.92);
+      backdrop-filter: blur(36px) saturate(175%);
+      -webkit-backdrop-filter: blur(36px) saturate(175%);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: -28px 0 88px rgba(0, 0, 0, 0.86);
+      transform: translateX(105%);
+      display: flex;
+      flex-direction: column;
+      user-select: text;
+      overflow: hidden;
+    }
+
+    .drawer-scroll-area {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+    }
+
+    .inner-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    }
+    .inner-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .inner-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .inner-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+
+    input[type="range"].studio-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--ide-cursor);
+      box-shadow: 0 0 10px var(--ide-cursor-glow);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    .toast-pill {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-28px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+      .studio-drawer {
+        width: 100vw;
+        border-left: none;
+      }
+    }
+  </style>
+</head>
+<body data-ide-theme="crimson">
+
+  <!-- Hidden HTML5 Audio Element -->
+  <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+
+  <!-- Inline SVG Directional Motion-Blur Filter for Authentic 3D Camera Whip-Pans -->
+  <svg width="0" height="0" style="position:absolute;pointer-events:none;" aria-hidden="true">
+    <defs>
+      <filter id="camWhipBlur" x="-15%" y="-15%" width="130%" height="130%">
+        <feGaussianBlur id="camBlurNode" in="SourceGraphic" stdDeviation="0 0" />
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Anime.js Toast Notification -->
+  <div id="toastPill" class="toast-pill glass-hud px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs sm:text-sm font-medium text-white max-w-[92vw]">
+    <span id="toastDot" class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+    <span id="toastText" class="truncate">Ready</span>
+  </div>
+
+  <!-- ============================================================
+       TOP FLOATING HUD
+       ============================================================ -->
+  <header id="topHud" class="top-hud">
+    <!-- Track & Active File Pill -->
+    <button
+      id="trackPillBtn"
+      type="button"
+      title="Open Studio Settings (Press S)"
+      class="pointer-events-auto glass-hud pl-2.5 pr-3.5 py-1.5 rounded-full flex items-center gap-2.5 max-w-[56vw] sm:max-w-[300px] hover:bg-white/[0.1] transition text-left"
+    >
+      <div class="w-7 h-7 rounded-full shrink-0 border border-white/20 bg-white/[0.06] flex items-center justify-center font-mono text-[10px] font-bold text-rose-400">
+        &lt;/&gt;
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <p id="hudTitle" class="text-[11px] sm:text-xs font-mono font-bold text-white truncate leading-tight">note_to_self.js</p>
+        <p id="hudArtist" class="text-[10px] text-white/55 truncate leading-tight mt-0.5">IDE Synth Demo</p>
+      </div>
+
+      <div class="micro-eq pl-1 shrink-0" aria-hidden="true">
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+      </div>
+    </button>
+
+    <!-- Right Quick Controls -->
+    <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+      <!-- Quick IDE Theme Cycle (C) -->
+      <button
+        id="quickThemeBtn"
+        type="button"
+        title="Cycle IDE Color Theme (Press C)"
+        class="glass-hud h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-2 text-[11px] font-semibold text-white/90 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <span id="quickThemeDot" class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_currentColor] shrink-0"></span>
+        <span id="quickThemeName" class="hidden md:inline">Crimson IDE</span>
+      </button>
+
+      <!-- Clean Record Mode (H) -->
+      <button
+        id="cleanModeBtn"
+        type="button"
+        title="Clean Screen-Record Mode (Press H)"
+        class="glass-hud w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
+      <!-- Open Studio Drawer (S) -->
+      <button
+        id="openStudioBtn"
+        type="button"
+        title="Open Studio (Press S)"
+        class="glass-hud h-9 px-3 sm:px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition active:scale-95"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="2" y1="14" x2="6" y2="14" />
+          <line x1="10" y1="8" x2="14" y2="8" />
+          <line x1="18" y1="16" x2="22" y2="16" />
+        </svg>
+        <span>Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Discrete Corner Exit for Clean Mode -->
+  <button
+    id="cleanExitBtn"
+    type="button"
+    title="Exit Clean Mode (H or Esc)"
+    class="clean-exit-btn glass-hud px-3.5 py-1.5 rounded-full text-xs font-semibold text-white/90"
+  >
+    Exit Clean Mode
+  </button>
+
+  <!-- ============================================================
+       MAIN 3D MACRO CODE EDITOR STAGE
+       ============================================================ -->
+  <div class="studio-desk">
+    <main id="stageFrame" class="stage-frame">
+
+      <!-- 3D Perspective Camera Viewport -->
+      <div class="camera-viewport">
+        <div id="cameraWorld" class="camera-world">
+          <div id="codeSheet" class="code-sheet" aria-live="polite">
+            <!-- Active File Tab -->
+            <div class="ide-tab-bar">
+              <span class="ide-tab-icon"></span>
+              <span id="ideTabFilename">note_to_self.js</span>
+              <span class="opacity-40 ml-1">×</span>
+            </div>
+
+            <!-- Code Lines Container (Populated Dynamically) -->
+            <div id="codeLinesContainer"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signature Optional IDE Crash Popup ("mind.exe is not responding") -->
+      <div id="ideCrashModal" class="ide-crash-modal" aria-hidden="true">
+        <div class="flex items-center justify-between text-[10px] text-white/45 mb-2">
+          <span id="crashProcessName">mind.exe</span>
+          <span class="text-rose-400">PID 404</span>
+        </div>
+        <p class="text-sm sm:text-base font-semibold text-white tracking-tight mb-4">
+          is not responding
+        </p>
+        <div class="flex items-center gap-2">
+          <span class="px-3.5 py-1.5 rounded-md bg-white/[0.06] border border-white/15 text-xs text-white/65">wait</span>
+          <span id="crashForceBtn" class="px-3.5 py-1.5 rounded-md bg-rose-600/85 border border-rose-400/60 text-xs font-bold text-white shadow-[0_0_20px_rgba(255,31,61,0.65)]">force quit</span>
+        </div>
+      </div>
+
+      <!-- Optical Camera Vignette, Monitor Scanlines, Whip RGB Fringe & 35mm Grain -->
+      <div class="macro-lens-vignette" aria-hidden="true"></div>
+      <div class="monitor-pixel-grid" aria-hidden="true"></div>
+      <div id="whipRgbFlash" class="whip-rgb-flash" aria-hidden="true"></div>
+      <svg class="film-grain" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <filter id="ideFilmGrain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#ideFilmGrain)" />
+      </svg>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM FLOATING GLASS DOCK
+       ============================================================ -->
+  <nav id="bottomDock" class="bottom-dock glass-hud px-2.5 sm:px-3.5 py-2 rounded-full flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+    <!-- Restart Snippet (R) -->
+    <button
+      id="restartBtn"
+      type="button"
+      title="Restart Snippet (Press R)"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/10 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+        <path d="M3 3v5h5" />
+      </svg>
+    </button>
+
+    <!-- Play / Pause (Space) -->
+    <button
+      id="playPauseBtn"
+      type="button"
+      title="Play / Pause (Space)"
+      class="w-10 h-10 rounded-full shrink-0 bg-white text-black hover:scale-105 active:scale-95 transition flex items-center justify-center shadow-[0_0_24px_rgba(255,255,255,0.28)]"
+    >
+      <svg id="playIcon" class="w-4 h-4 translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="6 4 20 12 6 20 6 4" />
+      </svg>
+      <svg id="pauseIcon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4.5" height="16" rx="1.2" />
+        <rect x="13.5" y="4" width="4.5" height="16" rx="1.2" />
+      </svg>
+    </button>
+
+    <!-- Scrubber -->
+    <div class="flex items-center gap-2 min-w-[112px] sm:min-w-[172px] px-1">
+      <span id="timeElapsed" class="text-[11px] font-mono text-white/75 tabular-nums shrink-0">0:00</span>
+      <div id="progressTrack" class="relative flex-1 h-6 flex items-center cursor-pointer group">
+        <div class="w-full h-[3.5px] rounded-full bg-white/16 overflow-hidden">
+          <div id="progressFill" class="h-full rounded-full bg-gradient-to-r from-rose-500 to-white" style="width: 0%"></div>
+        </div>
+        <div
+          id="progressKnob"
+          class="absolute w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_#ffffff] -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style="left: 0%"
+        ></div>
+      </div>
+      <span id="timeTotal" class="text-[11px] font-mono text-white/45 tabular-nums shrink-0">0:29</span>
+    </div>
+
+    <!-- Loop Toggle -->
+    <button
+      id="loopBtn"
+      type="button"
+      title="Loop Active Snippet"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-rose-400 bg-white/12 hover:bg-white/18 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m17 2 4 4-4 4" />
+        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+        <path d="m7 22-4-4 4-4" />
+        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+      </svg>
+    </button>
+
+    <div class="w-px h-5 bg-white/15 shrink-0"></div>
+
+    <!-- Cycle Camera Mode (V) -->
+    <button
+      id="dockCamCycleBtn"
+      type="button"
+      title="Cycle 3D Camera Movement (Press V)"
+      class="h-9 px-2.5 sm:px-3 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold bg-white/12 hover:bg-white/22 text-white transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 7l-7 5 7 5V7z" />
+        <rect x="1" y="5" width="15" height="14" rx="2" />
+      </svg>
+      <span id="dockCamLabel">Macro Cam</span>
+    </button>
+
+    <!-- 16:9 / 9:16 Vertical Reel Toggle -->
+    <button
+      id="dockReelBtn"
+      type="button"
+      title="Toggle 16:9 Full / 9:16 Vertical Coding Reel"
+      class="h-9 px-2.5 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold text-white/80 hover:text-white hover:bg-white/10 transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="2" width="12" height="20" rx="2.5" />
+      </svg>
+      <span id="dockReelLabel">16:9</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       STUDIO DRAWER (NATIVE SMOOTH SCROLL)
+       ============================================================ -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <aside id="studioDrawer" class="studio-drawer" aria-label="Code Editor Lyric Studio Settings">
+    <!-- Drawer Header -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <div>
+        <h2 class="text-base font-extrabold text-white tracking-tight font-mono">Code Lyric Studio</h2>
+        <p class="text-[11px] text-white/50">3D Macro Camera · Auto JS Syntax · MP3 &amp; LRCLIB</p>
+      </div>
+      <button
+        id="closeStudioBtn"
+        type="button"
+        aria-label="Close Studio"
+        class="w-9 h-9 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center text-white/80 hover:text-white transition"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Smooth Native Scroll Body -->
+    <div id="drawerScrollWrapper" class="drawer-scroll-area">
+      <div class="px-5 py-5 space-y-6">
+
+        <!-- SECTION 1: 3D CAMERA MOVEMENT & IDE FX -->
+        <section class="space-y-3.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">1. 3D Camera &amp; Code Style</h3>
+            <span id="activeCamBadge" class="text-[11px] font-mono font-semibold text-rose-400">Macro Follow</span>
+          </div>
+
+          <!-- Camera Rig Modes -->
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-cam-pick="macro" class="cam-btn p-2.5 rounded-xl text-left bg-white/15 border border-white/45 transition">
+              <p class="text-xs font-bold text-white">Macro Follow (Viral)</p>
+              <p class="text-[10px] text-white/55">Tracks cursor + whip-pan blur</p>
+            </button>
+            <button type="button" data-cam-pick="cinematic" class="cam-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Cinematic 3D Pan</p>
+              <p class="text-[10px] text-white/55">Medium zoom + smooth tilt</p>
+            </button>
+            <button type="button" data-cam-pick="overview" class="cam-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Full Screen Tilt</p>
+              <p class="text-[10px] text-white/55">Shows full tilted code sheet</p>
+            </button>
+            <button type="button" data-cam-pick="static" class="cam-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Clean Flat IDE</p>
+              <p class="text-[10px] text-white/55">Zero tilt, gentle line track</p>
+            </button>
+          </div>
+
+          <!-- Auto Code Syntax Formatter Toggle + File Tab Name -->
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-3">
+            <div class="space-y-1.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-white/50">Lyric-to-Code Formatting</span>
+              <div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/40 border border-white/10 text-[11px] font-bold">
+                <button type="button" data-code-fmt="autojs" class="codefmt-btn py-1.5 rounded-lg bg-white text-black transition">Auto JS Syntax</button>
+                <button type="button" data-code-fmt="raw" class="codefmt-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Raw Lyric Words</button>
+              </div>
+              <p class="text-[10px] text-white/45">Auto JS turns any LRCLIB song into poetic <code class="text-rose-300">word.call(lyric);</code> lines.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div class="space-y-1">
+                <label class="text-[10px] font-semibold text-white/50 uppercase">Editor Tab File</label>
+                <input
+                  id="filenameInput"
+                  type="text"
+                  value="note_to_self.js"
+                  placeholder="note_to_self.js"
+                  class="w-full px-2.5 py-1.5 rounded-xl bg-black/35 border border-white/12 focus:border-rose-400/70 focus:outline-none text-xs font-mono text-white"
+                />
+              </div>
+              <div class="space-y-1">
+                <label class="text-[10px] font-semibold text-white/50 uppercase">Top Comment</label>
+                <input
+                  id="commentInput"
+                  type="text"
+                  value="// note to self"
+                  placeholder="// note to self"
+                  class="w-full px-2.5 py-1.5 rounded-xl bg-black/35 border border-white/12 focus:border-rose-400/70 focus:outline-none text-xs font-mono text-white/85"
+                />
+              </div>
+            </div>
+
+            <!-- Camera Zoom & Motion Blur Sliders -->
+            <div class="space-y-2.5 pt-2 border-t border-white/10">
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="font-semibold text-white/80">Macro Zoom Level</span>
+                  <span id="zoomValLabel" class="font-mono font-bold text-rose-300">100%</span>
+                </div>
+                <input id="zoomSlider" type="range" min="0.7" max="1.45" step="0.05" value="1" class="studio-slider w-full" aria-label="Macro zoom level" />
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="font-semibold text-white/80">Whip-Pan Blur &amp; 3D Tilt</span>
+                  <span id="energyValLabel" class="font-mono font-bold text-rose-300">90%</span>
+                </div>
+                <input id="energySlider" type="range" min="0" max="100" step="5" value="90" class="studio-slider w-full" aria-label="Camera whip energy" />
+              </div>
+            </div>
+
+            <!-- 3 Crisp FX Toggles -->
+            <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-white/10">
+              <button id="togglePopupsBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">IDE Popups: ON</button>
+              <button id="toggleDofBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">Macro DOF: ON</button>
+              <button id="toggleGrainBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">35mm Grain: ON</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: IDE COLOR THEMES -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">2. IDE Syntax Theme</h3>
+            <span id="activeThemeLabel" class="text-[11px] font-semibold text-rose-300">Crimson IDE</span>
+          </div>
+
+          <div class="grid grid-cols-5 gap-1.5">
+            <button type="button" data-theme-pick="crimson" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/15 border border-white/45 transition">
+              <span class="w-5 h-5 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 shadow-[0_0_10px_rgba(255,31,61,0.85)]"></span>
+              <span class="text-[9px] font-bold">Crimson</span>
+            </button>
+            <button type="button" data-theme-pick="tokyo" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <span class="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 shadow-[0_0_10px_rgba(0,229,255,0.75)]"></span>
+              <span class="text-[9px] font-bold">Tokyo</span>
+            </button>
+            <button type="button" data-theme-pick="matrix" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <span class="w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-lime-400 shadow-[0_0_10px_rgba(34,255,122,0.75)]"></span>
+              <span class="text-[9px] font-bold">Matrix</span>
+            </button>
+            <button type="button" data-theme-pick="amber" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <span class="w-5 h-5 rounded-full bg-gradient-to-br from-amber-300 to-orange-600 shadow-[0_0_10px_rgba(255,122,26,0.75)]"></span>
+              <span class="text-[9px] font-bold">Amber</span>
+            </button>
+            <button type="button" data-theme-pick="mono" class="theme-btn flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <span class="w-5 h-5 rounded-full bg-gradient-to-br from-white to-zinc-500 shadow-[0_0_10px_rgba(255,255,255,0.65)]"></span>
+              <span class="text-[9px] font-bold">Mono</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- SECTION 3: SONG MP3 & TRACK INFO -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">3. Song MP3 &amp; Track Info</h3>
+            <span id="audioStatusBadge" class="text-[11px] font-semibold text-rose-300">Demo Synth Ready</span>
+          </div>
+
+          <label
+            id="audioDropZone"
+            for="audioFileInput"
+            class="block w-full p-3.5 rounded-2xl border border-dashed border-white/20 hover:border-rose-400/80 bg-white/[0.03] hover:bg-white/[0.06] transition cursor-pointer text-center"
+          >
+            <input id="audioFileInput" type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" class="hidden" />
+            <div class="flex items-center justify-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-rose-400 shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+              <div class="text-left min-w-0">
+                <p id="audioDropLabel" class="text-xs font-bold text-white truncate">Drop MP3 / WAV / M4A or tap to upload</p>
+                <p id="audioFileMeta" class="text-[11px] text-white/45">100% browser-local · Bass-reactive cursor glow</p>
+              </div>
+            </div>
+          </label>
+
+          <div class="grid grid-cols-2 gap-2">
+            <input
+              id="titleInput"
+              type="text"
+              value="note_to_self.js"
+              placeholder="Track Title"
+              class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-rose-400/70 focus:outline-none text-xs font-semibold text-white placeholder-white/35"
+            />
+            <input
+              id="artistInput"
+              type="text"
+              value="IDE Synth Demo"
+              placeholder="Artist Name"
+              class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-rose-400/70 focus:outline-none text-xs text-white/85 placeholder-white/35"
+            />
+          </div>
+        </section>
+
+        <!-- SECTION 4: SYNCED LYRICS (LRCLIB.NET) -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">4. Synced Lyrics (LRCLIB.net)</h3>
+            <span id="lyricsCountBadge" class="text-[11px] font-mono text-white/55">10 lines</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-bold">
+            <button type="button" data-lrc-tab="url" class="lrc-tab-btn py-1.5 rounded-lg bg-white text-black transition">LRCLIB Link</button>
+            <button type="button" data-lrc-tab="search" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Search</button>
+            <button type="button" data-lrc-tab="manual" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Manual LRC</button>
+          </div>
+
+          <div id="lrcTabUrl" class="space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibUrlInput"
+                type="text"
+                placeholder="https://lrclib.net/tracks/28185115 or 28185115"
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-rose-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="fetchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95 flex items-center gap-1.5"
+              >
+                <span id="fetchBtnLabel">Fetch</span>
+                <svg id="fetchSpinner" class="hidden w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25" />
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p id="lrclibStatusText" class="text-[11px] text-white/48">
+              Paste any <span class="text-white/80 font-medium">lrclib.net/tracks/{id}</span> link to load synced lyrics instantly.
+            </p>
+          </div>
+
+          <div id="lrcTabSearch" class="hidden space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibSearchInput"
+                type="text"
+                placeholder="Search song name or artist..."
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-rose-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="searchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95"
+              >
+                Search
+              </button>
+            </div>
+            <div id="searchResultsBox" class="max-h-48 inner-scroll space-y-1.5 pr-0.5">
+              <p class="text-[11px] text-white/45 text-center py-4">Search LRCLIB's synced library and click any track.</p>
+            </div>
+          </div>
+
+          <div id="lrcTabManual" class="hidden space-y-2">
+            <textarea
+              id="manualLrcInput"
+              rows="5"
+              placeholder="[00:00.20] never.hang(yourHopes).on(me);&#10;[00:03.40] i.want(feel(anything));"
+              class="w-full p-3 rounded-xl bg-white/[0.07] border border-white/14 focus:border-rose-400/70 focus:outline-none text-xs font-mono text-white placeholder-white/35 resize-y"
+            ></textarea>
+            <button
+              id="applyManualLrcBtn"
+              type="button"
+              class="w-full py-2.5 rounded-xl bg-white/15 hover:bg-white/24 border border-white/15 text-xs font-bold text-white transition"
+            >
+              Apply Manual LRC
+            </button>
+          </div>
+        </section>
+
+        <!-- SECTION 5: EXACT SONG PART TRIMMER & SYNC OFFSET -->
+        <section class="space-y-3.5 pt-3 border-t border-white/10 pb-8">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">5. Exact Song Part (Loop)</h3>
+            <span id="snippetWindowBadge" class="text-[11px] font-mono font-semibold text-rose-300">0:00 → 0:29 (29s)</span>
+          </div>
+
+          <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">Start</span>
+                <button id="useNowStartBtn" type="button" class="text-[10px] font-bold text-rose-300 hover:underline">Now</button>
+              </div>
+              <input id="startTimeInput" type="text" value="0:00" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">End</span>
+                <button id="useNowEndBtn" type="button" class="text-[10px] font-bold text-rose-300 hover:underline">Now</button>
+              </div>
+              <input id="endTimeInput" type="text" value="0:29" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <button
+              id="resetFullSongBtn"
+              type="button"
+              class="h-[54px] px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-[11px] font-bold text-white/80 hover:text-white transition"
+            >
+              Reset<br/>Full
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <p class="text-[11px] text-white/55">Tap <span class="text-white font-semibold">Start</span> / <span class="text-white font-semibold">End</span> on any line to play only that part:</p>
+            <div class="h-44 inner-scroll rounded-2xl bg-black/45 border border-white/10">
+              <div id="lyricPickerList" class="divide-y divide-white/[0.06]"></div>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-white/85">Lyric Sync Offset</span>
+              <div class="flex items-center gap-1.5">
+                <button id="offsetMinusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">-0.1s</button>
+                <span id="offsetLabel" class="min-w-[54px] text-center font-mono text-xs font-bold text-white">0.00s</span>
+                <button id="offsetPlusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">+0.1s</button>
+                <button id="offsetResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/8 hover:bg-white/16 text-[10px] text-white/70 transition">0</button>
+              </div>
+            </div>
+            <input id="offsetSlider" type="range" min="-5" max="5" step="0.05" value="0" class="studio-slider w-full" aria-label="Lyric sync offset" />
+          </div>
+
+          <p class="text-[10px] text-white/40 text-center">
+            Shortcuts: <span class="text-white/75 font-semibold">Space</span> Play · <span class="text-white/75 font-semibold">V</span> Camera · <span class="text-white/75 font-semibold">C</span> Theme · <span class="text-white/75 font-semibold">R</span> Restart · <span class="text-white/75 font-semibold">S</span> Studio · <span class="text-white/75 font-semibold">H</span> Clean
+          </p>
+        </section>
+
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    /* ============================================================
+       CODE EDITOR LYRIC STUDIO — 3D MACRO CURSOR-TRACKING ENGINE
+       True 3D Virtual Camera Rig + Directional Whip-Pan Motion Blur
+       Auto Lyric-to-JS Syntax Highlighter + IDE Micro-FX + LRCLIB
+       ============================================================ */
+    (() => {
+      "use strict";
+
+      /* ----------------------------------------------------------
+         1. ICONIC DEMO LYRICS (NOTE_TO_SELF.JS CODE CADENCE)
+         ---------------------------------------------------------- */
+      const DEMO_LRC = `
+[00:00.20] never.hang(yourHopes).on(me);
+[00:03.40] i.want(feel(anything));
+[00:06.10] god: you.look = "so pretty";
+[00:08.60] when(you.tell(me, you.love(me)));
+[00:11.60] i.wish(i.could(truth));
+[00:15.80] but my.mind.blocks(the.way);
+[00:18.60] i.know(you.think(me
+[00:21.10]   always.way.too(self.aware)));
+[00:23.90] oh, we.can(never.be(Together));
+[00:26.50] but.nice(to.play(pretend)); // (it is)
+      `.trim();
+
+      const IDE_THEMES = [
+        { id: "crimson", name: "Crimson IDE", dot: "bg-rose-500" },
+        { id: "tokyo",   name: "Tokyo Night", dot: "bg-cyan-400" },
+        { id: "matrix",  name: "Matrix Ghost", dot: "bg-emerald-400" },
+        { id: "amber",   name: "Amber CRT",   dot: "bg-amber-400" },
+        { id: "mono",    name: "Mono Film",   dot: "bg-white" },
+      ];
+
+      const CAM_MODES = [
+        { id: "macro",     label: "Macro Cam",  badge: "Macro Follow" },
+        { id: "cinematic", label: "3D Pan",     badge: "Cinematic 3D" },
+        { id: "overview",  label: "Full Tilt",  badge: "Full Screen Tilt" },
+        { id: "static",    label: "Flat IDE",   badge: "Clean Flat IDE" },
+      ];
+
+      // Emotional / JS keywords highlighted in primary crimson/accent tone
+      const CODE_KEYWORDS = new Set([
+        "never", "god", "when", "love", "but", "always", "const", "let", "var", "return",
+        "if", "else", "for", "while", "async", "await", "true", "false", "null", "try",
+        "catch", "throw", "new", "void", "break", "still", "alone", "heart", "broken",
+        "gone", "lost", "lie", "truth", "die", "cry", "pain", "hurt", "miss", "cant",
+        "dont", "wont", "nahi", "kabhi", "dil", "ishq", "yaad", "dard", "khamosh", "tanha",
+      ]);
+
+      const WARM_CALLS = new Set([
+        "feel", "blocks", "aware", "pretend", "dream", "hope", "burn", "glow", "fade",
+        "wait", "stay", "hold", "breathe", "whisper", "midnight", "forever", "ankaha",
+      ]);
+
+      /* ----------------------------------------------------------
+         2. APPLICATION STATE
+         ---------------------------------------------------------- */
+      const state = {
+        mode: "demo",               // "demo" | "audio"
+        audioObjectUrl: null,
+        isPlaying: false,
+        isLooping: true,
+        isDrawerOpen: false,
+        isCleanMode: false,
+        isReelMode: false,
+
+        // IDE & Camera Settings
+        theme: "crimson",
+        camMode: "macro",           // "macro" | "cinematic" | "overview" | "static"
+        codeFormat: "autojs",       // "autojs" | "raw"
+        filename: "note_to_self.js",
+        topComment: "// note to self",
+        zoomMult: 1.0,
+        camEnergy: 0.9,
+        popupsEnabled: true,
+        dofEnabled: true,
+        grainEnabled: true,
+
+        // Playback & Snippet Bounds
+        duration: 29.8,
+        startTime: 0.0,
+        endTime: 29.8,
+        syncOffset: 0.0,
+        currentTime: 0.0,
+
+        lines: [],
+        snippetLines: [],
+        formattedLines: [],         // [{ raw, code, tokens[], spacerBefore, hasHang, hasSquiggle, autocorrect }]
+        activeLineIdx: 0,
+        typedCharCount: 0,
+        lastRenderSig: "",
+        crashTriggered: false,
+        crashActive: false,
+
+        // 3D Virtual Camera Rig Physics State
+        cam: {
+          x: 180,
+          y: 120,
+          tx: 180,
+          ty: 120,
+          scale: 1.8,
+          tScale: 1.8,
+          rx: 6,
+          ry: -10,
+          rz: -4,
+          trx: 6,
+          try: -10,
+          trz: -4,
+          vx: 0,
+          vy: 0,
+          whipTimer: 0,
+          zoomOutHold: 0,
+        },
+
+        // Web Audio API
+        audioCtx: null,
+        masterGain: null,
+        analyser: null,
+        freqData: null,
+        mediaConnected: false,
+        demoTimer: null,
+        demoStep: 0,
+        demoNodes: [],
+        bassEnergy: 0,
+
+        // Loops & DOM references to live lines
+        lineNodes: [],
+        cursorEl: null,
+        rafId: null,
+        lastFrameTs: 0,
+        idleTimer: null,
+      };
+
+      /* ----------------------------------------------------------
+         3. DOM REFERENCES
+         ---------------------------------------------------------- */
+      const el = {
+        audio: document.getElementById("audioPlayer"),
+        stageFrame: document.getElementById("stageFrame"),
+        cameraWorld: document.getElementById("cameraWorld"),
+        codeSheet: document.getElementById("codeSheet"),
+        ideTabFilename: document.getElementById("ideTabFilename"),
+        codeLinesContainer: document.getElementById("codeLinesContainer"),
+        camBlurNode: document.getElementById("camBlurNode"),
+        whipRgbFlash: document.getElementById("whipRgbFlash"),
+        ideCrashModal: document.getElementById("ideCrashModal"),
+        crashProcessName: document.getElementById("crashProcessName"),
+        crashForceBtn: document.getElementById("crashForceBtn"),
+
+        // Toast & Top HUD
+        toastPill: document.getElementById("toastPill"),
+        toastDot: document.getElementById("toastDot"),
+        toastText: document.getElementById("toastText"),
+        topHud: document.getElementById("topHud"),
+        trackPillBtn: document.getElementById("trackPillBtn"),
+        hudTitle: document.getElementById("hudTitle"),
+        hudArtist: document.getElementById("hudArtist"),
+        eqBars: document.querySelectorAll(".micro-eq-bar"),
+        quickThemeBtn: document.getElementById("quickThemeBtn"),
+        quickThemeDot: document.getElementById("quickThemeDot"),
+        quickThemeName: document.getElementById("quickThemeName"),
+        cleanModeBtn: document.getElementById("cleanModeBtn"),
+        cleanExitBtn: document.getElementById("cleanExitBtn"),
+        openStudioBtn: document.getElementById("openStudioBtn"),
+
+        // Bottom Dock
+        bottomDock: document.getElementById("bottomDock"),
+        restartBtn: document.getElementById("restartBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        playIcon: document.getElementById("playIcon"),
+        pauseIcon: document.getElementById("pauseIcon"),
+        progressTrack: document.getElementById("progressTrack"),
+        progressFill: document.getElementById("progressFill"),
+        progressKnob: document.getElementById("progressKnob"),
+        timeElapsed: document.getElementById("timeElapsed"),
+        timeTotal: document.getElementById("timeTotal"),
+        loopBtn: document.getElementById("loopBtn"),
+        dockCamCycleBtn: document.getElementById("dockCamCycleBtn"),
+        dockCamLabel: document.getElementById("dockCamLabel"),
+        dockReelBtn: document.getElementById("dockReelBtn"),
+        dockReelLabel: document.getElementById("dockReelLabel"),
+
+        // Studio Drawer
+        drawerBackdrop: document.getElementById("drawerBackdrop"),
+        studioDrawer: document.getElementById("studioDrawer"),
+        closeStudioBtn: document.getElementById("closeStudioBtn"),
+
+        // Section 1: Camera & Code Style
+        activeCamBadge: document.getElementById("activeCamBadge"),
+        camBtns: document.querySelectorAll(".cam-btn"),
+        codeFmtBtns: document.querySelectorAll(".codefmt-btn"),
+        filenameInput: document.getElementById("filenameInput"),
+        commentInput: document.getElementById("commentInput"),
+        zoomSlider: document.getElementById("zoomSlider"),
+        zoomValLabel: document.getElementById("zoomValLabel"),
+        energySlider: document.getElementById("energySlider"),
+        energyValLabel: document.getElementById("energyValLabel"),
+        togglePopupsBtn: document.getElementById("togglePopupsBtn"),
+        toggleDofBtn: document.getElementById("toggleDofBtn"),
+        toggleGrainBtn: document.getElementById("toggleGrainBtn"),
+
+        // Section 2: Themes
+        activeThemeLabel: document.getElementById("activeThemeLabel"),
+        themeBtns: document.querySelectorAll(".theme-btn"),
+
+        // Section 3: Audio
+        audioStatusBadge: document.getElementById("audioStatusBadge"),
+        audioDropZone: document.getElementById("audioDropZone"),
+        audioFileInput: document.getElementById("audioFileInput"),
+        audioDropLabel: document.getElementById("audioDropLabel"),
+        audioFileMeta: document.getElementById("audioFileMeta"),
+        titleInput: document.getElementById("titleInput"),
+        artistInput: document.getElementById("artistInput"),
+
+        // Section 4: LRCLIB
+        lyricsCountBadge: document.getElementById("lyricsCountBadge"),
+        lrcTabBtns: document.querySelectorAll(".lrc-tab-btn"),
+        lrcTabUrl: document.getElementById("lrcTabUrl"),
+        lrcTabSearch: document.getElementById("lrcTabSearch"),
+        lrcTabManual: document.getElementById("lrcTabManual"),
+        lrclibUrlInput: document.getElementById("lrclibUrlInput"),
+        fetchLrclibBtn: document.getElementById("fetchLrclibBtn"),
+        fetchBtnLabel: document.getElementById("fetchBtnLabel"),
+        fetchSpinner: document.getElementById("fetchSpinner"),
+        lrclibStatusText: document.getElementById("lrclibStatusText"),
+        lrclibSearchInput: document.getElementById("lrclibSearchInput"),
+        searchLrclibBtn: document.getElementById("searchLrclibBtn"),
+        searchResultsBox: document.getElementById("searchResultsBox"),
+        manualLrcInput: document.getElementById("manualLrcInput"),
+        applyManualLrcBtn: document.getElementById("applyManualLrcBtn"),
+
+        // Section 5: Trimmer & Offset
+        snippetWindowBadge: document.getElementById("snippetWindowBadge"),
+        startTimeInput: document.getElementById("startTimeInput"),
+        endTimeInput: document.getElementById("endTimeInput"),
+        useNowStartBtn: document.getElementById("useNowStartBtn"),
+        useNowEndBtn: document.getElementById("useNowEndBtn"),
+        resetFullSongBtn: document.getElementById("resetFullSongBtn"),
+        lyricPickerList: document.getElementById("lyricPickerList"),
+        offsetSlider: document.getElementById("offsetSlider"),
+        offsetLabel: document.getElementById("offsetLabel"),
+        offsetMinusBtn: document.getElementById("offsetMinusBtn"),
+        offsetPlusBtn: document.getElementById("offsetPlusBtn"),
+        offsetResetBtn: document.getElementById("offsetResetBtn"),
+      };
+
+      /* ----------------------------------------------------------
+         4. UTILITIES (TOAST, TIME, ESCAPE, LRC PARSER)
+         ---------------------------------------------------------- */
+      let toastTimer = null;
+      function showToast(msg, type = "info") {
+        el.toastText.textContent = msg;
+        el.toastDot.className = "w-2 h-2 rounded-full shrink-0 " + (
+          type === "error" ? "bg-rose-500" :
+          type === "success" ? "bg-emerald-400" :
+          "bg-rose-400"
+        );
+        clearTimeout(toastTimer);
+
+        if (window.anime) {
+          anime.remove(el.toastPill);
+          anime({
+            targets: el.toastPill,
+            translateX: ["-50%", "-50%"],
+            translateY: [-24, 0],
+            opacity: [0, 1],
+            scale: [0.92, 1],
+            duration: 360,
+            easing: "easeOutElastic(1, 0.72)",
+          });
+        } else {
+          el.toastPill.style.opacity = "1";
+          el.toastPill.style.transform = "translateX(-50%) translateY(0)";
+        }
+
+        toastTimer = setTimeout(() => {
+          if (window.anime) {
+            anime({
+              targets: el.toastPill,
+              translateX: ["-50%", "-50%"],
+              translateY: [0, -18],
+              opacity: [1, 0],
+              duration: 240,
+              easing: "easeInQuad",
+            });
+          } else {
+            el.toastPill.style.opacity = "0";
+          }
+        }, 2600);
+      }
+
+      function formatTime(sec) {
+        if (!Number.isFinite(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+
+      function parseTimeInput(str) {
+        if (!str) return null;
+        const clean = str.trim();
+        if (/^\d+(\.\d+)?$/.test(clean)) return parseFloat(clean);
+        const m = clean.match(/^(\d+):(\d{1,2})(?:\.(\d+))?$/);
+        if (!m) return null;
+        const mins = parseInt(m[1], 10);
+        const secs = parseInt(m[2], 10);
+        if (secs >= 60) return null;
+        const frac = m[3] ? parseFloat("0." + m[3]) : 0;
+        return mins * 60 + secs + frac;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function slugifyFilename(title) {
+        const clean = String(title || "note_to_self")
+          .toLowerCase()
+          .replace(/\.js$/i, "")
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "");
+        return `${clean || "note_to_self"}.js`;
+      }
+
+      function parseLRC(rawText) {
+        if (!rawText || typeof rawText !== "string") return [];
+        const rawLines = rawText.split(/\r?\n/);
+        const timeRx = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+        const parsed = [];
+
+        for (const raw of rawLines) {
+          const stamps = [];
+          let m;
+          timeRx.lastIndex = 0;
+          while ((m = timeRx.exec(raw)) !== null) {
+            const mins = parseInt(m[1], 10);
+            const secs = parseInt(m[2], 10);
+            const msStr = m[3] || "0";
+            const ms = msStr.length === 1
+              ? parseInt(msStr, 10) / 10
+              : msStr.length === 2
+              ? parseInt(msStr, 10) / 100
+              : parseInt(msStr.slice(0, 3), 10) / 1000;
+            stamps.push(mins * 60 + secs + ms);
+          }
+          if (!stamps.length) continue;
+          const cleanText = raw
+            .replace(timeRx, "")
+            .replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, "")
+            .trim();
+          if (!cleanText) continue;
+          for (const t of stamps) parsed.push({ time: Number(t.toFixed(3)), text: cleanText });
+        }
+
+        parsed.sort((a, b) => a.time - b.time);
+        return parsed;
+      }
+
+      /* ----------------------------------------------------------
+         5. SMART LYRIC-TO-JS CODE FORMATTER & SYNTAX TOKENIZER
+         ---------------------------------------------------------- */
+      function sanitizeIdent(word) {
+        return word.replace(/[^a-zA-Z0-9_\u0900-\u097f]/g, "") || "it";
+      }
+
+      function toCamelPair(w1, w2) {
+        const a = sanitizeIdent(w1).toLowerCase();
+        const b = sanitizeIdent(w2);
+        return a + (b ? b[0].toUpperCase() + b.slice(1).toLowerCase() : "");
+      }
+
+      /**
+       * Converts any plain LRCLIB lyric line into poetic JS code syntax matching the
+       * viral `note_to_self.js` aesthetic while keeping every word readable and intact.
+       */
+      function formatLyricAsCode(rawText, idx) {
+        if (state.codeFormat === "raw") return rawText;
+
+        // If line already looks like hand-crafted code, preserve it verbatim
+        if (/[();=]|\/\/|\.[a-zA-Z]/.test(rawText)) {
+          return rawText;
+        }
+
+        const words = rawText.split(/\s+/).filter(Boolean);
+        if (words.length <= 1) return `${sanitizeIdent(rawText).toLowerCase()}();`;
+        if (words.length === 2) {
+          return `${sanitizeIdent(words[0]).toLowerCase()}.${sanitizeIdent(words[1]).toLowerCase()}();`;
+        }
+        if (words.length === 3) {
+          return `${sanitizeIdent(words[0]).toLowerCase()}.${sanitizeIdent(words[1]).toLowerCase()}(${sanitizeIdent(words[2]).toLowerCase()});`;
+        }
+
+        const pattern = idx % 6;
+        const w = words.map((tok) => sanitizeIdent(tok).toLowerCase());
+
+        if (pattern === 0) {
+          // never.hang(yourHopes).on(me);
+          if (w.length >= 5) {
+            const camel = toCamelPair(w[2], w[3]);
+            const tail = w.slice(4).join(".");
+            return `${w[0]}.${w[1]}(${camel}).${tail || "now"}();`;
+          }
+          return `${w[0]}.${w[1]}(${w[2]}).${w[3]}();`;
+        }
+        if (pattern === 1) {
+          // i.want(feel(anything));
+          return `${w[0]}.${w[1]}(${w[2]}(${w.slice(3).join(", ")}));`;
+        }
+        if (pattern === 2) {
+          // god: you.look = "so pretty";
+          const split = Math.max(2, Math.floor(w.length * 0.52));
+          const rhs = words.slice(split).join(" ").replace(/"/g, "'");
+          return `${w[0]}: ${w.slice(1, split).join(".")} = "${rhs}";`;
+        }
+        if (pattern === 3) {
+          // when(you.tell(me, you.love(me)));
+          const mid = Math.max(2, Math.floor(w.length * 0.55));
+          return `${w[0]}(${w[1]}.${w[2]}(${w.slice(3, mid).join(", ")}${mid > 3 ? ", " : ""}${w.slice(mid).join(".")}));`;
+        }
+        if (pattern === 4) {
+          // but my.mind.blocks(the.way);
+          const cut = Math.max(2, w.length - 2);
+          return `${w[0]} ${w.slice(1, cut).join(".")}(${w.slice(cut).join(".")});`;
+        }
+        // oh, we.can(never.be(together));
+        const head = words.slice(0, 2).join(" ").toLowerCase();
+        const mid = w.slice(2, Math.max(3, w.length - 1)).join(".");
+        const last = w[w.length - 1];
+        return `${w[0]}, ${w[1]}.${mid}(${last});`;
+      }
+
+      /**
+       * Tokenizes a code string into per-character syntax classes so we can slice
+       * smoothly character-by-character while keeping exact IDE color highlighting.
+       */
+      function tokenizeCodeToChars(codeStr) {
+        const chars = [];
+        const tokenRx = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|([a-zA-Z_\u0900-\u097f][a-zA-Z0-9_\u0900-\u097f]*)|([().,:;={}[\]<>!+\-*/]+)|(\s+)|(.)/gm;
+        let m;
+
+        while ((m = tokenRx.exec(codeStr)) !== null) {
+          const text = m[0];
+          let cls = "tok-ident";
+          let wordTag = "";
+
+          if (m[1]) {
+            cls = "tok-comment";
+          } else if (m[2]) {
+            cls = "tok-string";
+          } else if (m[3]) {
+            const lower = text.toLowerCase();
+            wordTag = text;
+            if (CODE_KEYWORDS.has(lower)) cls = "tok-keyword";
+            else if (WARM_CALLS.has(lower)) cls = "tok-string";
+            else cls = "tok-ident";
+          } else if (m[4]) {
+            cls = "tok-punct";
+          } else if (m[5]) {
+            cls = "tok-space";
+          }
+
+          for (let i = 0; i < text.length; i++) {
+            chars.push({ ch: text[i], cls, wordTag });
+          }
+        }
+        return chars;
+      }
+
+      /**
+       * Builds the complete static DOM scaffold of the code editor sheet for the active snippet.
+       * Line numbers & structure match real VS Code / Neovim editing.
+       */
+      function rebuildCodeSheet() {
+        el.codeLinesContainer.innerHTML = "";
+        state.lineNodes = [];
+        state.formattedLines = [];
+        state.lastRenderSig = "";
+
+        let displayLineNum = 1;
+
+        // Line 1: Top comment (e.g., // note to self)
+        const commentRow = document.createElement("div");
+        commentRow.className = "code-line dof-1";
+        commentRow.innerHTML = `<span class="line-num">${displayLineNum++}</span><span class="code-content tok-comment">${escapeHtml(state.topComment)}</span>`;
+        el.codeLinesContainer.appendChild(commentRow);
+
+        // Line 2: Blank spacer line
+        const spacer1 = document.createElement("div");
+        spacer1.className = "code-line is-spacer dof-2";
+        spacer1.innerHTML = `<span class="line-num">${displayLineNum++}</span>`;
+        el.codeLinesContainer.appendChild(spacer1);
+
+        // Build each lyric line in the snippet
+        state.snippetLines.forEach((lineObj, idx) => {
+          // Insert organic stanza blank lines every 2 lines (like lines 5, 8, 11, 14 in the video)
+          const addSpacer = idx > 0 && idx % 2 === 0;
+          if (addSpacer) {
+            const sp = document.createElement("div");
+            sp.className = "code-line is-spacer dof-2";
+            sp.innerHTML = `<span class="line-num">${displayLineNum++}</span>`;
+            el.codeLinesContainer.appendChild(sp);
+          }
+
+          const codeText = formatLyricAsCode(lineObj.text, idx);
+          const charTokens = tokenizeCodeToChars(codeText);
+
+          // Special poetic micro-details matching the video
+          const hasHang = idx === 0 && /yourHopes/i.test(codeText);
+          const hasSquiggle = idx === 4 || (idx > 2 && idx % 5 === 4);
+
+          state.formattedLines.push({
+            index: idx,
+            time: lineObj.time,
+            code: codeText,
+            chars: charTokens,
+            hasHang,
+            hasSquiggle,
+          });
+
+          const row = document.createElement("div");
+          row.className = "code-line dof-3";
+          row.dataset.lyricIdx = String(idx);
+
+          const numSpan = document.createElement("span");
+          numSpan.className = "line-num";
+          numSpan.textContent = String(displayLineNum++);
+
+          const contentSpan = document.createElement("span");
+          contentSpan.className = "code-content";
+
+          row.appendChild(numSpan);
+          row.appendChild(contentSpan);
+          el.codeLinesContainer.appendChild(row);
+
+          state.lineNodes.push({ row, contentSpan, autocorrEl: null });
+        });
+
+        // Create single reusable glowing block cursor element
+        state.cursorEl = document.createElement("span");
+        state.cursorEl.className = "ide-block-cursor";
+        state.cursorEl.setAttribute("aria-hidden", "true");
+      }
+
+      /**
+       * Renders a formatted code line up to `charCount` characters with grouped syntax spans
+       * and optional squiggle / hanging thread micro-effects.
+       */
+      function renderLineTypedChars(lineIdx, charCount, showCursor) {
+        const meta = state.formattedLines[lineIdx];
+        const node = state.lineNodes[lineIdx];
+        if (!meta || !node) return;
+
+        const clamped = Math.max(0, Math.min(meta.chars.length, charCount));
+        let html = "";
+        let runCls = "";
+        let runExtra = "";
+        let runText = "";
+
+        const flushRun = () => {
+          if (!runText) return;
+          const classes = runExtra ? `${runCls} ${runExtra}` : runCls;
+          html += `<span class="${classes}">${escapeHtml(runText)}</span>`;
+          runText = "";
+        };
+
+        for (let i = 0; i < clamped; i++) {
+          const tk = meta.chars[i];
+          let extra = "";
+          if (meta.hasHang && tk.wordTag === "yourHopes") extra = "has-hang-threads";
+          else if (meta.hasSquiggle && state.popupsEnabled && i > meta.chars.length - 10 && tk.cls === "tok-ident") {
+            extra = "has-squiggle";
+          }
+
+          if (tk.cls !== runCls || extra !== runExtra) {
+            flushRun();
+            runCls = tk.cls;
+            runExtra = extra;
+          }
+          runText += tk.ch;
+        }
+        flushRun();
+
+        node.contentSpan.innerHTML = html;
+
+        // Optional inline autocorrect tooltip on squiggly line
+        if (meta.hasSquiggle && state.popupsEnabled && clamped >= meta.chars.length - 2 && lineIdx === state.activeLineIdx) {
+          if (!node.autocorrEl) {
+            const pill = document.createElement("span");
+            pill.className = "ide-autocorrect-pill";
+            pill.textContent = "autocorrect: lie → truth";
+            node.row.appendChild(pill);
+            node.autocorrEl = pill;
+            if (window.gsap) {
+              gsap.fromTo(pill, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" });
+            }
+          }
+        } else if (node.autocorrEl) {
+          node.autocorrEl.remove();
+          node.autocorrEl = null;
+        }
+
+        if (showCursor && state.cursorEl) {
+          node.contentSpan.appendChild(state.cursorEl);
+          state.cursorEl.classList.toggle("is-typing", state.isPlaying && clamped < meta.chars.length);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         6. SIGNATURE IDE CRASH POPUP ("mind.exe is not responding")
+         ---------------------------------------------------------- */
+      function triggerCrashModalFX() {
+        if (!state.popupsEnabled || state.crashActive || !window.gsap) return;
+        state.crashActive = true;
+        const cleanTitle = (el.titleInput.value || "mind").replace(/\.js$/i, "").split(/\s+/)[0].toLowerCase();
+        el.crashProcessName.textContent = `${cleanTitle === "note_to_self" ? "mind" : cleanTitle}.exe`;
+
+        gsap.killTweensOf(el.ideCrashModal);
+        const tl = gsap.timeline({
+          onComplete: () => {
+            state.crashActive = false;
+          },
+        });
+
+        tl.fromTo(
+          el.ideCrashModal,
+          { opacity: 0, scale: 0.82, xPercent: -50, yPercent: -50, rotation: -6 },
+          { opacity: 1, scale: 1.02, rotation: -3.5, duration: 0.24, ease: "back.out(1.8)" }
+        )
+        .to(el.crashForceBtn, { scale: 0.92, duration: 0.1, delay: 0.55 })
+        .to(el.crashForceBtn, { scale: 1.06, duration: 0.1 })
+        .to(el.ideCrashModal, { opacity: 0, scale: 1.12, xPercent: -85, duration: 0.26, ease: "power3.in" });
+      }
+
+      /* ----------------------------------------------------------
+         7. 3D MACRO CURSOR-TRACKING CAMERA ENGINE (THE HERO FEATURE)
+         ---------------------------------------------------------- */
+      function getCursorLocalPosition() {
+        if (!state.cursorEl || !state.cursorEl.offsetParent) {
+          return { x: 220, y: 120 };
+        }
+        let x = state.cursorEl.offsetLeft + state.cursorEl.offsetWidth * 0.5;
+        let y = state.cursorEl.offsetTop + state.cursorEl.offsetHeight * 0.5;
+        let curr = state.cursorEl.offsetParent;
+
+        while (curr && curr !== el.codeSheet) {
+          x += curr.offsetLeft;
+          y += curr.offsetTop;
+          curr = curr.offsetParent;
+        }
+        return { x, y };
+      }
+
+      function computeCameraTargets(dt) {
+        const stageW = Math.max(280, el.stageFrame.clientWidth || window.innerWidth);
+        const stageH = Math.max(360, el.stageFrame.clientHeight || window.innerHeight);
+        const isNarrow = stageW < 620 || state.isReelMode;
+        const energy = state.camEnergy;
+
+        // Measure exact untransformed local coordinates of the glowing block cursor
+        const curPos = getCursorLocalPosition();
+        const sheetW = Math.max(540, el.codeSheet.scrollWidth || 680);
+        const sheetH = Math.max(340, el.codeSheet.scrollHeight || 460);
+
+        const activeMeta = state.formattedLines[state.activeLineIdx];
+        const lineDone = activeMeta ? state.typedCharCount >= activeMeta.chars.length : false;
+        const isFinalLine = state.activeLineIdx >= state.formattedLines.length - 1 && lineDone;
+
+        // Trigger dramatic overview pull-back on final line completion (matches 00:30!)
+        const inOverview = state.camMode === "overview" || (isFinalLine && state.isPlaying && state.camMode !== "static");
+        document.body.classList.toggle("overview-sharp", inOverview);
+
+        if (state.camMode === "static") {
+          const baseScale = (isNarrow ? 0.78 : 1.15) * state.zoomMult;
+          state.cam.tx = Math.max(stageW * 0.42 / baseScale, curPos.x - 40);
+          state.cam.ty = curPos.y;
+          state.cam.tScale = baseScale;
+          state.cam.trx = 0;
+          state.cam.try = 0;
+          state.cam.trz = 0;
+          return;
+        }
+
+        if (inOverview) {
+          // Dramatic tilted full-editor wide reveal (00:30 look)
+          const fitScale = Math.min((stageW * 0.86) / sheetW, (stageH * 0.78) / sheetH);
+          const wideScale = Math.max(0.54, Math.min(1.18, fitScale)) * state.zoomMult;
+          state.cam.tx = sheetW * 0.46;
+          state.cam.ty = sheetH * 0.46;
+          state.cam.tScale = wideScale;
+          state.cam.trx = 11 * energy;
+          state.cam.try = -8 * energy;
+          state.cam.trz = -4.5 * energy;
+          return;
+        }
+
+        // Macro Follow (Viral) vs Cinematic 3D Pan
+        const isMacro = state.camMode === "macro";
+        let baseZoom = isMacro
+          ? (isNarrow ? 1.38 : 1.98)
+          : (isNarrow ? 0.96 : 1.38);
+
+        // Pull back slightly on completed phrases so full code line breathes cleanly
+        if (lineDone && state.cam.zoomOutHold > 0) {
+          baseZoom *= 0.82;
+        }
+
+        // Subtle bass zoom kick
+        const bassKick = 1 + state.bassEnergy * 0.045 * energy;
+        state.cam.tScale = baseZoom * state.zoomMult * bassKick;
+
+        // Lead cursor slightly ahead horizontally so typed text frames cleanly on the left
+        const leadOffset = isNarrow ? -28 : -48;
+        state.cam.tx = curPos.x + leadOffset;
+        state.cam.ty = curPos.y;
+
+        // Authentic handheld angled macro laptop-screen perspective (tilts dynamically across lines)
+        const lineSwing = ((state.activeLineIdx % 3) - 1) * 3.8;
+        const progressNorm = activeMeta ? (state.typedCharCount / Math.max(1, activeMeta.chars.length)) : 0;
+
+        state.cam.trx = (isMacro ? 9.5 : 6.0) * energy + Math.sin(state.activeLineIdx * 1.4) * 2.5 * energy;
+        state.cam.try = ((isMacro ? -11.5 : -7.5) + progressNorm * 8.5 + lineSwing * 0.6) * energy;
+        state.cam.trz = ((isMacro ? -4.8 : -2.8) + lineSwing * 0.55) * energy;
+
+        if (state.cam.zoomOutHold > 0) {
+          state.cam.zoomOutHold = Math.max(0, state.cam.zoomOutHold - dt);
+        }
+      }
+
+      function update3DCameraRig(ts, dt) {
+        computeCameraTargets(dt);
+
+        const c = state.cam;
+        const stageW = Math.max(280, el.stageFrame.clientWidth || window.innerWidth);
+        const stageH = Math.max(360, el.stageFrame.clientHeight || window.innerHeight);
+
+        // Smooth critically damped exponential tracking (fast whip on line jump, silky follow on typing)
+        const followRate = c.whipTimer > 0 ? 11.5 : 7.8;
+        const k = 1 - Math.exp(-followRate * dt);
+        const kRot = 1 - Math.exp(-4.8 * dt);
+
+        const prevX = c.x;
+        const prevY = c.y;
+
+        c.x += (c.tx - c.x) * k;
+        c.y += (c.ty - c.y) * k;
+        c.scale += (c.tScale - c.scale) * kRot;
+        c.rx += (c.trx - c.rx) * kRot;
+        c.ry += (c.try - c.ry) * kRot;
+        c.rz += (c.trz - c.rz) * kRot;
+
+        if (c.whipTimer > 0) c.whipTimer = Math.max(0, c.whipTimer - dt);
+
+        // Subtle organic handheld camera breathing sway
+        const t = ts * 0.0012;
+        const swayX = Math.sin(t * 1.1) * 4.5 * state.camEnergy;
+        const swayY = Math.cos(t * 0.85) * 3.5 * state.camEnergy;
+        const swayR = Math.sin(t * 0.65) * 0.75 * state.camEnergy;
+
+        // Compute directional camera velocity for authentic After-Effects whip-pan motion blur
+        const safeDt = Math.max(0.008, dt);
+        const velX = Math.abs(c.x - prevX) / safeDt;
+        const velY = Math.abs(c.y - prevY) / safeDt;
+
+        const blurX = Math.min(13, Math.max(0, (velX - 240) / 135) * state.camEnergy);
+        const blurY = Math.min(5, Math.max(0, (velY - 220) / 210) * state.camEnergy);
+
+        if (blurX > 0.28 || blurY > 0.28) {
+          el.camBlurNode.setAttribute("stdDeviation", `${blurX.toFixed(2)} ${blurY.toFixed(2)}`);
+          el.cameraWorld.style.filter = "url(#camWhipBlur)";
+          el.whipRgbFlash.style.opacity = Math.min(0.85, (blurX / 11)).toFixed(2);
+        } else {
+          if (el.cameraWorld.style.filter) {
+            el.cameraWorld.style.filter = "";
+            el.whipRgbFlash.style.opacity = "0";
+          }
+        }
+
+        // Right-to-left CSS 3D transform: pivots zoom & 3D rotation EXACTLY around the live cursor!
+        const anchorX = stageW * 0.52 + swayX;
+        const anchorY = stageH * 0.50 + swayY;
+
+        el.cameraWorld.style.transform =
+          `translate3d(${anchorX.toFixed(1)}px, ${anchorY.toFixed(1)}px, 0px) ` +
+          `rotateZ(${(c.rz + swayR).toFixed(2)}deg) ` +
+          `rotateX(${c.rx.toFixed(2)}deg) ` +
+          `rotateY(${c.ry.toFixed(2)}deg) ` +
+          `scale(${c.scale.toFixed(4)}) ` +
+          `translate3d(${(-c.x).toFixed(1)}px, ${(-c.y).toFixed(1)}px, 0px)`;
+      }
+
+      /* ----------------------------------------------------------
+         8. SYNCED CHARACTER-BY-CHARACTER IDE TYPING ENGINE
+         ---------------------------------------------------------- */
+      function updateCodeTyping(effectiveNow, forceSnap = false) {
+        if (!state.formattedLines.length) return;
+
+        let targetLineIdx = 0;
+        for (let i = 0; i < state.formattedLines.length; i++) {
+          if (state.formattedLines[i].time <= effectiveNow + 0.04) {
+            targetLineIdx = i;
+          } else {
+            break;
+          }
+        }
+
+        const lineMeta = state.formattedLines[targetLineIdx];
+        const nextMeta = state.formattedLines[targetLineIdx + 1] || null;
+        const fullLen = lineMeta.chars.length;
+
+        const isInitialPaused = !state.isPlaying && Math.abs(effectiveNow - state.startTime) < 0.2;
+        let targetChars;
+
+        if (isInitialPaused) {
+          targetChars = Math.min(fullLen, Math.max(6, Math.floor(fullLen * 0.65)));
+        } else {
+          const lineDur = nextMeta
+            ? Math.max(0.85, Math.min(5.6, nextMeta.time - lineMeta.time))
+            : Math.max(1.8, Math.min(4.6, state.endTime - lineMeta.time));
+          const elapsed = Math.max(0, effectiveNow - lineMeta.time + 0.06);
+          const typingWindow = Math.max(0.6, Math.min(lineDur * 0.78, fullLen * 0.072));
+          const prog = Math.max(0, Math.min(1, elapsed / typingWindow));
+          targetChars = Math.max(1, Math.min(fullLen, Math.ceil(prog * fullLen)));
+        }
+
+        const lineChanged = targetLineIdx !== state.activeLineIdx;
+        const sig = `${targetLineIdx}:${targetChars}:${state.isPlaying}`;
+        if (!forceSnap && sig === state.lastRenderSig) return;
+
+        state.lastRenderSig = sig;
+        const prevLineIdx = state.activeLineIdx;
+        state.activeLineIdx = targetLineIdx;
+        state.typedCharCount = targetChars;
+
+        // Trigger whip-pan camera kick when jumping to a new line
+        if (lineChanged && !forceSnap) {
+          state.cam.whipTimer = 0.42;
+          state.cam.zoomOutHold = 0;
+        }
+        if (targetChars >= fullLen && nextMeta) {
+          state.cam.zoomOutHold = 0.55;
+        }
+
+        // Trigger iconic "mind.exe is not responding" popup once midway through the snippet
+        const midIdx = Math.min(state.formattedLines.length - 2, Math.max(3, Math.floor(state.formattedLines.length * 0.5)));
+        if (state.isPlaying && !state.crashTriggered && targetLineIdx === midIdx && targetChars <= 3) {
+          state.crashTriggered = true;
+          triggerCrashModalFX();
+        }
+
+        // Update all lines: past lines full, active line typed up to targetChars, future lines empty
+        for (let i = 0; i < state.formattedLines.length; i++) {
+          const node = state.lineNodes[i];
+          if (!node) continue;
+
+          const dist = Math.abs(i - targetLineIdx);
+          node.row.classList.toggle("is-active-line", i === targetLineIdx);
+          node.row.classList.remove("dof-0", "dof-1", "dof-2", "dof-3");
+          node.row.classList.add(dist === 0 ? "dof-0" : dist === 1 ? "dof-1" : dist === 2 ? "dof-2" : "dof-3");
+
+          if (i < targetLineIdx) {
+            if (forceSnap || i === prevLineIdx || node.contentSpan.textContent.length !== state.formattedLines[i].chars.length) {
+              renderLineTypedChars(i, state.formattedLines[i].chars.length, false);
+            }
+          } else if (i === targetLineIdx) {
+            renderLineTypedChars(i, targetChars, true);
+          } else {
+            if (node.contentSpan.innerHTML !== "") {
+              node.contentSpan.innerHTML = "";
+            }
+            if (node.autocorrEl) {
+              node.autocorrEl.remove();
+              node.autocorrEl = null;
+            }
+          }
+        }
+
+        if (forceSnap) {
+          const pos = getCursorLocalPosition();
+          state.cam.x = pos.x - 36;
+          state.cam.y = pos.y;
+          state.cam.tx = state.cam.x;
+          state.cam.ty = state.cam.y;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         9. WEB AUDIO API: EMOTIONAL ALT-INDIE SYNTH DEMO + ANALYSER
+         ---------------------------------------------------------- */
+      function ensureAudioGraph() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return false;
+
+        if (!state.audioCtx) {
+          state.audioCtx = new AudioCtx();
+          state.masterGain = state.audioCtx.createGain();
+          state.masterGain.gain.value = 0.84;
+
+          state.analyser = state.audioCtx.createAnalyser();
+          state.analyser.fftSize = 128;
+          state.analyser.smoothingTimeConstant = 0.8;
+          state.freqData = new Uint8Array(state.analyser.frequencyBinCount);
+
+          state.masterGain.connect(state.analyser);
+          state.analyser.connect(state.audioCtx.destination);
+        }
+
+        if (state.audioCtx.state === "suspended") {
+          state.audioCtx.resume().catch(() => {});
+        }
+        return true;
+      }
+
+      function connectMediaElementOnce() {
+        if (!ensureAudioGraph() || state.mediaConnected) return;
+        try {
+          const src = state.audioCtx.createMediaElementSource(el.audio);
+          src.connect(state.masterGain);
+          state.mediaConnected = true;
+        } catch (_) {}
+      }
+
+      // Emotional Midnight Indie-Rock / Synthwave Progression (Am9 → Fmaj7 → Cmaj9 → Em7)
+      const INDIE_BARS = [
+        { bass: 55.00, chord: [220.0, 261.63, 329.63, 392.0, 493.88] },
+        { bass: 43.65, chord: [174.61, 220.0, 261.63, 329.63, 392.0] },
+        { bass: 65.41, chord: [130.81, 196.0, 246.94, 293.66, 329.63] },
+        { bass: 41.20, chord: [164.81, 196.0, 246.94, 293.66, 392.0] },
+      ];
+
+      function triggerDemoBar() {
+        if (state.mode !== "demo" || !state.isPlaying || !ensureAudioGraph()) return;
+        const ctx = state.audioCtx;
+        const now = ctx.currentTime;
+        const bar = INDIE_BARS[state.demoStep % INDIE_BARS.length];
+        state.demoStep++;
+
+        const beat = 0.56;
+        const nodes = [];
+
+        // Warm driving bass pulse
+        [0, beat * 2, beat * 3.5].forEach((off, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(bar.bass * (idx === 2 ? 2.0 : 1.0), now + off);
+          g.gain.setValueAtTime(0.0001, now + off);
+          g.gain.exponentialRampToValueAtTime(0.28, now + off + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.001, now + off + 0.85);
+          osc.connect(g);
+          g.connect(state.masterGain);
+          osc.start(now + off);
+          osc.stop(now + off + 0.9);
+          nodes.push(osc);
+        });
+
+        // Dreamy Juno-style chorus synth pad
+        const lpf = ctx.createBiquadFilter();
+        lpf.type = "lowpass";
+        lpf.frequency.setValueAtTime(420, now);
+        lpf.frequency.exponentialRampToValueAtTime(1450, now + 0.9);
+        lpf.frequency.exponentialRampToValueAtTime(480, now + 2.6);
+
+        const padG = ctx.createGain();
+        padG.gain.setValueAtTime(0.0001, now);
+        padG.gain.exponentialRampToValueAtTime(0.085, now + 0.25);
+        padG.gain.setValueAtTime(0.075, now + 2.0);
+        padG.gain.exponentialRampToValueAtTime(0.0001, now + 2.85);
+
+        lpf.connect(padG);
+        padG.connect(state.masterGain);
+
+        bar.chord.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          osc.type = i % 2 === 0 ? "sawtooth" : "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+          osc.detune.setValueAtTime((i - 2) * 6, now);
+          osc.connect(lpf);
+          osc.start(now + i * 0.025);
+          osc.stop(now + 2.95);
+          nodes.push(osc);
+        });
+
+        state.demoNodes.push(...nodes);
+        if (state.demoNodes.length > 56) state.demoNodes = state.demoNodes.slice(-28);
+      }
+
+      function startDemoSynth() {
+        stopDemoSynth();
+        if (state.mode !== "demo") return;
+        triggerDemoBar();
+        state.demoTimer = setInterval(triggerDemoBar, 2650);
+      }
+
+      function stopDemoSynth() {
+        if (state.demoTimer) {
+          clearInterval(state.demoTimer);
+          state.demoTimer = null;
+        }
+        state.demoNodes.forEach((n) => { try { n.stop(); } catch (_) {} });
+        state.demoNodes = [];
+      }
+
+      function updateAudioReactivity() {
+        let bass = 0;
+        const eqVals = [0.16, 0.24, 0.2, 0.14];
+
+        if (state.isPlaying && state.analyser && state.freqData) {
+          state.analyser.getByteFrequencyData(state.freqData);
+          let sum = 0;
+          for (let i = 0; i < 6; i++) sum += state.freqData[i];
+          bass = Math.min(1, sum / (6 * 215));
+          [1, 4, 8, 15].forEach((bin, i) => {
+            eqVals[i] = Math.max(0.18, (state.freqData[bin] || 0) / 255);
+          });
+        } else if (state.isPlaying) {
+          const t = performance.now() * 0.004;
+          bass = 0.22 + Math.sin(t) * 0.14;
+          for (let i = 0; i < 4; i++) {
+            eqVals[i] = 0.24 + Math.abs(Math.sin(t * (1.2 + i * 0.35))) * 0.55;
+          }
+        }
+
+        state.bassEnergy += (bass - state.bassEnergy) * 0.2;
+        el.eqBars.forEach((bar, i) => {
+          bar.style.height = state.isPlaying ? `${Math.round(3 + eqVals[i] * 11)}px` : "3.5px";
+        });
+      }
+
+      /* ----------------------------------------------------------
+         10. PLAYBACK ENGINE, SNIPPET LOOP & MASTER 60FPS LOOP
+         ---------------------------------------------------------- */
+      function getCurrentTime() {
+        return state.mode === "audio" ? el.audio.currentTime : state.currentTime;
+      }
+
+      function seekTo(sec) {
+        const clamped = Math.max(0, Math.min(state.duration, sec));
+        if (state.mode === "audio") {
+          try { el.audio.currentTime = clamped; } catch (_) {}
+        } else {
+          state.currentTime = clamped;
+        }
+        if (clamped <= state.startTime + 0.5) {
+          state.crashTriggered = false;
+        }
+        updateProgressUI(clamped);
+        updateCodeTyping(clamped + state.syncOffset, true);
+      }
+
+      function updateProgressUI(nowSec) {
+        const clipLen = Math.max(0.1, state.endTime - state.startTime);
+        const rel = Math.max(0, Math.min(clipLen, nowSec - state.startTime));
+        const pct = (rel / clipLen) * 100;
+        el.progressFill.style.width = `${pct}%`;
+        el.progressKnob.style.left = `${pct}%`;
+        el.timeElapsed.textContent = formatTime(rel);
+      }
+
+      function setPlayUI(playing) {
+        state.isPlaying = playing;
+        el.playIcon.classList.toggle("hidden", playing);
+        el.pauseIcon.classList.toggle("hidden", !playing);
+        if (window.anime) {
+          anime({
+            targets: el.playPauseBtn,
+            scale: [0.88, 1.07, 1],
+            duration: 340,
+            easing: "easeOutElastic(1, 0.7)",
+          });
+        }
+        resetIdleDockTimer();
+      }
+
+      function startPlayback() {
+        ensureAudioGraph();
+        const now = getCurrentTime();
+        if (now < state.startTime || now >= state.endTime - 0.08) {
+          seekTo(state.startTime);
+        }
+
+        if (state.mode === "audio") {
+          connectMediaElementOnce();
+          el.audio.play().then(() => {
+            setPlayUI(true);
+            state.lastFrameTs = performance.now();
+            updateCodeTyping(getCurrentTime() + state.syncOffset, false);
+          }).catch(() => {
+            showToast("Tap Play again to start audio", "error");
+            setPlayUI(false);
+          });
+        } else {
+          setPlayUI(true);
+          startDemoSynth();
+          state.lastFrameTs = performance.now();
+          updateCodeTyping(getCurrentTime() + state.syncOffset, false);
+        }
+      }
+
+      function pausePlayback() {
+        if (state.mode === "audio") el.audio.pause();
+        else stopDemoSynth();
+        setPlayUI(false);
+      }
+
+      function togglePlay() {
+        if (state.isPlaying) pausePlayback();
+        else startPlayback();
+      }
+
+      function computeSnippetLines() {
+        const tol = 0.25;
+        const filtered = state.lines.filter(
+          (l) => l.time >= state.startTime - tol && l.time <= state.endTime + tol
+        );
+        state.snippetLines = filtered.length ? filtered : state.lines.slice();
+        rebuildCodeSheet();
+      }
+
+      function setSnippetBounds(start, end) {
+        const maxDur = Math.max(2, state.duration);
+        const s = Math.max(0, Math.min(start, maxDur - 1));
+        const e = Math.max(s + 1, Math.min(end, maxDur));
+
+        state.startTime = Number(s.toFixed(2));
+        state.endTime = Number(e.toFixed(2));
+        state.crashTriggered = false;
+
+        el.startTimeInput.value = formatTime(state.startTime);
+        el.endTimeInput.value = formatTime(state.endTime);
+
+        const clipLen = Math.max(0, state.endTime - state.startTime);
+        el.snippetWindowBadge.textContent = `${formatTime(state.startTime)} → ${formatTime(state.endTime)} (${Math.round(clipLen)}s)`;
+        el.timeTotal.textContent = formatTime(clipLen);
+
+        computeSnippetLines();
+        renderLyricPicker();
+
+        const now = getCurrentTime();
+        updateProgressUI(now);
+        updateCodeTyping(now + state.syncOffset, true);
+      }
+
+      function renderLyricPicker() {
+        el.lyricsCountBadge.textContent = `${state.lines.length} lines`;
+        el.lyricPickerList.innerHTML = "";
+
+        if (!state.lines.length) {
+          el.lyricPickerList.innerHTML =
+            '<p class="p-4 text-xs text-white/45 text-center">No synced lyrics loaded yet.</p>';
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        state.lines.forEach((line, idx) => {
+          const inRange = line.time >= state.startTime - 0.25 && line.time <= state.endTime + 0.25;
+          const row = document.createElement("div");
+          row.className = `flex items-center justify-between gap-2 px-3 py-2.5 text-xs transition ${
+            inRange
+              ? "bg-rose-500/18 text-white border-l-2 border-rose-400"
+              : "text-white/55 hover:bg-white/[0.04]"
+          }`;
+
+          const left = document.createElement("button");
+          left.type = "button";
+          left.className = "flex-1 min-w-0 text-left flex items-center gap-2.5 truncate";
+          left.innerHTML = `
+            <span class="font-mono text-[10px] opacity-60 shrink-0">${formatTime(line.time)}</span>
+            <span class="truncate font-mono text-[11px]">${escapeHtml(line.text)}</span>
+          `;
+          left.addEventListener("click", () => {
+            const target = Math.max(0, Math.min(state.duration - 0.2, line.time - state.syncOffset));
+            if (target < state.startTime || target >= state.endTime) {
+              setSnippetBounds(target, Math.min(state.duration, target + 24));
+            }
+            seekTo(target);
+            if (!state.isPlaying) startPlayback();
+          });
+
+          const actions = document.createElement("div");
+          actions.className = "flex items-center gap-1 shrink-0";
+
+          const btnStart = document.createElement("button");
+          btnStart.type = "button";
+          btnStart.textContent = "Start";
+          btnStart.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnStart.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newStart = Math.max(0, line.time - state.syncOffset);
+            const newEnd = state.endTime <= newStart + 1.5
+              ? Math.min(state.duration, newStart + 24)
+              : state.endTime;
+            setSnippetBounds(newStart, newEnd);
+            seekTo(newStart);
+            showToast(`Snippet starts at ${formatTime(newStart)}`, "success");
+          });
+
+          const btnEnd = document.createElement("button");
+          btnEnd.type = "button";
+          btnEnd.textContent = "End";
+          btnEnd.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnEnd.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const next = state.lines[idx + 1];
+            const naturalEnd = next ? next.time - 0.05 : line.time + 3.6;
+            const newEnd = Math.min(state.duration, Math.max(1.5, naturalEnd - state.syncOffset));
+            const newStart = state.startTime >= newEnd - 1 ? Math.max(0, newEnd - 18) : state.startTime;
+            setSnippetBounds(newStart, newEnd);
+            showToast(`Snippet ends at ${formatTime(newEnd)}`, "success");
+          });
+
+          actions.appendChild(btnStart);
+          actions.appendChild(btnEnd);
+          row.appendChild(left);
+          row.appendChild(actions);
+          frag.appendChild(row);
+        });
+
+        el.lyricPickerList.appendChild(frag);
+      }
+
+      function startMasterLoop() {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+
+        const tick = (ts) => {
+          const dt = Math.min(0.12, (ts - (state.lastFrameTs || ts)) / 1000);
+          state.lastFrameTs = ts;
+
+          if (state.isPlaying) {
+            let now;
+            if (state.mode === "audio") {
+              now = el.audio.currentTime;
+            } else {
+              state.currentTime += dt;
+              now = state.currentTime;
+            }
+
+            if (now >= state.endTime) {
+              if (state.isLooping) {
+                seekTo(state.startTime);
+                now = state.startTime;
+                if (state.mode === "audio" && el.audio.paused) {
+                  el.audio.play().catch(() => {});
+                }
+              } else {
+                pausePlayback();
+                seekTo(state.startTime);
+              }
+            }
+
+            updateProgressUI(now);
+            updateCodeTyping(now + state.syncOffset, false);
+          }
+
+          updateAudioReactivity();
+          update3DCameraRig(ts, dt);
+          state.rafId = requestAnimationFrame(tick);
+        };
+
+        state.lastFrameTs = performance.now();
+        state.rafId = requestAnimationFrame(tick);
+      }
+
+      /* ----------------------------------------------------------
+         11. LOCAL MP3 UPLOAD & LRCLIB.NET INTEGRATION
+         ---------------------------------------------------------- */
+      function handleAudioFile(file) {
+        if (!file) return;
+        const ok = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|aac|flac)$/i.test(file.name);
+        if (!ok) {
+          showToast("Please upload a valid MP3, WAV, M4A, or OGG file", "error");
+          return;
+        }
+
+        pausePlayback();
+        stopDemoSynth();
+
+        if (state.audioObjectUrl) URL.revokeObjectURL(state.audioObjectUrl);
+        state.audioObjectUrl = URL.createObjectURL(file);
+        state.mode = "audio";
+        el.audio.src = state.audioObjectUrl;
+        el.audio.load();
+
+        el.audioDropLabel.textContent = file.name;
+        el.audioFileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · Loaded locally`;
+        el.audioStatusBadge.textContent = "Local Audio Active";
+        el.audioStatusBadge.className = "text-[11px] font-semibold text-emerald-400";
+
+        if (el.titleInput.value === "note_to_self.js") {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+          const jsFile = slugifyFilename(cleanName);
+          el.titleInput.value = cleanName;
+          el.hudTitle.textContent = jsFile;
+          el.filenameInput.value = jsFile;
+          el.ideTabFilename.textContent = jsFile;
+          el.artistInput.value = "Local Audio";
+          el.hudArtist.textContent = "Local Audio";
+        }
+
+        showToast(`Loaded "${file.name}"`, "success");
+      }
+
+      el.audio.addEventListener("loadedmetadata", () => {
+        if (!Number.isFinite(el.audio.duration) || el.audio.duration <= 0) return;
+        state.duration = el.audio.duration;
+        if (state.endTime > state.duration || state.endTime === 29.8) {
+          setSnippetBounds(0, Math.min(state.duration, 28));
+        } else {
+          setSnippetBounds(state.startTime, state.endTime);
+        }
+        seekTo(state.startTime);
+      });
+
+      el.audio.addEventListener("ended", () => {
+        if (state.isLooping) {
+          seekTo(state.startTime);
+          el.audio.play().catch(() => {});
+        } else {
+          pausePlayback();
+          seekTo(state.startTime);
+        }
+      });
+
+      function applyTrackData(data, sourceLabel = "LRCLIB") {
+        if (data.trackName) {
+          const jsFile = slugifyFilename(data.trackName);
+          el.titleInput.value = data.trackName;
+          el.hudTitle.textContent = jsFile;
+          el.filenameInput.value = jsFile;
+          el.ideTabFilename.textContent = jsFile;
+          el.commentInput.value = `// ${data.trackName.toLowerCase()}`;
+          state.topComment = el.commentInput.value;
+        }
+        if (data.artistName) {
+          el.artistInput.value = data.artistName;
+          el.hudArtist.textContent = data.artistName;
+        }
+
+        if (data.syncedLyrics) {
+          const parsed = parseLRC(data.syncedLyrics);
+          if (!parsed.length) {
+            showToast("Fetched track had empty synced timestamps", "error");
+            return false;
+          }
+
+          state.lines = parsed;
+          el.manualLrcInput.value = data.syncedLyrics;
+
+          if (state.mode === "demo") {
+            const lastT = parsed[parsed.length - 1].time;
+            state.duration = Math.max(data.duration || 0, lastT + 4.5, 24);
+            const firstT = parsed[0].time;
+            setSnippetBounds(firstT, Math.min(state.duration, firstT + 26));
+          } else {
+            const inside = parsed.some((l) => l.time >= state.startTime && l.time <= state.endTime);
+            if (!inside && parsed[0].time < state.duration - 2) {
+              setSnippetBounds(parsed[0].time, Math.min(state.duration, parsed[0].time + 26));
+            } else {
+              computeSnippetLines();
+              renderLyricPicker();
+            }
+          }
+
+          seekTo(state.startTime);
+          el.lrclibStatusText.innerHTML = `<span class="text-emerald-400 font-semibold">Loaded ${parsed.length} synced lines from ${escapeHtml(sourceLabel)}!</span>`;
+          showToast(`Loaded ${parsed.length} synced lines from ${sourceLabel}`, "success");
+          return true;
+        } else if (data.plainLyrics) {
+          el.manualLrcInput.value = data.plainLyrics;
+          switchLrcTab("manual");
+          el.lrclibStatusText.innerHTML = `<span class="text-amber-400">Plain lyrics only (no timestamps). Try Search for a synced entry.</span>`;
+          showToast("No synced timestamps on this entry", "error");
+          return false;
+        }
+
+        el.lrclibStatusText.innerHTML = `<span class="text-rose-400">No lyrics found on this track.</span>`;
+        showToast("No lyrics available", "error");
+        return false;
+      }
+
+      async function fetchLrclibByUrl() {
+        const raw = el.lrclibUrlInput.value.trim();
+        if (!raw) {
+          showToast("Paste an lrclib.net/tracks/{id} link or Track ID", "error");
+          return;
+        }
+        const idMatch = raw.match(/(?:tracks|get)\/(\d+)/i) || raw.match(/^(\d+)$/) || raw.match(/(\d{4,})/);
+        if (!idMatch) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">Invalid LRCLIB link. Example: https://lrclib.net/tracks/28185115</span>`;
+          showToast("Invalid LRCLIB link or ID", "error");
+          return;
+        }
+
+        const trackId = idMatch[1];
+        el.fetchLrclibBtn.disabled = true;
+        el.fetchBtnLabel.textContent = "...";
+        el.fetchSpinner.classList.remove("hidden");
+        el.lrclibStatusText.textContent = `Fetching track #${trackId} from lrclib.net...`;
+
+        try {
+          const resp = await fetch(`https://lrclib.net/api/get/${trackId}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(resp.status === 404 ? `Track #${trackId} not found.` : `HTTP ${resp.status}`);
+          const data = await resp.json();
+          applyTrackData(data, `LRCLIB #${trackId}`);
+        } catch (err) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">${escapeHtml(err.message || "Network error")}</span>`;
+          showToast(err.message || "Failed to fetch from LRCLIB", "error");
+        } finally {
+          el.fetchLrclibBtn.disabled = false;
+          el.fetchBtnLabel.textContent = "Fetch";
+          el.fetchSpinner.classList.add("hidden");
+        }
+      }
+
+      async function searchLrclib() {
+        const q = el.lrclibSearchInput.value.trim();
+        if (!q) {
+          showToast("Enter a song title or artist", "error");
+          return;
+        }
+
+        el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/55 text-center py-4">Searching LRCLIB for "${escapeHtml(q)}"...</p>`;
+        try {
+          const resp = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(`Search failed (${resp.status})`);
+          const list = await resp.json();
+          if (!Array.isArray(list) || !list.length) {
+            el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/45 text-center py-4">No matching tracks found.</p>`;
+            return;
+          }
+
+          list.sort((a, b) => (b.syncedLyrics ? 1 : 0) - (a.syncedLyrics ? 1 : 0));
+          el.searchResultsBox.innerHTML = "";
+          const frag = document.createDocumentFragment();
+
+          list.slice(0, 16).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const hasSync = Boolean(item.syncedLyrics);
+            btn.className = "w-full text-left p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] transition flex items-center justify-between gap-2";
+            btn.innerHTML = `
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${escapeHtml(item.trackName || "Untitled")}</p>
+                <p class="text-[11px] text-white/50 truncate">${escapeHtml(item.artistName || "Unknown")} · ${formatTime(item.duration || 0)}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                hasSync ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/25" : "bg-white/10 text-white/45"
+              }">${hasSync ? "Synced" : "Plain"}</span>
+            `;
+            btn.addEventListener("click", () => {
+              el.lrclibUrlInput.value = `https://lrclib.net/tracks/${item.id}`;
+              applyTrackData(item, `LRCLIB #${item.id}`);
+            });
+            frag.appendChild(btn);
+          });
+
+          el.searchResultsBox.appendChild(frag);
+        } catch (err) {
+          el.searchResultsBox.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-4">${escapeHtml(err.message)}</p>`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         12. UI SETTERS (CAMERA, THEME, CODE STYLE, DRAWER, CLEAN)
+         ---------------------------------------------------------- */
+      function setCamMode(modeId, announce = false) {
+        state.camMode = modeId;
+        const meta = CAM_MODES.find((m) => m.id === modeId) || CAM_MODES[0];
+        el.dockCamLabel.textContent = meta.label;
+        el.activeCamBadge.textContent = meta.badge;
+
+        el.camBtns.forEach((btn) => {
+          const active = btn.dataset.camPick === modeId;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/45", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+
+        state.cam.whipTimer = 0.35;
+        if (announce) showToast(`Camera: ${meta.badge}`);
+      }
+
+      function setIdeTheme(themeId, announce = false) {
+        state.theme = themeId;
+        document.body.setAttribute("data-ide-theme", themeId);
+        const meta = IDE_THEMES.find((t) => t.id === themeId) || IDE_THEMES[0];
+        el.quickThemeDot.className = `w-3 h-3 rounded-full ${meta.dot} shadow-[0_0_10px_currentColor] shrink-0`;
+        el.quickThemeName.textContent = meta.name;
+        el.activeThemeLabel.textContent = meta.name;
+
+        el.themeBtns.forEach((btn) => {
+          const active = btn.dataset.themePick === themeId;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/45", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+
+        if (announce) showToast(`IDE Theme: ${meta.name}`);
+      }
+
+      function setCodeFormat(fmt) {
+        state.codeFormat = fmt;
+        el.codeFmtBtns.forEach((btn) => {
+          const active = btn.dataset.codeFmt === fmt;
+          btn.className = `codefmt-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+        rebuildCodeSheet();
+        updateCodeTyping(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function switchLrcTab(tab) {
+        el.lrcTabUrl.classList.toggle("hidden", tab !== "url");
+        el.lrcTabSearch.classList.toggle("hidden", tab !== "search");
+        el.lrcTabManual.classList.toggle("hidden", tab !== "manual");
+        el.lrcTabBtns.forEach((btn) => {
+          const active = btn.dataset.lrcTab === tab;
+          btn.className = `lrc-tab-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setSyncOffset(val) {
+        const clamped = Math.max(-5, Math.min(5, Math.round(val * 20) / 20));
+        state.syncOffset = clamped;
+        el.offsetSlider.value = String(clamped);
+        el.offsetLabel.textContent = `${clamped > 0 ? "+" : ""}${clamped.toFixed(2)}s`;
+        updateCodeTyping(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !state.isDrawerOpen;
+        state.isDrawerOpen = open;
+        el.drawerBackdrop.style.pointerEvents = open ? "auto" : "none";
+
+        if (window.gsap) {
+          gsap.to(el.studioDrawer, {
+            x: open ? "0%" : "105%",
+            duration: 0.48,
+            ease: open ? "power3.out" : "power3.inOut",
+          });
+          gsap.to(el.drawerBackdrop, {
+            opacity: open ? 1 : 0,
+            duration: 0.34,
+            ease: "power2.out",
+          });
+        } else {
+          el.studioDrawer.style.transform = open ? "translateX(0)" : "translateX(105%)";
+          el.drawerBackdrop.style.opacity = open ? "1" : "0";
+        }
+
+        if (open) el.bottomDock.classList.remove("is-idle-dim");
+        else resetIdleDockTimer();
+      }
+
+      function toggleCleanMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isCleanMode;
+        state.isCleanMode = next;
+        if (next && state.isDrawerOpen) toggleDrawer(false);
+        document.body.classList.toggle("clean-mode", next);
+
+        if (window.gsap) {
+          gsap.to(el.topHud, {
+            opacity: next ? 0 : 1,
+            y: next ? -22 : 0,
+            duration: 0.38,
+            ease: "power3.out",
+          });
+          gsap.to(el.bottomDock, {
+            opacity: next ? 0 : 1,
+            y: next ? 28 : 0,
+            duration: 0.4,
+            ease: "power3.out",
+            onStart: () => { if (!next) el.bottomDock.style.pointerEvents = "auto"; },
+            onComplete: () => { if (next) el.bottomDock.style.pointerEvents = "none"; },
+          });
+        } else {
+          el.topHud.style.opacity = next ? "0" : "1";
+          el.bottomDock.style.opacity = next ? "0" : "1";
+        }
+
+        if (next) showToast("Clean Record Mode — Tap stage or press H / Esc to restore");
+      }
+
+      function toggleReelMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isReelMode;
+        state.isReelMode = next;
+        document.body.classList.toggle("reel-mode", next);
+        el.dockReelLabel.textContent = next ? "9:16" : "16:9";
+        showToast(next ? "9:16 Vertical Coding Reel Frame" : "Full 16:9 Monitor Stage");
+      }
+
+      function resetIdleDockTimer() {
+        clearTimeout(state.idleTimer);
+        el.bottomDock.classList.remove("is-idle-dim");
+        if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+          state.idleTimer = setTimeout(() => {
+            if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+              el.bottomDock.classList.add("is-idle-dim");
+            }
+          }, 3400);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         13. EVENT LISTENERS & KEYBOARD SHORTCUTS
+         ---------------------------------------------------------- */
+      el.playPauseBtn.addEventListener("click", togglePlay);
+      el.restartBtn.addEventListener("click", () => {
+        seekTo(state.startTime);
+        if (!state.isPlaying) startPlayback();
+      });
+
+      el.loopBtn.addEventListener("click", () => {
+        state.isLooping = !state.isLooping;
+        el.loopBtn.classList.toggle("text-rose-400", state.isLooping);
+        el.loopBtn.classList.toggle("bg-white/12", state.isLooping);
+        el.loopBtn.classList.toggle("text-white/40", !state.isLooping);
+        showToast(state.isLooping ? "Snippet Loop ON" : "Snippet Loop OFF");
+      });
+
+      function scrubProgress(clientX) {
+        const rect = el.progressTrack.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        seekTo(state.startTime + ratio * (state.endTime - state.startTime));
+      }
+      el.progressTrack.addEventListener("click", (e) => scrubProgress(e.clientX));
+      el.progressTrack.addEventListener("touchstart", (e) => {
+        if (e.touches[0]) scrubProgress(e.touches[0].clientX);
+      }, { passive: true });
+
+      function cycleCamMode() {
+        const idx = CAM_MODES.findIndex((m) => m.id === state.camMode);
+        const next = CAM_MODES[(idx + 1) % CAM_MODES.length];
+        setCamMode(next.id, true);
+      }
+
+      function cycleIdeTheme() {
+        const idx = IDE_THEMES.findIndex((t) => t.id === state.theme);
+        const next = IDE_THEMES[(idx + 1) % IDE_THEMES.length];
+        setIdeTheme(next.id, true);
+      }
+
+      el.dockCamCycleBtn.addEventListener("click", cycleCamMode);
+      el.quickThemeBtn.addEventListener("click", cycleIdeTheme);
+      el.dockReelBtn.addEventListener("click", () => toggleReelMode());
+
+      el.openStudioBtn.addEventListener("click", () => toggleDrawer(true));
+      el.trackPillBtn.addEventListener("click", () => toggleDrawer(true));
+      el.closeStudioBtn.addEventListener("click", () => toggleDrawer(false));
+      el.drawerBackdrop.addEventListener("click", () => toggleDrawer(false));
+      el.cleanModeBtn.addEventListener("click", () => toggleCleanMode(true));
+      el.cleanExitBtn.addEventListener("click", () => toggleCleanMode(false));
+
+      el.stageFrame.addEventListener("click", () => {
+        if (state.isCleanMode) toggleCleanMode(false);
+      });
+
+      ["pointermove", "touchstart", "keydown"].forEach((evt) => {
+        window.addEventListener(evt, resetIdleDockTimer, { passive: true });
+      });
+
+      // Studio Section 1 Controls
+      el.camBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setCamMode(btn.dataset.camPick, false));
+      });
+      el.codeFmtBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setCodeFormat(btn.dataset.codeFmt));
+      });
+
+      el.filenameInput.addEventListener("input", () => {
+        const val = el.filenameInput.value.trim() || "note_to_self.js";
+        state.filename = val;
+        el.ideTabFilename.textContent = val;
+        el.hudTitle.textContent = val;
+      });
+
+      el.commentInput.addEventListener("input", () => {
+        state.topComment = el.commentInput.value;
+        rebuildCodeSheet();
+        updateCodeTyping(getCurrentTime() + state.syncOffset, true);
+      });
+
+      el.zoomSlider.addEventListener("input", () => {
+        state.zoomMult = parseFloat(el.zoomSlider.value);
+        el.zoomValLabel.textContent = `${Math.round(state.zoomMult * 100)}%`;
+      });
+
+      el.energySlider.addEventListener("input", () => {
+        const pct = parseInt(el.energySlider.value, 10);
+        state.camEnergy = pct / 100;
+        el.energyValLabel.textContent = `${pct}%`;
+      });
+
+      el.togglePopupsBtn.addEventListener("click", () => {
+        state.popupsEnabled = !state.popupsEnabled;
+        el.togglePopupsBtn.textContent = state.popupsEnabled ? "IDE Popups: ON" : "IDE Popups: OFF";
+        el.togglePopupsBtn.classList.toggle("bg-white/14", state.popupsEnabled);
+        el.togglePopupsBtn.classList.toggle("text-white/55", !state.popupsEnabled);
+        updateCodeTyping(getCurrentTime() + state.syncOffset, true);
+      });
+
+      el.toggleDofBtn.addEventListener("click", () => {
+        state.dofEnabled = !state.dofEnabled;
+        document.documentElement.style.setProperty("--dof-scale", state.dofEnabled ? "1" : "0");
+        el.toggleDofBtn.textContent = state.dofEnabled ? "Macro DOF: ON" : "Macro DOF: OFF";
+        el.toggleDofBtn.classList.toggle("bg-white/14", state.dofEnabled);
+        el.toggleDofBtn.classList.toggle("text-white/55", !state.dofEnabled);
+      });
+
+      el.toggleGrainBtn.addEventListener("click", () => {
+        state.grainEnabled = !state.grainEnabled;
+        document.body.classList.toggle("grain-off", !state.grainEnabled);
+        el.toggleGrainBtn.textContent = state.grainEnabled ? "35mm Grain: ON" : "35mm Grain: OFF";
+        el.toggleGrainBtn.classList.toggle("bg-white/14", state.grainEnabled);
+        el.toggleGrainBtn.classList.toggle("text-white/55", !state.grainEnabled);
+      });
+
+      // Theme buttons
+      el.themeBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setIdeTheme(btn.dataset.themePick, false));
+      });
+
+      // Audio Upload + Drag & Drop
+      el.audioFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleAudioFile(e.target.files[0]);
+      });
+      ["dragenter", "dragover"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.add("border-rose-400", "bg-white/[0.08]");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.remove("border-rose-400", "bg-white/[0.08]");
+        });
+      });
+      el.audioDropZone.addEventListener("drop", (e) => {
+        if (e.dataTransfer?.files?.[0]) handleAudioFile(e.dataTransfer.files[0]);
+      });
+
+      el.titleInput.addEventListener("input", () => {
+        el.hudTitle.textContent = el.titleInput.value.trim() || "note_to_self.js";
+      });
+      el.artistInput.addEventListener("input", () => {
+        el.hudArtist.textContent = el.artistInput.value.trim() || "Unknown Artist";
+      });
+
+      // LRCLIB Controls
+      el.lrcTabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => switchLrcTab(btn.dataset.lrcTab));
+      });
+      el.fetchLrclibBtn.addEventListener("click", fetchLrclibByUrl);
+      el.lrclibUrlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") fetchLrclibByUrl(); });
+      el.searchLrclibBtn.addEventListener("click", searchLrclib);
+      el.lrclibSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLrclib(); });
+      el.applyManualLrcBtn.addEventListener("click", () => {
+        const parsed = parseLRC(el.manualLrcInput.value);
+        if (!parsed.length) {
+          showToast("Include [mm:ss.xx] timestamps before lyric lines", "error");
+          return;
+        }
+        state.lines = parsed;
+        computeSnippetLines();
+        renderLyricPicker();
+        updateCodeTyping(getCurrentTime() + state.syncOffset, true);
+        showToast(`Applied ${parsed.length} synced lines`, "success");
+      });
+
+      // Snippet Trimmer Inputs
+      el.startTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.startTimeInput.value);
+        if (p === null) {
+          el.startTimeInput.value = formatTime(state.startTime);
+          showToast("Use M:SS format (e.g. 0:45)", "error");
+          return;
+        }
+        setSnippetBounds(p, Math.max(p + 1, state.endTime));
+        seekTo(state.startTime);
+      });
+      el.endTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.endTimeInput.value);
+        if (p === null) {
+          el.endTimeInput.value = formatTime(state.endTime);
+          showToast("Use M:SS format (e.g. 1:15)", "error");
+          return;
+        }
+        setSnippetBounds(Math.min(state.startTime, p - 1), p);
+      });
+      el.useNowStartBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(now, Math.max(now + 2, state.endTime));
+        showToast(`Start set to ${formatTime(now)}`);
+      });
+      el.useNowEndBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(Math.min(state.startTime, Math.max(0, now - 2)), Math.max(1.5, now));
+        showToast(`End set to ${formatTime(now)}`);
+      });
+      el.resetFullSongBtn.addEventListener("click", () => {
+        setSnippetBounds(0, state.duration);
+        showToast("Snippet reset to full song");
+      });
+
+      el.offsetSlider.addEventListener("input", () => setSyncOffset(parseFloat(el.offsetSlider.value)));
+      el.offsetMinusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset - 0.1));
+      el.offsetPlusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset + 0.1));
+      el.offsetResetBtn.addEventListener("click", () => setSyncOffset(0));
+
+      // Global Keyboard Shortcuts
+      window.addEventListener("keydown", (e) => {
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "TEXTAREA";
+
+        if (e.key === "Escape") {
+          if (state.isCleanMode) toggleCleanMode(false);
+          else if (state.isDrawerOpen) toggleDrawer(false);
+          return;
+        }
+        if (typing) return;
+
+        const key = e.key.toLowerCase();
+        if (e.code === "Space") {
+          e.preventDefault();
+          togglePlay();
+        } else if (key === "v") {
+          cycleCamMode();
+        } else if (key === "c") {
+          cycleIdeTheme();
+        } else if (key === "h") {
+          toggleCleanMode();
+        } else if (key === "s") {
+          toggleDrawer();
+        } else if (key === "r") {
+          seekTo(state.startTime);
+          if (!state.isPlaying) startPlayback();
+        }
+      });
+
+      /* ----------------------------------------------------------
+         14. BOOTSTRAP APPLICATION
+         ---------------------------------------------------------- */
+      function init() {
+        state.lines = parseLRC(DEMO_LRC);
+        el.manualLrcInput.value = DEMO_LRC;
+
+        setIdeTheme("crimson", false);
+        setCamMode("macro", false);
+        setSnippetBounds(0, 29.8);
+        startMasterLoop();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

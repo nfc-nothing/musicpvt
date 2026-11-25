@@ -1,0 +1,3471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Halftone Collage Lyric Studio — Scrapbook Zine &amp; Kinetic Motion Engine</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Premium Animation Libraries: GSAP 3 & Anime.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+  <!-- Editorial Zine, Italic Script, Condensed Display & Typewriter Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=Space+Mono:ital,wght@0,400;0,700;1,700&family=Syne:wght@700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       1. HALFTONE ZINE & SCRAPBOOK DESIGN TOKENS
+       ============================================================ */
+    :root {
+      --paper: #f3ede0;
+      --paper-alt: #e6dcc8;
+      --ink: #121010;
+      --ink-soft: rgba(18, 16, 16, 0.56);
+      --accent: #e63946;
+      --accent-2: #d97706;
+      --sticker-rim: #fbf9f4;
+      --sticker-shadow: rgba(12, 10, 8, 0.28);
+      --dot-color: rgba(18, 16, 16, 0.08);
+      --grid-color: rgba(18, 16, 16, 0.055);
+
+      --user-text-scale: 1;
+      --asset-scale: 1;
+      --hud-accent: #e63946;
+    }
+
+    /* ============================================================
+       2. GLOBAL BASE & RESPONSIVE STAGE DESK (16:9 & 9:16 REEL)
+       ============================================================ */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #080707;
+      color: #ffffff;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+
+    .studio-desk {
+      position: relative;
+      width: 100vw;
+      max-width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 48%, #1a1615 0%, #070606 100%);
+      overflow: hidden;
+    }
+
+    .stage-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--paper);
+      color: var(--ink);
+      transition:
+        background-color 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+        color 0.45s ease,
+        width 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.58s ease;
+    }
+
+    body.reel-mode .stage-frame {
+      height: min(86dvh, 800px);
+      width: min(92vw, calc(min(86dvh, 800px) * 0.5625));
+      border-radius: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 38px 110px rgba(0, 0, 0, 0.88);
+    }
+
+    /* ============================================================
+       3. TACTILE NEWSPRINT TEXTURE, HALFTONE DOTS & PAPER FOLDS
+       ============================================================ */
+    .paper-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 88% 82% at 50% 48%, transparent 38%, rgba(0, 0, 0, 0.16) 100%),
+        radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.18), transparent 45%),
+        radial-gradient(circle at 82% 80%, rgba(0, 0, 0, 0.08), transparent 48%);
+    }
+
+    .halftone-grid-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background-image:
+        radial-gradient(var(--dot-color) 1.15px, transparent 1.15px),
+        linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+      background-size: 7px 7px, 72px 72px, 72px 72px;
+      opacity: 0.9;
+      transition: opacity 0.35s ease;
+    }
+
+    body.texture-off .halftone-grid-overlay {
+      opacity: 0;
+    }
+
+    .newsprint-watermark {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      display: flex;
+      justify-content: space-between;
+      padding: clamp(20px, 4vw, 48px);
+      font-family: "Space Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink);
+      opacity: 0.22;
+    }
+
+    .paper-grain {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 22;
+      pointer-events: none;
+      opacity: 0.075;
+      mix-blend-mode: multiply;
+      transition: opacity 0.35s ease;
+    }
+    body.dark-paper .paper-grain {
+      mix-blend-mode: screen;
+      opacity: 0.06;
+    }
+    body.texture-off .paper-grain {
+      opacity: 0;
+    }
+
+    .cut-flash {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 0;
+      background: var(--accent);
+      mix-blend-mode: multiply;
+    }
+    body.dark-paper .cut-flash {
+      mix-blend-mode: screen;
+    }
+
+    /* ============================================================
+       4. 3D COLLAGE CAMERA WORLD & HALFTONE CUTOUT ASSET LAYER
+       ============================================================ */
+    .camera-world {
+      position: relative;
+      z-index: 8;
+      width: 100%;
+      height: 100%;
+      perspective: 1150px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .camera-rig {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      will-change: transform, filter;
+    }
+
+    .collage-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 6;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .collage-item {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform-origin: center center;
+      will-change: transform, opacity;
+      pointer-events: none;
+    }
+
+    .sticker-visual {
+      display: block;
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 14px 22px var(--sticker-shadow));
+      transform-origin: center center;
+      will-change: transform;
+    }
+
+    /* User's Real PNG Assets (cleanly preserves their own halftone art & cutout rim) */
+    .custom-png-sticker {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transform-origin: center center;
+      will-change: transform;
+      filter: drop-shadow(0 14px 22px var(--sticker-shadow));
+    }
+
+    .washi-tape {
+      position: absolute;
+      height: 20px;
+      width: 82px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.25));
+      border-left: 1px dashed rgba(0, 0, 0, 0.14);
+      border-right: 1px dashed rgba(0, 0, 0, 0.14);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      opacity: 0.72;
+      pointer-events: none;
+      backdrop-filter: blur(2px);
+      z-index: 2;
+    }
+
+    .spin-vinyl {
+      animation: spinSlow 7.5s linear infinite;
+      animation-play-state: paused;
+    }
+    body.is-playing .spin-vinyl {
+      animation-play-state: running;
+    }
+    .spin-reel {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: spinSlow 2.6s linear infinite;
+      animation-play-state: paused;
+    }
+    body.is-playing .spin-reel {
+      animation-play-state: running;
+    }
+
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ============================================================
+       5. MIXED-FONT EDITORIAL SCRAPBOOK KINETIC TYPOGRAPHY STAGE
+       ============================================================ */
+    .lyric-stage-center {
+      position: absolute;
+      inset: 0;
+      z-index: 14;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(4.8rem, 12dvh, 7.5rem) clamp(1.25rem, 6vw, 4.8rem);
+      pointer-events: none;
+    }
+
+    body.reel-mode .lyric-stage-center {
+      padding: 5.5rem 1.35rem 6rem;
+    }
+
+    .collage-stanza {
+      position: relative;
+      max-width: min(90vw, 820px);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.18em 0.28em;
+      text-align: center;
+      line-height: 1.06;
+      font-size: calc(clamp(2.25rem, 6.8vw, 5.4rem) * var(--user-text-scale));
+      color: var(--ink);
+    }
+
+    @media (max-width: 640px) {
+      .collage-stanza {
+        max-width: 90vw;
+        font-size: calc(clamp(1.95rem, 9.6vw, 3.15rem) * var(--user-text-scale));
+      }
+    }
+
+    body.reel-mode .collage-stanza {
+      max-width: 94%;
+      font-size: calc(clamp(1.85rem, 4.3vh, 2.95rem) * var(--user-text-scale));
+    }
+
+    .z-word {
+      position: relative;
+      display: inline-block;
+      opacity: 0;
+      will-change: transform, opacity, filter;
+      padding: 0.02em 0.06em;
+    }
+
+    .z-word.style-display {
+      font-family: "Anton", "Syne", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.01em;
+      font-size: 1.08em;
+      text-shadow: 0 3px 0 rgba(255, 255, 255, 0.22);
+    }
+
+    .z-word.style-serif {
+      font-family: "Instrument Serif", "Playfair Display", Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 1.3em;
+      letter-spacing: -0.01em;
+      line-height: 0.9;
+    }
+
+    .z-word.style-grotesk {
+      font-family: "Bricolage Grotesque", sans-serif;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+    }
+
+    .z-word.style-cutout {
+      font-family: "Syne", "Bricolage Grotesque", sans-serif;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 0.94em;
+      letter-spacing: -0.02em;
+      background-color: var(--ink);
+      color: var(--paper);
+      padding: 0.08em 0.28em 0.1em;
+      border-radius: 4px;
+      box-shadow:
+        4px 4px 0 var(--accent),
+        0 10px 22px var(--sticker-shadow);
+    }
+
+    .z-word.style-tape {
+      font-family: "Playfair Display", Georgia, serif;
+      font-style: italic;
+      font-weight: 900;
+      font-size: 1.06em;
+      background-color: var(--accent);
+      color: #ffffff;
+      padding: 0.04em 0.28em 0.08em;
+      border-radius: 3px;
+      box-shadow: 0 8px 20px var(--sticker-shadow);
+    }
+
+    .z-word.style-mono {
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-size: 0.78em;
+      letter-spacing: -0.03em;
+      border: 2px solid var(--ink);
+      padding: 0.06em 0.24em;
+      border-radius: 4px;
+      background: var(--sticker-rim);
+      color: #121010;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+
+    .stanza-scrim {
+      position: relative;
+      padding: 0.65rem 1.25rem;
+      border-radius: 22px;
+      transition: background 0.35s ease, backdrop-filter 0.35s ease;
+    }
+
+    .stanza-caption {
+      margin-top: 1.15rem;
+      font-family: "Space Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--ink);
+      opacity: 0.48;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    /* ============================================================
+       6. FROSTED GLASS HUD, BOTTOM DOCK & STUDIO DRAWER
+       ============================================================ */
+    .glass-hud {
+      background: rgba(14, 12, 13, 0.72);
+      backdrop-filter: blur(26px) saturate(165%);
+      -webkit-backdrop-filter: blur(26px) saturate(165%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow:
+        0 18px 46px rgba(0, 0, 0, 0.56),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    }
+
+    .top-hud {
+      position: fixed;
+      top: max(0.85rem, calc(env(safe-area-inset-top) + 0.4rem));
+      left: max(0.85rem, env(safe-area-inset-left));
+      right: max(0.85rem, env(safe-area-inset-right));
+      z-index: 32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .bottom-dock {
+      position: fixed;
+      bottom: max(0.9rem, calc(env(safe-area-inset-bottom) + 0.45rem));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      max-width: calc(100vw - 1rem);
+      transition: opacity 0.45s ease;
+    }
+
+    .bottom-dock.is-idle-dim {
+      opacity: 0.28;
+    }
+    .bottom-dock.is-idle-dim:hover,
+    .bottom-dock.is-idle-dim:focus-within {
+      opacity: 1;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .micro-eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .micro-eq-bar {
+      width: 2.5px;
+      height: 3.5px;
+      border-radius: 999px;
+      background: var(--hud-accent);
+      will-change: height;
+    }
+
+    .clean-exit-btn {
+      position: fixed;
+      top: max(0.9rem, env(safe-area-inset-top));
+      right: max(0.9rem, env(safe-area-inset-right));
+      z-index: 48;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    body.clean-mode .clean-exit-btn {
+      pointer-events: auto;
+    }
+    body.clean-mode .clean-exit-btn:hover,
+    body.clean-mode .clean-exit-btn:focus-visible {
+      opacity: 0.96;
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(6, 5, 6, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .studio-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(100vw, 472px);
+      height: 100dvh;
+      z-index: 60;
+      background: rgba(13, 12, 14, 0.92);
+      backdrop-filter: blur(36px) saturate(175%);
+      -webkit-backdrop-filter: blur(36px) saturate(175%);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: -28px 0 88px rgba(0, 0, 0, 0.85);
+      transform: translateX(105%);
+      display: flex;
+      flex-direction: column;
+      user-select: text;
+      overflow: hidden;
+    }
+
+    .drawer-scroll-area {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+    }
+
+    .inner-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    }
+    .inner-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .inner-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .inner-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+
+    input[type="range"].studio-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--hud-accent);
+      box-shadow: 0 0 10px rgba(230, 57, 70, 0.6);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    input[type="color"].color-swatch-input {
+      -webkit-appearance: none;
+      appearance: none;
+      border: none;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="color"].color-swatch-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    input[type="color"].color-swatch-input::-webkit-color-swatch {
+      border: 1.5px solid rgba(255, 255, 255, 0.28);
+      border-radius: 9px;
+    }
+
+    .toast-pill {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-28px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+      .studio-drawer {
+        width: 100vw;
+        border-left: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden HTML5 Audio Element -->
+  <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+
+  <!-- Shared Inline SVG Halftone Dot Patterns & Vintage Ink Filters -->
+  <svg width="0" height="0" style="position:absolute;pointer-events:none;" aria-hidden="true">
+    <defs>
+      <pattern id="halftoneDense" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(38)">
+        <circle cx="2.5" cy="2.5" r="1.45" fill="#121010" />
+      </pattern>
+      <pattern id="halftoneMid" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(38)">
+        <circle cx="3" cy="3" r="1.3" fill="#121010" />
+      </pattern>
+      <pattern id="halftoneLight" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(38)">
+        <circle cx="3.5" cy="3.5" r="1.05" fill="#121010" />
+      </pattern>
+      <pattern id="halftoneWhite" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(38)">
+        <circle cx="2.5" cy="2.5" r="1.15" fill="#f7f4ec" />
+      </pattern>
+
+      <filter id="risoEdge" x="-8%" y="-8%" width="116%" height="116%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="3" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+
+      <filter id="collageWhipBlur" x="-12%" y="-12%" width="124%" height="124%">
+        <feGaussianBlur id="whipBlurNode" in="SourceGraphic" stdDeviation="0 0" />
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Anime.js Toast Notification -->
+  <div id="toastPill" class="toast-pill glass-hud px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs sm:text-sm font-medium text-white max-w-[92vw]">
+    <span id="toastDot" class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+    <span id="toastText" class="truncate">Ready</span>
+  </div>
+
+  <!-- ============================================================
+       TOP FLOATING HUD
+       ============================================================ -->
+  <header id="topHud" class="top-hud">
+    <button
+      id="trackPillBtn"
+      type="button"
+      title="Open Studio Settings (Press S)"
+      class="pointer-events-auto glass-hud pl-2.5 pr-3.5 py-1.5 rounded-full flex items-center gap-2.5 max-w-[56vw] sm:max-w-[300px] hover:bg-white/[0.1] transition text-left"
+    >
+      <div
+        id="hudBadgeCircle"
+        class="w-7 h-7 rounded-full shrink-0 border border-white/25 bg-[#121010] flex items-center justify-center shadow-sm spin-vinyl"
+      >
+        <svg class="w-4 h-4 text-[#f3ede0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" opacity="0.45" />
+          <circle cx="12" cy="12" r="2.6" fill="currentColor" />
+        </svg>
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <p id="hudTitle" class="text-[11px] sm:text-xs font-bold text-white truncate leading-tight">Paper Wings &amp; Vinyl</p>
+        <p id="hudArtist" class="text-[10px] text-white/55 truncate leading-tight mt-0.5">Halftone Zine Demo</p>
+      </div>
+
+      <div class="micro-eq pl-1 shrink-0" aria-hidden="true">
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+      </div>
+    </button>
+
+    <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+      <button
+        id="quickPaletteBtn"
+        type="button"
+        title="Cycle Zine Color Palette (Press C)"
+        class="glass-hud h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-2 text-[11px] font-semibold text-white/90 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <span
+          id="quickPaletteDot"
+          class="w-3.5 h-3.5 rounded-full border border-white/35 shrink-0"
+          style="background: linear-gradient(135deg, #f3ede0 50%, #e63946 100%);"
+        ></span>
+        <span id="quickPaletteName" class="hidden md:inline">Newsprint Noir</span>
+      </button>
+
+      <button
+        id="cleanModeBtn"
+        type="button"
+        title="Clean Screen-Record Mode (Press H)"
+        class="glass-hud w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
+      <button
+        id="openStudioBtn"
+        type="button"
+        title="Open Studio (Press S)"
+        class="glass-hud h-9 px-3 sm:px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition active:scale-95"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="2" y1="14" x2="6" y2="14" />
+          <line x1="10" y1="8" x2="14" y2="8" />
+          <line x1="18" y1="16" x2="22" y2="16" />
+        </svg>
+        <span>Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <button
+    id="cleanExitBtn"
+    type="button"
+    title="Exit Clean Mode (H or Esc)"
+    class="clean-exit-btn glass-hud px-3.5 py-1.5 rounded-full text-xs font-semibold text-white/90"
+  >
+    Exit Clean Mode
+  </button>
+
+  <!-- ============================================================
+       MAIN HALFTONE ZINE COLLAGE STAGE
+       ============================================================ -->
+  <div class="studio-desk">
+    <main id="stageFrame" class="stage-frame">
+      <div class="paper-backdrop" aria-hidden="true"></div>
+      <div class="halftone-grid-overlay" aria-hidden="true"></div>
+
+      <div class="newsprint-watermark" aria-hidden="true">
+        <div class="hidden sm:flex flex-col justify-between">
+          <span>ISSUE № 09 · ANALOG ARCHIVE</span>
+          <span id="watermarkScene">SCENE 01 / VINYL DESK</span>
+        </div>
+        <div class="hidden sm:flex flex-col justify-between text-right">
+          <span>SIDE A · 45 RPM</span>
+          <span>HALFTONE PRESS</span>
+        </div>
+      </div>
+
+      <div class="camera-world">
+        <div id="cameraRig" class="camera-rig">
+          <div id="collageLayer" class="collage-layer" aria-hidden="true"></div>
+
+          <section class="lyric-stage-center" aria-live="polite">
+            <div class="stanza-scrim">
+              <div id="collageStanza" class="collage-stanza"></div>
+            </div>
+            <div id="stanzaCaption" class="stanza-caption">
+              <span>✦</span>
+              <span id="stanzaCaptionText">PAPER WINGS &amp; VINYL</span>
+              <span>✦</span>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div id="cutFlash" class="cut-flash" aria-hidden="true"></div>
+      <svg class="paper-grain" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <filter id="zineGrain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#zineGrain)" />
+      </svg>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM FLOATING GLASS DOCK
+       ============================================================ -->
+  <nav id="bottomDock" class="bottom-dock glass-hud px-2.5 sm:px-3.5 py-2 rounded-full flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+    <button
+      id="restartBtn"
+      type="button"
+      title="Restart Snippet (Press R)"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/10 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+        <path d="M3 3v5h5" />
+      </svg>
+    </button>
+
+    <button
+      id="playPauseBtn"
+      type="button"
+      title="Play / Pause (Space)"
+      class="w-10 h-10 rounded-full shrink-0 bg-white text-black hover:scale-105 active:scale-95 transition flex items-center justify-center shadow-[0_0_24px_rgba(255,255,255,0.28)]"
+    >
+      <svg id="playIcon" class="w-4 h-4 translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="6 4 20 12 6 20 6 4" />
+      </svg>
+      <svg id="pauseIcon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4.5" height="16" rx="1.2" />
+        <rect x="13.5" y="4" width="4.5" height="16" rx="1.2" />
+      </svg>
+    </button>
+
+    <div class="flex items-center gap-2 min-w-[110px] sm:min-w-[170px] px-1">
+      <span id="timeElapsed" class="text-[11px] font-mono text-white/75 tabular-nums shrink-0">0:00</span>
+      <div id="progressTrack" class="relative flex-1 h-6 flex items-center cursor-pointer group">
+        <div class="w-full h-[3.5px] rounded-full bg-white/16 overflow-hidden">
+          <div id="progressFill" class="h-full rounded-full bg-gradient-to-r from-rose-500 to-white" style="width: 0%"></div>
+        </div>
+        <div
+          id="progressKnob"
+          class="absolute w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_#ffffff] -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style="left: 0%"
+        ></div>
+      </div>
+      <span id="timeTotal" class="text-[11px] font-mono text-white/45 tabular-nums shrink-0">0:24</span>
+    </div>
+
+    <button
+      id="loopBtn"
+      type="button"
+      title="Loop Active Snippet"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-rose-400 bg-white/12 hover:bg-white/18 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m17 2 4 4-4 4" />
+        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+        <path d="m7 22-4-4 4-4" />
+        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+      </svg>
+    </button>
+
+    <div class="w-px h-5 bg-white/15 shrink-0"></div>
+
+    <button
+      id="dockSceneCycleBtn"
+      type="button"
+      title="Cycle Halftone Collage Scene (Press V)"
+      class="h-9 px-2.5 sm:px-3 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold bg-white/12 hover:bg-white/22 text-white transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+      </svg>
+      <span id="dockSceneLabel">Auto Collage</span>
+    </button>
+
+    <button
+      id="dockReelBtn"
+      type="button"
+      title="Toggle 16:9 / 9:16 Vertical Reel Frame"
+      class="h-9 px-2.5 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold text-white/80 hover:text-white hover:bg-white/10 transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="2" width="12" height="20" rx="2.5" />
+      </svg>
+      <span id="dockReelLabel">16:9</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       STUDIO DRAWER (NATIVE SMOOTH SCROLL)
+       ============================================================ -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <aside id="studioDrawer" class="studio-drawer" aria-label="Halftone Collage Studio Settings">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <div>
+        <h2 class="text-base font-extrabold text-white tracking-tight">Halftone Collage Studio</h2>
+        <p class="text-[11px] text-white/50">Auto assets/ PNG Loader · Zine Motion · MP3 &amp; LRCLIB</p>
+      </div>
+      <button
+        id="closeStudioBtn"
+        type="button"
+        aria-label="Close Studio"
+        class="w-9 h-9 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center text-white/80 hover:text-white transition"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="drawerScrollWrapper" class="drawer-scroll-area">
+      <div class="px-5 py-5 space-y-6">
+
+        <!-- SECTION 1: COLLAGE SCENES, AUTO assets/ FOLDER & CUSTOM PNG STICKERS -->
+        <section class="space-y-3.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">1. Collage Choreography &amp; Assets</h3>
+            <span id="activeSceneBadge" class="text-[11px] font-semibold text-rose-300">Auto Collage Mix</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-scene-pick="auto" class="scene-btn col-span-2 p-2.5 rounded-xl text-left bg-white/15 border border-white/45 transition flex items-center justify-between">
+              <div>
+                <p class="text-xs font-extrabold text-white">Auto Collage Mix (All 10 Assets)</p>
+                <p class="text-[10px] text-white/55">Cycles Vinyl · Sonic Bloom · Winged Zine · Stamp Archive · Full Chaos</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/25 text-rose-300 border border-rose-400/35">ZINE</span>
+            </button>
+            <button type="button" data-scene-pick="vinyl" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Vinyl &amp; Poetry</p>
+              <p class="text-[10px] text-white/50">Spinning disc, book &amp; stamp</p>
+            </button>
+            <button type="button" data-scene-pick="sonic" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Sonic Bloom</p>
+              <p class="text-[10px] text-white/50">Guitar, headphones &amp; lotus</p>
+            </button>
+            <button type="button" data-scene-pick="winged" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Winged Tape</p>
+              <p class="text-[10px] text-white/50">Dove, butterflies &amp; cassette</p>
+            </button>
+            <button type="button" data-scene-pick="botanical" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Botanical Press</p>
+              <p class="text-[10px] text-white/50">Stamp, blossoms &amp; vinyl</p>
+            </button>
+            <button type="button" data-scene-pick="chaos" class="scene-btn col-span-2 p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-white">Full 10-Asset Scrapbook Chaos</p>
+                <p class="text-[10px] text-white/50">All 10 halftone cutouts orbiting the stage together</p>
+              </div>
+              <span class="text-[10px] font-mono text-white/55">10/10</span>
+            </button>
+          </div>
+
+          <!-- Your Custom PNG Folder & Smart Filename Mapper -->
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-3">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-[11px] font-bold text-white/95">Your 10 PNG Assets (<code class="text-rose-300">assets/</code> folder)</p>
+                <p id="customPngStatus" class="text-[10px] text-white/50 truncate">Auto-checks ./assets/ · Fallback SVGs active</p>
+              </div>
+              <button id="clearPngsBtn" type="button" class="hidden px-2 py-1 rounded-lg bg-rose-500/25 text-rose-300 text-[10px] font-bold shrink-0 transition">Reset</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <label class="py-2 px-2.5 rounded-xl bg-white text-black hover:bg-white/90 text-[11px] font-extrabold cursor-pointer transition text-center">
+                <input id="customPngInput" type="file" accept="image/*" multiple class="hidden" />
+                + Select PNGs
+              </label>
+              <label class="py-2 px-2.5 rounded-xl bg-white/12 hover:bg-white/20 border border-white/15 text-white text-[11px] font-bold cursor-pointer transition text-center">
+                <input id="customFolderInput" type="file" accept="image/*" webkitdirectory directory multiple class="hidden" />
+                Load assets/ Folder
+              </label>
+            </div>
+
+            <p class="text-[10px] text-white/45 leading-relaxed bg-black/30 rounded-xl p-2.5 border border-white/[0.06] font-mono">
+              Auto-maps: <span class="text-white/80">assets/</span> → bird.png, book.png, butterfly.png, flower lotus.png, flower stamp.png, flower.png, guiter.png, headphone.png, musicdise.png, old cacet.png
+            </p>
+
+            <!-- Motion Feel & Sliders -->
+            <div class="space-y-2.5 pt-2.5 border-t border-white/10">
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="font-semibold text-white/80">Text Size</span>
+                  <span id="textSizeLabel" class="font-mono font-bold text-rose-300">100%</span>
+                </div>
+                <input id="textSizeSlider" type="range" min="0.65" max="1.45" step="0.05" value="1" class="studio-slider w-full" aria-label="Text size" />
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="font-semibold text-white/80">Sticker Size</span>
+                  <span id="assetSizeLabel" class="font-mono font-bold text-rose-300">100%</span>
+                </div>
+                <input id="assetSizeSlider" type="range" min="0.6" max="1.4" step="0.05" value="1" class="studio-slider w-full" aria-label="Sticker size" />
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="font-semibold text-white/80">3D Camera Whip &amp; Drift</span>
+                  <span id="camEnergyLabel" class="font-mono font-bold text-rose-300">85%</span>
+                </div>
+                <input id="camEnergySlider" type="range" min="0" max="100" step="5" value="85" class="studio-slider w-full" aria-label="Camera energy" />
+              </div>
+
+              <div class="grid grid-cols-3 gap-1.5 pt-1.5">
+                <button id="toggleStopMotionBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">Stop-Mo: ON</button>
+                <button id="toggleTextureBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">Paper: ON</button>
+                <button id="toggleFlashBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">Flash: ON</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: ZINE COLOR PALETTES & CUSTOM PICKERS -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">2. Zine Paper &amp; Ink Palette</h3>
+            <span id="activePaletteLabel" class="text-[11px] font-semibold text-rose-300">Newsprint Noir</span>
+          </div>
+
+          <div id="paletteGrid" class="grid grid-cols-3 gap-2"></div>
+
+          <div class="p-3 rounded-2xl bg-white/[0.05] border border-white/10 grid grid-cols-3 gap-2">
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customPaperPicker" type="color" value="#f3ede0" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">Paper</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customInkPicker" type="color" value="#121010" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">Ink</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customAccentPicker" type="color" value="#e63946" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">Stamp</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- SECTION 3: SONG MP3 & TRACK INFO -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">3. Song MP3 &amp; Track Info</h3>
+            <span id="audioStatusBadge" class="text-[11px] font-semibold text-rose-300">Demo Groove Ready</span>
+          </div>
+
+          <label
+            id="audioDropZone"
+            for="audioFileInput"
+            class="block w-full p-3.5 rounded-2xl border border-dashed border-white/20 hover:border-rose-400/80 bg-white/[0.03] hover:bg-white/[0.06] transition cursor-pointer text-center"
+          >
+            <input id="audioFileInput" type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" class="hidden" />
+            <div class="flex items-center justify-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-rose-300 shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+              <div class="text-left min-w-0">
+                <p id="audioDropLabel" class="text-xs font-bold text-white truncate">Drop MP3 / WAV / M4A or tap to upload</p>
+                <p id="audioFileMeta" class="text-[11px] text-white/45">100% browser-local · Bass-reactive collage cutouts</p>
+              </div>
+            </div>
+          </label>
+
+          <div class="grid grid-cols-2 gap-2">
+            <input
+              id="titleInput"
+              type="text"
+              value="Paper Wings & Vinyl"
+              placeholder="Track Title"
+              class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-rose-400/70 focus:outline-none text-xs font-semibold text-white placeholder-white/35"
+            />
+            <input
+              id="artistInput"
+              type="text"
+              value="Halftone Zine Demo"
+              placeholder="Artist Name"
+              class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-rose-400/70 focus:outline-none text-xs text-white/85 placeholder-white/35"
+            />
+          </div>
+        </section>
+
+        <!-- SECTION 4: SYNCED LYRICS (LRCLIB.NET) -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">4. Synced Lyrics (LRCLIB.net)</h3>
+            <span id="lyricsCountBadge" class="text-[11px] font-mono text-white/55">8 lines</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-bold">
+            <button type="button" data-lrc-tab="url" class="lrc-tab-btn py-1.5 rounded-lg bg-white text-black transition">LRCLIB Link</button>
+            <button type="button" data-lrc-tab="search" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Search</button>
+            <button type="button" data-lrc-tab="manual" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Manual LRC</button>
+          </div>
+
+          <div id="lrcTabUrl" class="space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibUrlInput"
+                type="text"
+                placeholder="https://lrclib.net/tracks/28185115 or 28185115"
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-rose-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="fetchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95 flex items-center gap-1.5"
+              >
+                <span id="fetchBtnLabel">Fetch</span>
+                <svg id="fetchSpinner" class="hidden w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25" />
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p id="lrclibStatusText" class="text-[11px] text-white/48">
+              Paste any <span class="text-white/80 font-medium">lrclib.net/tracks/{id}</span> link to load synced lyrics instantly.
+            </p>
+          </div>
+
+          <div id="lrcTabSearch" class="hidden space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibSearchInput"
+                type="text"
+                placeholder="Search song name or artist..."
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-rose-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="searchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95"
+              >
+                Search
+              </button>
+            </div>
+            <div id="searchResultsBox" class="max-h-48 inner-scroll space-y-1.5 pr-0.5">
+              <p class="text-[11px] text-white/45 text-center py-4">Search LRCLIB's synced library and click any track.</p>
+            </div>
+          </div>
+
+          <div id="lrcTabManual" class="hidden space-y-2">
+            <textarea
+              id="manualLrcInput"
+              rows="5"
+              placeholder="[00:00.20] Turn the vinyl slow while the pages glow&#10;[00:03.40] Pressed a lotus flower inside our song"
+              class="w-full p-3 rounded-xl bg-white/[0.07] border border-white/14 focus:border-rose-400/70 focus:outline-none text-xs font-mono text-white placeholder-white/35 resize-y"
+            ></textarea>
+            <button
+              id="applyManualLrcBtn"
+              type="button"
+              class="w-full py-2.5 rounded-xl bg-white/15 hover:bg-white/24 border border-white/15 text-xs font-bold text-white transition"
+            >
+              Apply Manual LRC
+            </button>
+          </div>
+        </section>
+
+        <!-- SECTION 5: EXACT SONG PART TRIMMER & SYNC OFFSET -->
+        <section class="space-y-3.5 pt-3 border-t border-white/10 pb-8">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">5. Exact Song Part (Loop)</h3>
+            <span id="snippetWindowBadge" class="text-[11px] font-mono font-semibold text-rose-300">0:00 → 0:24 (24s)</span>
+          </div>
+
+          <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">Start</span>
+                <button id="useNowStartBtn" type="button" class="text-[10px] font-bold text-rose-300 hover:underline">Now</button>
+              </div>
+              <input id="startTimeInput" type="text" value="0:00" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">End</span>
+                <button id="useNowEndBtn" type="button" class="text-[10px] font-bold text-rose-300 hover:underline">Now</button>
+              </div>
+              <input id="endTimeInput" type="text" value="0:24" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <button
+              id="resetFullSongBtn"
+              type="button"
+              class="h-[54px] px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-[11px] font-bold text-white/80 hover:text-white transition"
+            >
+              Reset<br/>Full
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <p class="text-[11px] text-white/55">Tap <span class="text-white font-semibold">Start</span> / <span class="text-white font-semibold">End</span> on any line to play only that part:</p>
+            <div class="h-44 inner-scroll rounded-2xl bg-black/45 border border-white/10">
+              <div id="lyricPickerList" class="divide-y divide-white/[0.06]"></div>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-white/85">Lyric Sync Offset</span>
+              <div class="flex items-center gap-1.5">
+                <button id="offsetMinusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">-0.1s</button>
+                <span id="offsetLabel" class="min-w-[54px] text-center font-mono text-xs font-bold text-white">0.00s</span>
+                <button id="offsetPlusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">+0.1s</button>
+                <button id="offsetResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/8 hover:bg-white/16 text-[10px] text-white/70 transition">0</button>
+              </div>
+            </div>
+            <input id="offsetSlider" type="range" min="-5" max="5" step="0.05" value="0" class="studio-slider w-full" aria-label="Lyric sync offset" />
+          </div>
+
+          <p class="text-[10px] text-white/40 text-center">
+            Shortcuts: <span class="text-white/75 font-semibold">Space</span> Play · <span class="text-white/75 font-semibold">V</span> Collage · <span class="text-white/75 font-semibold">C</span> Palette · <span class="text-white/75 font-semibold">R</span> Restart · <span class="text-white/75 font-semibold">S</span> Studio · <span class="text-white/75 font-semibold">H</span> Clean
+          </p>
+        </section>
+
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    /* ============================================================
+       HALFTONE COLLAGE LYRIC STUDIO — SCRAPBOOK ZINE ENGINE
+       Auto-loads user's exact 10 PNGs from ./assets/ (or root ./)
+       Smart filename mapping + Folder / Multi-PNG Upload + SVGs fallback
+       ============================================================ */
+    (() => {
+      "use strict";
+
+      /* ----------------------------------------------------------
+         1. EXACT USER PNG FILENAME MAPPING (FOR ./assets/ FOLDER)
+         ---------------------------------------------------------- */
+      const ASSET_FILE_MAP = {
+        vinyl:      ["musicdise.png", "vinyl.png", "disc.png"],
+        cassette:   ["old cacet.png", "cassette.png", "cacet.png", "tape.png"],
+        guitar:     ["guiter.png", "guitar.png"],
+        headphones: ["headphone.png", "headphones.png"],
+        bird:       ["bird.png", "dove.png"],
+        book:       ["book.png"],
+        butterfly:  ["butterfly.png", "butterflies.png"],
+        lotus:      ["flower lotus.png", "lotus.png"],
+        stamp:      ["flower stamp.png", "stamp.png"],
+        blossom:    ["flower.png", "blossom.png"],
+      };
+
+      const ALL_ASSET_KEYS = Object.keys(ASSET_FILE_MAP);
+
+      /* ----------------------------------------------------------
+         2. POETIC DEMO LYRICS MATCHING THE 10 VINTAGE CUTOUT MOTIFS
+         ---------------------------------------------------------- */
+      const DEMO_LRC = `
+[00:00.15] Turn the vinyl slow while the pages glow
+[00:03.10] Pressed a lotus bloom inside our midnight song
+[00:06.15] Electric strings echo through my headphones
+[00:09.20] Paper wings flying where the silence goes
+[00:12.25] Rewind the old cassette to yesterday
+[00:15.30] Ink butterflies drifting across the page
+[00:18.35] A botanical stamp on a love letter home
+[00:21.30] Every quiet note still lives in monochrome
+      `.trim();
+
+      /* ----------------------------------------------------------
+         3. 6 CURATED RISOGRAPH / ZINE PALETTES
+         ---------------------------------------------------------- */
+      const PALETTES = [
+        {
+          id: "newsprint",
+          name: "Newsprint Noir",
+          paper: "#f3ede0",
+          ink: "#121010",
+          accent: "#e63946",
+          stickerRim: "#fbf9f4",
+          isDark: false,
+        },
+        {
+          id: "crimson-zine",
+          name: "Crimson Zine",
+          paper: "#871422",
+          ink: "#f7eedb",
+          accent: "#c8eb52",
+          stickerRim: "#f7eedb",
+          isDark: true,
+        },
+        {
+          id: "xerox",
+          name: "Midnight Xerox",
+          paper: "#0e0e12",
+          ink: "#f4f2ec",
+          accent: "#38bdf8",
+          stickerRim: "#eceae2",
+          isDark: true,
+        },
+        {
+          id: "matcha",
+          name: "Matcha Press",
+          paper: "#dee5d3",
+          ink: "#1b1815",
+          accent: "#d95d39",
+          stickerRim: "#f6f8f1",
+          isDark: false,
+        },
+        {
+          id: "lavender",
+          name: "Lilac Riso",
+          paper: "#e8dff5",
+          ink: "#150e2e",
+          accent: "#ec4899",
+          stickerRim: "#faf7ff",
+          isDark: false,
+        },
+        {
+          id: "sepia",
+          name: "Sepia Archive",
+          paper: "#e6d5b8",
+          ink: "#23150d",
+          accent: "#b93822",
+          stickerRim: "#f5ebd8",
+          isDark: false,
+        },
+      ];
+
+      /* ----------------------------------------------------------
+         4. BUILT-IN FALLBACK HALFTONE SVGS (USED WHEN PNG NOT LOADED)
+         ---------------------------------------------------------- */
+      const ASSET_SVGS = {
+        vinyl: `
+          <svg class="sticker-visual spin-vinyl" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="110" cy="110" r="103" fill="#fbf9f4" />
+            <circle cx="110" cy="110" r="97" fill="#0d0c0d" />
+            <circle cx="110" cy="110" r="91" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.2" />
+            <circle cx="110" cy="110" r="84" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1" />
+            <circle cx="110" cy="110" r="76" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.1" />
+            <circle cx="110" cy="110" r="68" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="1" />
+            <circle cx="110" cy="110" r="60" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.1" />
+            <circle cx="110" cy="110" r="52" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1" />
+            <path d="M110 110 L35 46 A96 96 0 0 1 110 14 Z" fill="url(#halftoneWhite)" opacity="0.45" />
+            <path d="M110 110 L185 174 A96 96 0 0 1 110 206 Z" fill="url(#halftoneWhite)" opacity="0.45" />
+            <path d="M110 110 L24 148 A96 96 0 0 1 18 86 Z" fill="rgba(255,255,255,0.14)" />
+            <path d="M110 110 L196 72 A96 96 0 0 1 202 134 Z" fill="rgba(255,255,255,0.14)" />
+            <circle cx="110" cy="110" r="34" fill="#c9c4bb" stroke="#111" stroke-width="2" />
+            <circle cx="110" cy="110" r="30" fill="url(#halftoneLight)" opacity="0.22" />
+            <circle cx="110" cy="110" r="5" fill="#0d0c0d" />
+          </svg>
+        `,
+        cassette: `
+          <svg class="sticker-visual" viewBox="0 0 240 165" xmlns="http://www.w3.org/2000/svg" filter="url(#risoEdge)">
+            <rect x="8" y="10" width="224" height="145" rx="16" fill="#fbf9f4" />
+            <rect x="16" y="18" width="208" height="129" rx="11" fill="#141313" />
+            <rect x="20" y="22" width="200" height="121" rx="8" fill="url(#halftoneWhite)" opacity="0.16" />
+            <rect x="30" y="30" width="180" height="30" rx="4" fill="#efeae0" stroke="#141313" stroke-width="2" />
+            <rect x="30" y="30" width="180" height="30" rx="4" fill="url(#halftoneLight)" opacity="0.24" />
+            <line x1="42" y1="45" x2="198" y2="45" stroke="#141313" stroke-width="1" stroke-dasharray="3 3" opacity="0.4" />
+            <rect x="46" y="69" width="148" height="40" rx="18" fill="#090909" stroke="#e8e2d5" stroke-width="1.5" opacity="0.92" />
+            <rect x="96" y="75" width="48" height="28" rx="3" fill="#222" stroke="#d5cfc4" stroke-width="1" />
+            <g class="spin-reel">
+              <circle cx="72" cy="89" r="14" fill="#fbf9f4" stroke="#141313" stroke-width="2" />
+              <circle cx="72" cy="89" r="7" fill="#141313" />
+              <path d="M72 78 L72 100 M61 89 L83 89" stroke="#141313" stroke-width="2.5" />
+            </g>
+            <g class="spin-reel">
+              <circle cx="168" cy="89" r="14" fill="#fbf9f4" stroke="#141313" stroke-width="2" />
+              <circle cx="168" cy="89" r="7" fill="#141313" />
+              <path d="M168 78 L168 100 M157 89 L179 89" stroke="#141313" stroke-width="2.5" />
+            </g>
+            <path d="M46 146 L58 118 L182 118 L194 146 Z" fill="#1c1b1b" stroke="#e5dfd3" stroke-width="1.5" />
+            <circle cx="74" cy="134" r="5" fill="#fbf9f4" />
+            <circle cx="100" cy="132" r="4" fill="#fbf9f4" />
+            <circle cx="140" cy="132" r="4" fill="#fbf9f4" />
+            <circle cx="166" cy="134" r="5" fill="#fbf9f4" />
+            <circle cx="24" cy="26" r="3" fill="#d8d2c7" />
+            <circle cx="216" cy="26" r="3" fill="#d8d2c7" />
+            <circle cx="24" cy="138" r="3" fill="#d8d2c7" />
+            <circle cx="216" cy="138" r="3" fill="#d8d2c7" />
+          </svg>
+        `,
+        guitar: `
+          <svg class="sticker-visual" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" filter="url(#risoEdge)">
+            <g transform="rotate(-42 110 110)">
+              <path d="M100 10 L120 10 L124 38 L116 46 L116 112 C136 108 148 122 142 138 C158 156 156 198 110 206 C64 198 62 156 78 138 C72 122 84 108 104 112 L104 46 L96 38 Z" fill="#fbf9f4" stroke="#fbf9f4" stroke-width="12" stroke-linejoin="round" />
+              <path d="M101 12 L119 12 L122 36 L115 44 L105 44 L98 36 Z" fill="#121010" />
+              <circle cx="96" cy="18" r="2.5" fill="#121010" /><circle cx="95" cy="26" r="2.5" fill="#121010" /><circle cx="96" cy="34" r="2.5" fill="#121010" />
+              <circle cx="124" cy="18" r="2.5" fill="#121010" /><circle cx="125" cy="26" r="2.5" fill="#121010" /><circle cx="124" cy="34" r="2.5" fill="#121010" />
+              <rect x="104" y="44" width="12" height="72" fill="#141212" />
+              <g stroke="#e8e2d5" stroke-width="1" opacity="0.65">
+                <line x1="104" y1="54" x2="116" y2="54" /><line x1="104" y1="64" x2="116" y2="64" />
+                <line x1="104" y1="74" x2="116" y2="74" /><line x1="104" y1="84" x2="116" y2="84" />
+                <line x1="104" y1="94" x2="116" y2="94" /><line x1="104" y1="104" x2="116" y2="104" />
+              </g>
+              <path d="M104 114 C86 106 72 122 80 140 C62 158 66 202 110 204 C154 202 158 158 140 140 C148 122 134 106 116 114 Z" fill="#121010" stroke="#e9e4da" stroke-width="1.5" />
+              <ellipse cx="92" cy="164" rx="18" ry="26" fill="url(#halftoneWhite)" opacity="0.34" />
+              <rect x="97" y="126" width="26" height="12" rx="2" fill="#dcd6ca" stroke="#121010" stroke-width="1.5" />
+              <rect x="97" y="146" width="26" height="12" rx="2" fill="#dcd6ca" stroke="#121010" stroke-width="1.5" />
+              <rect x="95" y="168" width="30" height="6" rx="1.5" fill="#e5dfd3" />
+              <circle cx="130" cy="172" r="4" fill="#222" stroke="#e5dfd3" stroke-width="1.2" />
+              <circle cx="136" cy="184" r="4" fill="#222" stroke="#e5dfd3" stroke-width="1.2" />
+              <circle cx="122" cy="186" r="4" fill="#222" stroke="#e5dfd3" stroke-width="1.2" />
+              <line x1="107" y1="42" x2="107" y2="170" stroke="rgba(255,255,255,0.45)" stroke-width="0.7" />
+              <line x1="110" y1="42" x2="110" y2="170" stroke="rgba(255,255,255,0.45)" stroke-width="0.7" />
+              <line x1="113" y1="42" x2="113" y2="170" stroke="rgba(255,255,255,0.45)" stroke-width="0.7" />
+            </g>
+          </svg>
+        `,
+        headphones: `
+          <svg class="sticker-visual" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" filter="url(#risoEdge)">
+            <path d="M44 126 C40 62 72 22 114 24 C156 26 182 64 176 126 C188 134 192 162 174 186 C154 206 124 204 114 184 C104 202 74 206 54 186 C36 164 36 136 44 126 Z" fill="#fbf9f4" stroke="#fbf9f4" stroke-width="12" stroke-linejoin="round" />
+            <path d="M46 116 C44 54 74 24 112 25 C150 26 174 58 172 114" fill="none" stroke="#131212" stroke-width="18" stroke-linecap="round" />
+            <path d="M48 114 C46 56 75 27 112 28 C148 29 172 58 170 112" fill="none" stroke="url(#halftoneWhite)" stroke-width="10" stroke-linecap="round" opacity="0.4" />
+            <ellipse cx="76" cy="158" rx="34" ry="40" transform="rotate(-26 76 158)" fill="#161414" />
+            <ellipse cx="78" cy="156" rx="28" ry="34" transform="rotate(-26 78 156)" fill="url(#halftoneWhite)" opacity="0.28" />
+            <ellipse cx="82" cy="154" rx="16" ry="22" transform="rotate(-26 82 154)" fill="#0a0909" stroke="rgba(255,255,255,0.28)" stroke-width="1.5" />
+            <ellipse cx="144" cy="152" rx="35" ry="44" transform="rotate(14 144 152)" fill="#121010" stroke="#ebe5d9" stroke-width="1.5" />
+            <ellipse cx="136" cy="152" rx="24" ry="34" transform="rotate(14 136 152)" fill="url(#halftoneWhite)" opacity="0.34" />
+            <ellipse cx="154" cy="154" rx="22" ry="30" transform="rotate(14 154 154)" fill="#0c0b0b" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" />
+            <rect x="38" y="96" width="16" height="26" rx="4" fill="#181717" stroke="#e4ded2" stroke-width="1" />
+            <rect x="162" y="94" width="18" height="26" rx="4" fill="#181717" stroke="#e4ded2" stroke-width="1" />
+          </svg>
+        `,
+        bird: `
+          <svg class="sticker-visual" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" filter="url(#risoEdge)">
+            <path d="M24 98 L40 88 C42 68 38 40 48 22 C66 36 82 58 92 84 C118 64 154 32 188 18 C192 52 178 96 146 132 L168 156 C154 184 126 196 104 184 L82 152 C56 144 40 120 40 100 Z" fill="#fbf9f4" stroke="#fbf9f4" stroke-width="14" stroke-linejoin="round" />
+            <path d="M56 90 C36 66 36 36 46 22 C62 32 82 60 88 86 Z" fill="#e6e1d7" stroke="#141212" stroke-width="2" />
+            <path d="M56 90 C36 66 36 36 46 22 C62 32 82 60 88 86 Z" fill="url(#halftoneMid)" opacity="0.72" />
+            <path d="M25 98 L40 90 C44 80 56 80 68 92 C86 108 112 126 136 142 L110 162 C72 156 46 132 42 102 Z" fill="#141212" />
+            <path d="M40 94 C50 86 64 92 78 108 C64 114 48 110 40 94 Z" fill="url(#halftoneWhite)" opacity="0.45" />
+            <path d="M78 104 C112 68 150 34 188 20 C192 44 184 74 166 104 C154 124 134 140 112 146 Z" fill="#121010" />
+            <path d="M88 104 C118 72 152 42 184 26 C186 48 176 74 160 100 C148 118 130 132 112 138 Z" fill="url(#halftoneWhite)" opacity="0.28" />
+            <path d="M110 150 L166 154 C158 178 134 196 108 184 Z" fill="#141212" />
+            <path d="M116 154 L160 158 C154 176 134 190 114 180 Z" fill="url(#halftoneWhite)" opacity="0.25" />
+            <circle cx="48" cy="91" r="2" fill="#fbf9f4" />
+          </svg>
+        `,
+        book: `
+          <svg class="sticker-visual" viewBox="0 0 240 190" xmlns="http://www.w3.org/2000/svg" filter="url(#risoEdge)">
+            <g transform="rotate(14 120 95)">
+              <path d="M22 44 C56 26 98 30 120 50 C142 30 184 26 218 44 L204 148 C172 134 140 138 120 156 C100 138 68 134 36 148 Z" fill="#fbf9f4" stroke="#fbf9f4" stroke-width="14" stroke-linejoin="round" />
+              <path d="M24 48 C58 30 98 34 120 54 C142 34 182 30 216 48 L202 146 C172 132 140 136 120 154 C100 136 68 132 38 146 Z" fill="#131111" />
+              <path d="M36 46 C66 34 98 38 118 56 L112 136 C88 122 58 120 34 132 Z" fill="#f5f0e6" stroke="#131111" stroke-width="2" />
+              <path d="M78 44 C96 44 108 50 118 56 L112 136 C96 126 84 124 72 124 Z" fill="url(#halftoneDense)" opacity="0.52" />
+              <path d="M122 56 C142 38 174 34 204 46 L196 132 C172 120 144 122 122 136 Z" fill="#f7f3ea" stroke="#131111" stroke-width="2" />
+              <path d="M122 56 C132 48 144 44 156 42 L152 124 C140 126 130 130 122 136 Z" fill="url(#halftoneMid)" opacity="0.34" />
+              <g stroke="#181616" stroke-width="1.7" stroke-linecap="round" opacity="0.72">
+                <line x1="48" y1="62" x2="98" y2="66" /><line x1="47" y1="73" x2="100" y2="77" />
+                <line x1="46" y1="84" x2="96" y2="88" /><line x1="45" y1="95" x2="99" y2="99" />
+                <line x1="44" y1="106" x2="90" y2="110" /><line x1="43" y1="117" x2="84" y2="120" />
+                <line x1="138" y1="66" x2="188" y2="62" /><line x1="137" y1="77" x2="189" y2="73" />
+                <line x1="136" y1="88" x2="186" y2="84" /><line x1="136" y1="99" x2="187" y2="95" />
+                <line x1="135" y1="110" x2="178" y2="106" /><line x1="135" y1="120" x2="172" y2="117" />
+              </g>
+            </g>
+          </svg>
+        `,
+        butterfly: `
+          <svg class="sticker-visual" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg" filter="url(#risoEdge)">
+            <g transform="translate(64,58) rotate(-14)">
+              <path d="M0 16 C-22 -14 -44 -26 -38 -6 C-34 8 -18 16 0 16 Z" fill="#121010" stroke="#fbf9f4" stroke-width="3" />
+              <path d="M0 16 C20 -18 48 -14 40 4 C34 18 18 22 0 16 Z" fill="#121010" stroke="#fbf9f4" stroke-width="3" />
+              <path d="M-24 -12 C-16 -2 -8 6 -2 12" stroke="#fbf9f4" stroke-width="2" fill="none" />
+              <path d="M24 -6 C16 2 8 8 2 12" stroke="#fbf9f4" stroke-width="2" fill="none" />
+              <ellipse cx="0" cy="14" rx="2.5" ry="10" fill="#121010" />
+            </g>
+            <g transform="translate(158,64) rotate(22)">
+              <path d="M0 18 C-16 -20 -40 -24 -36 -4 C-32 10 -16 18 0 18 Z" fill="#fbf9f4" stroke="#121010" stroke-width="3.2" />
+              <path d="M0 18 C16 -24 44 -20 38 2 C32 18 16 22 0 18 Z" fill="#121010" stroke="#fbf9f4" stroke-width="2.5" />
+              <path d="M0 18 C16 -24 44 -20 38 2 C32 18 16 22 0 18 Z" fill="url(#halftoneWhite)" opacity="0.32" />
+              <ellipse cx="0" cy="14" rx="2.5" ry="10" fill="#121010" />
+            </g>
+            <g transform="translate(106,136) rotate(-28)">
+              <path d="M0 18 C-26 -16 -48 -18 -40 4 C-34 22 -14 26 0 18 Z" fill="#121010" stroke="#fbf9f4" stroke-width="3" />
+              <path d="M0 18 C24 -22 52 -16 44 6 C38 22 18 28 0 18 Z" fill="#fbf9f4" stroke="#121010" stroke-width="3.5" />
+              <path d="M0 18 C24 -22 52 -16 44 6 C38 22 18 28 0 18 Z" fill="url(#halftoneDense)" opacity="0.45" />
+              <ellipse cx="0" cy="14" rx="3" ry="11" fill="#121010" />
+            </g>
+          </svg>
+        `,
+        lotus: `
+          <svg class="sticker-visual" viewBox="0 0 220 190" xmlns="http://www.w3.org/2000/svg" filter="url(#risoEdge)">
+            <path d="M110 18 C126 36 134 62 132 84 C148 56 170 42 192 44 C190 76 172 104 152 118 C174 114 196 122 204 136 C182 156 152 162 128 152 C126 168 118 178 110 180 C102 178 94 168 92 152 C68 162 38 156 16 136 C24 122 46 114 68 118 C48 104 30 76 28 44 C50 42 72 56 88 84 C86 62 94 36 110 18 Z" fill="#fbf9f4" stroke="#fbf9f4" stroke-width="14" stroke-linejoin="round" />
+            <path d="M110 22 C126 42 132 76 110 124 C88 76 94 42 110 22 Z" fill="#121010" />
+            <path d="M110 26 C122 44 126 74 110 118 C94 74 98 44 110 26 Z" fill="url(#halftoneWhite)" opacity="0.3" />
+            <path d="M32 48 C58 50 86 78 96 128 C66 114 40 84 32 48 Z" fill="#141212" />
+            <path d="M38 54 C60 56 82 82 90 120 C66 108 44 82 38 54 Z" fill="url(#halftoneWhite)" opacity="0.34" />
+            <path d="M188 48 C162 50 134 78 124 128 C154 114 180 84 188 48 Z" fill="#141212" />
+            <path d="M182 54 C160 56 138 82 130 120 C154 108 176 82 182 54 Z" fill="url(#halftoneWhite)" opacity="0.34" />
+            <path d="M22 134 C46 118 82 122 104 142 C78 160 44 156 22 134 Z" fill="#141212" />
+            <path d="M198 134 C174 118 138 122 116 142 C142 160 176 156 198 134 Z" fill="#141212" />
+            <path d="M110 132 C124 146 124 166 110 176 C96 166 96 146 110 132 Z" fill="#141212" />
+            <path d="M110 68 C134 86 138 126 110 144 C82 126 86 86 110 68 Z" fill="#f3ede0" stroke="#121010" stroke-width="3" />
+            <path d="M110 68 C134 86 138 126 110 144 C82 126 86 86 110 68 Z" fill="url(#halftoneDense)" opacity="0.58" />
+          </svg>
+        `,
+        blossom: `
+          <svg class="sticker-visual" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" filter="url(#risoEdge)">
+            <g transform="translate(80,74)">
+              <g fill="#fbf9f4" stroke="#121010" stroke-width="2.2">
+                <ellipse cx="0" cy="-28" rx="18" ry="26" />
+                <ellipse cx="26" cy="-8" rx="18" ry="26" transform="rotate(72 26 -8)" />
+                <ellipse cx="16" cy="22" rx="18" ry="26" transform="rotate(144 16 22)" />
+                <ellipse cx="-16" cy="22" rx="18" ry="26" transform="rotate(-144 -16 22)" />
+                <ellipse cx="-26" cy="-8" rx="18" ry="26" transform="rotate(-72 -26 -8)" />
+              </g>
+              <g fill="url(#halftoneMid)" opacity="0.62">
+                <ellipse cx="0" cy="-28" rx="16" ry="24" />
+                <ellipse cx="26" cy="-8" rx="16" ry="24" transform="rotate(72 26 -8)" />
+                <ellipse cx="16" cy="22" rx="16" ry="24" transform="rotate(144 16 22)" />
+                <ellipse cx="-16" cy="22" rx="16" ry="24" transform="rotate(-144 -16 22)" />
+                <ellipse cx="-26" cy="-8" rx="16" ry="24" transform="rotate(-72 -26 -8)" />
+              </g>
+              <circle cx="0" cy="0" r="9" fill="#121010" />
+            </g>
+            <g transform="translate(152,102) scale(0.86)">
+              <g fill="#fbf9f4" stroke="#121010" stroke-width="2.2">
+                <ellipse cx="0" cy="-28" rx="18" ry="26" />
+                <ellipse cx="26" cy="-8" rx="18" ry="26" transform="rotate(72 26 -8)" />
+                <ellipse cx="16" cy="22" rx="18" ry="26" transform="rotate(144 16 22)" />
+                <ellipse cx="-16" cy="22" rx="18" ry="26" transform="rotate(-144 -16 22)" />
+                <ellipse cx="-26" cy="-8" rx="18" ry="26" transform="rotate(-72 -26 -8)" />
+              </g>
+              <g fill="url(#halftoneDense)" opacity="0.58">
+                <ellipse cx="0" cy="-28" rx="16" ry="24" />
+                <ellipse cx="26" cy="-8" rx="16" ry="24" transform="rotate(72 26 -8)" />
+                <ellipse cx="16" cy="22" rx="16" ry="24" transform="rotate(144 16 22)" />
+                <ellipse cx="-16" cy="22" rx="16" ry="24" transform="rotate(-144 -16 22)" />
+                <ellipse cx="-26" cy="-8" rx="16" ry="24" transform="rotate(-72 -26 -8)" />
+              </g>
+              <circle cx="0" cy="0" r="9" fill="#121010" />
+            </g>
+            <g transform="translate(92,152) scale(0.84)">
+              <g fill="#fbf9f4" stroke="#121010" stroke-width="2.2">
+                <ellipse cx="0" cy="-28" rx="18" ry="26" />
+                <ellipse cx="26" cy="-8" rx="18" ry="26" transform="rotate(72 26 -8)" />
+                <ellipse cx="16" cy="22" rx="18" ry="26" transform="rotate(144 16 22)" />
+                <ellipse cx="-16" cy="22" rx="18" ry="26" transform="rotate(-144 -16 22)" />
+                <ellipse cx="-26" cy="-8" rx="18" ry="26" transform="rotate(-72 -26 -8)" />
+              </g>
+              <g fill="url(#halftoneMid)" opacity="0.65">
+                <ellipse cx="0" cy="-28" rx="16" ry="24" />
+                <ellipse cx="26" cy="-8" rx="16" ry="24" transform="rotate(72 26 -8)" />
+                <ellipse cx="16" cy="22" rx="16" ry="24" transform="rotate(144 16 22)" />
+                <ellipse cx="-16" cy="22" rx="16" ry="24" transform="rotate(-144 -16 22)" />
+                <ellipse cx="-26" cy="-8" rx="16" ry="24" transform="rotate(-72 -26 -8)" />
+              </g>
+              <circle cx="0" cy="0" r="9" fill="#121010" />
+            </g>
+          </svg>
+        `,
+        stamp: `
+          <svg class="sticker-visual" viewBox="0 0 210 215" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="8" width="194" height="199" rx="6" fill="#fbf9f4" />
+            <rect x="16" y="16" width="178" height="183" fill="#111011" stroke="#fbf9f4" stroke-width="6" stroke-dasharray="1 13" stroke-linecap="round" />
+            <rect x="20" y="20" width="170" height="175" fill="#111011" />
+            <rect x="20" y="20" width="170" height="175" fill="url(#halftoneWhite)" opacity="0.08" />
+            <rect x="30" y="34" width="150" height="144" fill="none" stroke="rgba(255,255,255,0.58)" stroke-width="1.2" />
+            <rect x="33" y="37" width="144" height="138" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="0.8" />
+            <text x="31" y="29" fill="#e8e4da" font-family="Space Mono, monospace" font-size="7.5" letter-spacing="1.6">botanical</text>
+            <text x="179" y="188" text-anchor="end" fill="#e8e4da" font-family="Space Mono, monospace" font-size="7.2" letter-spacing="1.4">postage stamp</text>
+            <g stroke="#111011" stroke-width="1.4">
+              <path d="M88 168 Q94 128 118 82" stroke="#e8e4da" stroke-width="3" fill="none" />
+              <path d="M82 96 C62 84 48 64 56 54 C68 58 80 72 88 86 Z" fill="#fbf9f4" />
+              <path d="M86 90 C78 66 84 44 96 42 C104 54 104 74 96 92 Z" fill="#f3eee4" />
+              <path d="M92 92 C104 74 120 62 126 70 C118 84 106 94 94 96 Z" fill="#e4dfd4" />
+              <path d="M126 126 C100 116 90 96 102 88 C118 92 128 106 132 120 Z" fill="#fbf9f4" />
+              <path d="M130 122 C118 92 124 68 142 68 C154 82 152 106 138 124 Z" fill="#ffffff" />
+              <path d="M134 126 C148 104 168 96 174 106 C168 122 152 134 136 132 Z" fill="#ece7dc" />
+              <path d="M128 128 C144 130 158 140 154 150 C140 152 126 144 122 132 Z" fill="#dfd9cd" />
+              <ellipse cx="136" cy="116" rx="4.5" ry="11" transform="rotate(-14 136 116)" fill="#181616" stroke="#fbf9f4" stroke-width="1" />
+              <path d="M74 162 C62 146 60 128 68 122 C78 130 82 146 80 162 Z" fill="#ece7dc" />
+            </g>
+            <circle cx="52" cy="148" r="36" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2" stroke-dasharray="14 4 6 3" />
+            <circle cx="52" cy="148" r="26" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
+          </svg>
+        `,
+      };
+
+      /* ----------------------------------------------------------
+         5. CHOREOGRAPHED COLLAGE SCENES
+         ---------------------------------------------------------- */
+      const COLLAGE_SCENES = {
+        vinyl: {
+          title: "SCENE 01 / VINYL & POETRY",
+          items: [
+            { key: "vinyl",     ox: -38, oy: -28, size: 225, rot: -14, enter: "left",   tape: true },
+            { key: "book",      ox: 35,  oy: 30,  size: 195, rot: 12,  enter: "bottom", tape: true },
+            { key: "stamp",     ox: 38,  oy: -28, size: 150, rot: 9,   enter: "top",    tape: false },
+            { key: "blossom",   ox: -36, oy: 31,  size: 158, rot: -18, enter: "bottom", tape: false },
+          ],
+        },
+        sonic: {
+          title: "SCENE 02 / SONIC BLOOM",
+          items: [
+            { key: "guitar",     ox: -37, oy: 24,  size: 215, rot: -10, enter: "left",   tape: false },
+            { key: "headphones", ox: 37,  oy: -25, size: 180, rot: 16,  enter: "right",  tape: true },
+            { key: "lotus",      ox: -35, oy: -31, size: 168, rot: -8,  enter: "top",    tape: false },
+            { key: "blossom",    ox: 35,  oy: 32,  size: 160, rot: 14,  enter: "bottom", tape: true },
+          ],
+        },
+        winged: {
+          title: "SCENE 03 / WINGED TAPE",
+          items: [
+            { key: "bird",      ox: -36, oy: -28, size: 196, rot: -8,  enter: "left",   tape: false },
+            { key: "cassette",  ox: 36,  oy: 30,  size: 205, rot: -11, enter: "right",  tape: true },
+            { key: "butterfly", ox: 36,  oy: -28, size: 168, rot: 12,  enter: "top",    tape: false },
+            { key: "book",      ox: -36, oy: 31,  size: 175, rot: -15, enter: "bottom", tape: true },
+          ],
+        },
+        botanical: {
+          title: "SCENE 04 / BOTANICAL PRESS",
+          items: [
+            { key: "stamp",     ox: -36, oy: -27, size: 168, rot: -11, enter: "top",    tape: true },
+            { key: "vinyl",     ox: 39,  oy: 28,  size: 220, rot: 14,  enter: "right",  tape: false },
+            { key: "lotus",     ox: 36,  oy: -30, size: 170, rot: 10,  enter: "top",    tape: false },
+            { key: "butterfly", ox: -36, oy: 30,  size: 170, rot: -14, enter: "left",   tape: false },
+          ],
+        },
+        chaos: {
+          title: "SCENE 05 / FULL 10-ASSET ARCHIVE",
+          items: [
+            { key: "vinyl",      ox: -42, oy: -34, size: 185, rot: -12, enter: "left",   tape: false },
+            { key: "stamp",      ox: 41,  oy: -34, size: 132, rot: 9,   enter: "top",    tape: true },
+            { key: "guitar",     ox: -43, oy: 26,  size: 172, rot: -16, enter: "left",   tape: false },
+            { key: "cassette",   ox: 41,  oy: 32,  size: 168, rot: -8,  enter: "right",  tape: true },
+            { key: "bird",       ox: -14, oy: -38, size: 136, rot: -6,  enter: "top",    tape: false },
+            { key: "headphones", ox: 18,  oy: -37, size: 132, rot: 14,  enter: "top",    tape: false },
+            { key: "lotus",      ox: -18, oy: 38,  size: 132, rot: -10, enter: "bottom", tape: false },
+            { key: "book",       ox: 14,  oy: 38,  size: 144, rot: 11,  enter: "bottom", tape: false },
+            { key: "butterfly",  ox: 44,  oy: -2,  size: 128, rot: 15,  enter: "right",  tape: false },
+            { key: "blossom",    ox: -44, oy: -4,  size: 128, rot: -14, enter: "left",   tape: false },
+          ],
+        },
+      };
+
+      const SCENE_ORDER = ["vinyl", "sonic", "winged", "botanical", "chaos"];
+      const SCENE_MODES = [
+        { id: "auto",      label: "Auto Collage", badge: "Auto Collage Mix" },
+        { id: "vinyl",     label: "Vinyl Desk",   badge: "Vinyl & Poetry" },
+        { id: "sonic",     label: "Sonic Bloom",  badge: "Sonic Bloom" },
+        { id: "winged",    label: "Winged Tape",  badge: "Winged Tape" },
+        { id: "botanical", label: "Botanical",    badge: "Botanical Press" },
+        { id: "chaos",     label: "All 10 Mix",   badge: "Full 10-Asset Chaos" },
+      ];
+
+      /* ----------------------------------------------------------
+         6. APPLICATION STATE
+         ---------------------------------------------------------- */
+      const state = {
+        mode: "demo",
+        audioObjectUrl: null,
+
+        // Mapped user PNGs by slot key (from ./assets/ OR user file/folder upload)
+        mappedPngs: {},             // { vinyl: url, bird: url, ... }
+        extraPngUrls: [],           // Unmatched additional custom PNGs
+        blobUrlsToRevoke: [],
+
+        isPlaying: false,
+        isLooping: true,
+        isDrawerOpen: false,
+        isCleanMode: false,
+        isReelMode: false,
+
+        paletteId: "newsprint",
+        palette: { ...PALETTES[0] },
+        sceneMode: "auto",
+        activeSceneKey: "vinyl",
+        textScale: 1.0,
+        assetScale: 1.0,
+        camEnergy: 0.85,
+        stopMotionEnabled: true,
+        textureEnabled: true,
+        flashEnabled: true,
+
+        duration: 24.4,
+        startTime: 0.0,
+        endTime: 24.4,
+        syncOffset: 0.0,
+        currentTime: 0.0,
+
+        lines: [],
+        snippetLines: [],
+        activeLineIdx: -1,
+        activeWordEls: [],
+        activeWordTimes: [],
+        revealedWordCount: 0,
+        livePropEls: [],
+        lastJitterTs: 0,
+
+        audioCtx: null,
+        masterGain: null,
+        analyser: null,
+        freqData: null,
+        mediaConnected: false,
+        demoTimer: null,
+        demoStep: 0,
+        demoNodes: [],
+        bassEnergy: 0,
+
+        rafId: null,
+        lastFrameTs: 0,
+        idleTimer: null,
+      };
+
+      /* ----------------------------------------------------------
+         7. DOM REFERENCES
+         ---------------------------------------------------------- */
+      const el = {
+        audio: document.getElementById("audioPlayer"),
+        stageFrame: document.getElementById("stageFrame"),
+        cameraRig: document.getElementById("cameraRig"),
+        collageLayer: document.getElementById("collageLayer"),
+        collageStanza: document.getElementById("collageStanza"),
+        stanzaCaptionText: document.getElementById("stanzaCaptionText"),
+        watermarkScene: document.getElementById("watermarkScene"),
+        cutFlash: document.getElementById("cutFlash"),
+        whipBlurNode: document.getElementById("whipBlurNode"),
+
+        toastPill: document.getElementById("toastPill"),
+        toastDot: document.getElementById("toastDot"),
+        toastText: document.getElementById("toastText"),
+        topHud: document.getElementById("topHud"),
+        trackPillBtn: document.getElementById("trackPillBtn"),
+        hudTitle: document.getElementById("hudTitle"),
+        hudArtist: document.getElementById("hudArtist"),
+        eqBars: document.querySelectorAll(".micro-eq-bar"),
+        quickPaletteBtn: document.getElementById("quickPaletteBtn"),
+        quickPaletteDot: document.getElementById("quickPaletteDot"),
+        quickPaletteName: document.getElementById("quickPaletteName"),
+        cleanModeBtn: document.getElementById("cleanModeBtn"),
+        cleanExitBtn: document.getElementById("cleanExitBtn"),
+        openStudioBtn: document.getElementById("openStudioBtn"),
+
+        bottomDock: document.getElementById("bottomDock"),
+        restartBtn: document.getElementById("restartBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        playIcon: document.getElementById("playIcon"),
+        pauseIcon: document.getElementById("pauseIcon"),
+        progressTrack: document.getElementById("progressTrack"),
+        progressFill: document.getElementById("progressFill"),
+        progressKnob: document.getElementById("progressKnob"),
+        timeElapsed: document.getElementById("timeElapsed"),
+        timeTotal: document.getElementById("timeTotal"),
+        loopBtn: document.getElementById("loopBtn"),
+        dockSceneCycleBtn: document.getElementById("dockSceneCycleBtn"),
+        dockSceneLabel: document.getElementById("dockSceneLabel"),
+        dockReelBtn: document.getElementById("dockReelBtn"),
+        dockReelLabel: document.getElementById("dockReelLabel"),
+
+        drawerBackdrop: document.getElementById("drawerBackdrop"),
+        studioDrawer: document.getElementById("studioDrawer"),
+        closeStudioBtn: document.getElementById("closeStudioBtn"),
+
+        activeSceneBadge: document.getElementById("activeSceneBadge"),
+        sceneBtns: document.querySelectorAll(".scene-btn"),
+        customPngInput: document.getElementById("customPngInput"),
+        customFolderInput: document.getElementById("customFolderInput"),
+        customPngStatus: document.getElementById("customPngStatus"),
+        clearPngsBtn: document.getElementById("clearPngsBtn"),
+        textSizeSlider: document.getElementById("textSizeSlider"),
+        textSizeLabel: document.getElementById("textSizeLabel"),
+        assetSizeSlider: document.getElementById("assetSizeSlider"),
+        assetSizeLabel: document.getElementById("assetSizeLabel"),
+        camEnergySlider: document.getElementById("camEnergySlider"),
+        camEnergyLabel: document.getElementById("camEnergyLabel"),
+        toggleStopMotionBtn: document.getElementById("toggleStopMotionBtn"),
+        toggleTextureBtn: document.getElementById("toggleTextureBtn"),
+        toggleFlashBtn: document.getElementById("toggleFlashBtn"),
+
+        activePaletteLabel: document.getElementById("activePaletteLabel"),
+        paletteGrid: document.getElementById("paletteGrid"),
+        customPaperPicker: document.getElementById("customPaperPicker"),
+        customInkPicker: document.getElementById("customInkPicker"),
+        customAccentPicker: document.getElementById("customAccentPicker"),
+
+        audioStatusBadge: document.getElementById("audioStatusBadge"),
+        audioDropZone: document.getElementById("audioDropZone"),
+        audioFileInput: document.getElementById("audioFileInput"),
+        audioDropLabel: document.getElementById("audioDropLabel"),
+        audioFileMeta: document.getElementById("audioFileMeta"),
+        titleInput: document.getElementById("titleInput"),
+        artistInput: document.getElementById("artistInput"),
+
+        lyricsCountBadge: document.getElementById("lyricsCountBadge"),
+        lrcTabBtns: document.querySelectorAll(".lrc-tab-btn"),
+        lrcTabUrl: document.getElementById("lrcTabUrl"),
+        lrcTabSearch: document.getElementById("lrcTabSearch"),
+        lrcTabManual: document.getElementById("lrcTabManual"),
+        lrclibUrlInput: document.getElementById("lrclibUrlInput"),
+        fetchLrclibBtn: document.getElementById("fetchLrclibBtn"),
+        fetchBtnLabel: document.getElementById("fetchBtnLabel"),
+        fetchSpinner: document.getElementById("fetchSpinner"),
+        lrclibStatusText: document.getElementById("lrclibStatusText"),
+        lrclibSearchInput: document.getElementById("lrclibSearchInput"),
+        searchLrclibBtn: document.getElementById("searchLrclibBtn"),
+        searchResultsBox: document.getElementById("searchResultsBox"),
+        manualLrcInput: document.getElementById("manualLrcInput"),
+        applyManualLrcBtn: document.getElementById("applyManualLrcBtn"),
+
+        snippetWindowBadge: document.getElementById("snippetWindowBadge"),
+        startTimeInput: document.getElementById("startTimeInput"),
+        endTimeInput: document.getElementById("endTimeInput"),
+        useNowStartBtn: document.getElementById("useNowStartBtn"),
+        useNowEndBtn: document.getElementById("useNowEndBtn"),
+        resetFullSongBtn: document.getElementById("resetFullSongBtn"),
+        lyricPickerList: document.getElementById("lyricPickerList"),
+        offsetSlider: document.getElementById("offsetSlider"),
+        offsetLabel: document.getElementById("offsetLabel"),
+        offsetMinusBtn: document.getElementById("offsetMinusBtn"),
+        offsetPlusBtn: document.getElementById("offsetPlusBtn"),
+        offsetResetBtn: document.getElementById("offsetResetBtn"),
+      };
+
+      /* ----------------------------------------------------------
+         8. UTILITIES & SMART ./assets/ PNG LOADER
+         ---------------------------------------------------------- */
+      let toastTimer = null;
+      function showToast(msg, type = "info") {
+        el.toastText.textContent = msg;
+        el.toastDot.className = "w-2 h-2 rounded-full shrink-0 " + (
+          type === "error" ? "bg-rose-500" :
+          type === "success" ? "bg-emerald-400" :
+          "bg-amber-400"
+        );
+        clearTimeout(toastTimer);
+
+        if (window.anime) {
+          anime.remove(el.toastPill);
+          anime({
+            targets: el.toastPill,
+            translateX: ["-50%", "-50%"],
+            translateY: [-24, 0],
+            opacity: [0, 1],
+            scale: [0.92, 1],
+            duration: 360,
+            easing: "easeOutElastic(1, 0.72)",
+          });
+        } else {
+          el.toastPill.style.opacity = "1";
+          el.toastPill.style.transform = "translateX(-50%) translateY(0)";
+        }
+
+        toastTimer = setTimeout(() => {
+          if (window.anime) {
+            anime({
+              targets: el.toastPill,
+              translateX: ["-50%", "-50%"],
+              translateY: [0, -18],
+              opacity: [1, 0],
+              duration: 240,
+              easing: "easeInQuad",
+            });
+          } else {
+            el.toastPill.style.opacity = "0";
+          }
+        }, 2800);
+      }
+
+      function formatTime(sec) {
+        if (!Number.isFinite(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+
+      function parseTimeInput(str) {
+        if (!str) return null;
+        const clean = str.trim();
+        if (/^\d+(\.\d+)?$/.test(clean)) return parseFloat(clean);
+        const m = clean.match(/^(\d+):(\d{1,2})(?:\.(\d+))?$/);
+        if (!m) return null;
+        const mins = parseInt(m[1], 10);
+        const secs = parseInt(m[2], 10);
+        if (secs >= 60) return null;
+        const frac = m[3] ? parseFloat("0." + m[3]) : 0;
+        return mins * 60 + secs + frac;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function parseLRC(rawText) {
+        if (!rawText || typeof rawText !== "string") return [];
+        const rawLines = rawText.split(/\r?\n/);
+        const timeRx = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+        const parsed = [];
+
+        for (const raw of rawLines) {
+          const stamps = [];
+          let m;
+          timeRx.lastIndex = 0;
+          while ((m = timeRx.exec(raw)) !== null) {
+            const mins = parseInt(m[1], 10);
+            const secs = parseInt(m[2], 10);
+            const msStr = m[3] || "0";
+            const ms = msStr.length === 1
+              ? parseInt(msStr, 10) / 10
+              : msStr.length === 2
+              ? parseInt(msStr, 10) / 100
+              : parseInt(msStr.slice(0, 3), 10) / 1000;
+            stamps.push(mins * 60 + secs + ms);
+          }
+          if (!stamps.length) continue;
+          const cleanText = raw
+            .replace(timeRx, "")
+            .replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, "")
+            .trim();
+          if (!cleanText) continue;
+          for (const t of stamps) parsed.push({ time: Number(t.toFixed(3)), text: cleanText });
+        }
+
+        parsed.sort((a, b) => a.time - b.time);
+        return parsed;
+      }
+
+      function hexToLuminance(hex) {
+        const clean = (hex || "#f3ede0").replace("#", "");
+        if (clean.length !== 6) return 0.8;
+        const r = parseInt(clean.slice(0, 2), 16) / 255;
+        const g = parseInt(clean.slice(2, 4), 16) / 255;
+        const b = parseInt(clean.slice(4, 6), 16) / 255;
+        return 0.299 * r + 0.587 * g + 0.114 * b;
+      }
+
+      /**
+       * Matches an uploaded filename (e.g. "flower lotus.png", "guiter.png", "musicdise.png")
+       * directly to its intended collage slot key.
+       */
+      function matchFilenameToSlot(filename) {
+        const lower = String(filename || "").toLowerCase().trim();
+        // 1. Exact match against known names (checks "flower lotus.png" & "flower stamp.png" before "flower.png")
+        for (const key of ALL_ASSET_KEYS) {
+          for (const candidate of ASSET_FILE_MAP[key]) {
+            if (lower === candidate) return key;
+          }
+        }
+        // 2. Partial keyword fallback
+        if (lower.includes("lotus")) return "lotus";
+        if (lower.includes("stamp")) return "stamp";
+        if (lower.includes("flower") || lower.includes("blossom")) return "blossom";
+        if (lower.includes("music") || lower.includes("vinyl") || lower.includes("disc")) return "vinyl";
+        if (lower.includes("cacet") || lower.includes("cassette") || lower.includes("tape")) return "cassette";
+        if (lower.includes("guit")) return "guitar";
+        if (lower.includes("headphone")) return "headphones";
+        if (lower.includes("bird") || lower.includes("dove")) return "bird";
+        if (lower.includes("book")) return "book";
+        if (lower.includes("butterfl")) return "butterfly";
+        return null;
+      }
+
+      function updatePngStatusBadge() {
+        const mappedCount = Object.keys(state.mappedPngs).length;
+        const extraCount = state.extraPngUrls.length;
+        const total = mappedCount + extraCount;
+
+        if (total > 0) {
+          el.customPngStatus.textContent = `${mappedCount}/10 slots mapped${extraCount ? ` (+${extraCount} extra)` : ""} · Your PNGs Active`;
+          el.customPngStatus.className = "text-[10px] text-emerald-400 font-semibold truncate";
+          el.clearPngsBtn.classList.remove("hidden");
+        } else {
+          el.customPngStatus.textContent = "Auto-checks ./assets/ · Fallback SVGs active";
+          el.customPngStatus.className = "text-[10px] text-white/50 truncate";
+          el.clearPngsBtn.classList.add("hidden");
+        }
+      }
+
+      /**
+       * Automatically probes ./assets/<filename> (and ./<filename>) on page load.
+       * When the user saves this HTML locally and drops their 10 PNGs inside an "assets" folder
+       * next to the HTML file, all 10 PNGs load automatically without clicking anything!
+       */
+      function probeImageUrl(url) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(url);
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+      }
+
+      async function autoLoadLocalAssetsFolder() {
+        let foundAny = false;
+
+        await Promise.all(
+          ALL_ASSET_KEYS.map(async (key) => {
+            const primaryFile = ASSET_FILE_MAP[key][0];
+            const pathsToTry = [
+              encodeURI(`./assets/${primaryFile}`),
+              encodeURI(`./${primaryFile}`),
+            ];
+            for (const url of pathsToTry) {
+              const ok = await probeImageUrl(url);
+              if (ok) {
+                state.mappedPngs[key] = ok;
+                foundAny = true;
+                break;
+              }
+            }
+          })
+        );
+
+        if (foundAny) {
+          updatePngStatusBadge();
+          renderCollageAssets(state.activeSceneKey, Math.max(0, state.activeLineIdx), true);
+          const count = Object.keys(state.mappedPngs).length;
+          showToast(`Auto-loaded ${count} PNG asset${count > 1 ? "s" : ""} from assets/`, "success");
+        }
+      }
+
+      /* ----------------------------------------------------------
+         9. ZINE PALETTE ENGINE (6 PRESETS + LIVE CUSTOM PICKERS)
+         ---------------------------------------------------------- */
+      function buildPaletteGrid() {
+        el.paletteGrid.innerHTML = "";
+        const frag = document.createDocumentFragment();
+
+        PALETTES.forEach((p) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.dataset.palettePick = p.id;
+          btn.title = p.name;
+          btn.className = "palette-btn flex items-center gap-2 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition text-left";
+          btn.innerHTML = `
+            <span class="w-5 h-5 rounded-full border border-white/25 shrink-0" style="background: linear-gradient(135deg, ${p.paper} 52%, ${p.accent} 100%);"></span>
+            <span class="text-[10px] font-bold text-white/85 truncate">${escapeHtml(p.name.split(" ")[0])}</span>
+          `;
+          btn.addEventListener("click", () => applyPalette(p.id, true));
+          frag.appendChild(btn);
+        });
+        el.paletteGrid.appendChild(frag);
+      }
+
+      function syncPaletteTokens() {
+        const p = state.palette;
+        const darkPaper = hexToLuminance(p.paper) < 0.36;
+        document.body.classList.toggle("dark-paper", darkPaper);
+
+        const root = document.documentElement;
+        root.style.setProperty("--paper", p.paper);
+        root.style.setProperty("--ink", p.ink);
+        root.style.setProperty("--accent", p.accent);
+        root.style.setProperty("--sticker-rim", p.stickerRim || "#fbf9f4");
+        root.style.setProperty("--hud-accent", p.accent);
+        root.style.setProperty("--dot-color", darkPaper ? "rgba(255,255,255,0.085)" : "rgba(18,16,16,0.085)");
+        root.style.setProperty("--grid-color", darkPaper ? "rgba(255,255,255,0.045)" : "rgba(18,16,16,0.05)");
+        root.style.setProperty("--sticker-shadow", darkPaper ? "rgba(0,0,0,0.62)" : "rgba(14,10,8,0.26)");
+
+        el.quickPaletteDot.style.background = `linear-gradient(135deg, ${p.paper} 50%, ${p.accent} 100%)`;
+        el.customPaperPicker.value = p.paper;
+        el.customInkPicker.value = p.ink;
+        el.customAccentPicker.value = p.accent;
+      }
+
+      function applyPalette(paletteId, announce = false) {
+        const found = PALETTES.find((item) => item.id === paletteId) || PALETTES[0];
+        state.paletteId = found.id;
+        state.palette = { ...found };
+
+        el.activePaletteLabel.textContent = found.name;
+        el.quickPaletteName.textContent = found.name;
+
+        el.paletteGrid.querySelectorAll(".palette-btn").forEach((btn) => {
+          const active = btn.dataset.palettePick === found.id;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/45", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+
+        syncPaletteTokens();
+        if (announce) showToast(`Zine Palette: ${found.name}`);
+      }
+
+      /* ----------------------------------------------------------
+         10. CHOREOGRAPHED COLLAGE ASSET MOUNTING + 3D CAMERA MOTION
+         ---------------------------------------------------------- */
+      function triggerCutFlashAndCameraWhip(sceneIdx) {
+        if (!window.gsap) return;
+
+        if (state.flashEnabled) {
+          gsap.killTweensOf(el.cutFlash);
+          gsap.fromTo(el.cutFlash, { opacity: 0.24 }, { opacity: 0, duration: 0.26, ease: "power3.out" });
+        }
+
+        const energy = state.camEnergy;
+        if (energy <= 0.02) {
+          gsap.set(el.cameraRig, { x: 0, y: 0, scale: 1, rotation: 0, rotationX: 0, rotationY: 0 });
+          return;
+        }
+
+        const dir = sceneIdx % 2 === 0 ? 1 : -1;
+        gsap.killTweensOf(el.cameraRig);
+        gsap.fromTo(
+          el.cameraRig,
+          {
+            scale: 1 + 0.14 * energy,
+            x: 42 * dir * energy,
+            y: -20 * energy,
+            rotation: -3.2 * dir * energy,
+            rotationY: 7 * dir * energy,
+          },
+          {
+            scale: 1,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            rotationY: 0,
+            duration: 0.56,
+            ease: "expo.out",
+          }
+        );
+
+        const blurObj = { v: 5.5 * energy };
+        el.cameraRig.style.filter = "url(#collageWhipBlur)";
+        gsap.to(blurObj, {
+          v: 0,
+          duration: 0.34,
+          ease: "power3.out",
+          onUpdate: () => {
+            el.whipBlurNode.setAttribute("stdDeviation", `${blurObj.v.toFixed(2)} 0`);
+          },
+          onComplete: () => {
+            el.cameraRig.style.filter = "";
+          },
+        });
+      }
+
+      function renderCollageAssets(sceneKey, lineIdx, instant = false) {
+        const scene = COLLAGE_SCENES[sceneKey] || COLLAGE_SCENES.vinyl;
+        state.activeSceneKey = sceneKey;
+        el.watermarkScene.textContent = scene.title;
+
+        el.collageLayer.innerHTML = "";
+        state.livePropEls = [];
+
+        const stageW = Math.max(300, el.stageFrame.clientWidth || window.innerWidth);
+        const stageH = Math.max(420, el.stageFrame.clientHeight || window.innerHeight);
+        const isNarrow = stageW < 640 || state.isReelMode;
+        const sizeFactor = (isNarrow ? 0.68 : Math.min(1.18, Math.max(0.76, Math.min(stageW, stageH) / 760))) * state.assetScale;
+
+        const frag = document.createDocumentFragment();
+
+        scene.items.forEach((spec, idx) => {
+          const item = document.createElement("div");
+          item.className = "collage-item";
+
+          const pxSize = Math.round(spec.size * sizeFactor);
+          const oxMult = isNarrow ? 0.88 : 1.0;
+          const oyMult = isNarrow ? 1.08 : 1.0;
+          const tx = (spec.ox * oxMult / 100) * stageW;
+          const ty = (spec.oy * oyMult / 100) * stageH;
+
+          item.style.width = `${pxSize}px`;
+          item.style.height = `${pxSize}px`;
+          item.style.marginLeft = `${(-pxSize * 0.5).toFixed(1)}px`;
+          item.style.marginTop = `${(-pxSize * 0.5).toFixed(1)}px`;
+
+          if (spec.tape) {
+            const tape = document.createElement("span");
+            tape.className = "washi-tape";
+            tape.style.top = "-6px";
+            tape.style.left = "50%";
+            tape.style.transform = `translateX(-50%) rotate(${idx % 2 === 0 ? -12 : 11}deg)`;
+            item.appendChild(tape);
+          }
+
+          // Priority 1: Exact matched PNG from ./assets/ or user upload
+          // Priority 2: Any extra custom PNGs user added
+          // Priority 3: Built-in halftone SVG fallback
+          const mappedSrc = state.mappedPngs[spec.key];
+          if (mappedSrc) {
+            const img = document.createElement("img");
+            img.className = "custom-png-sticker" + (spec.key === "vinyl" ? " spin-vinyl" : "");
+            img.src = mappedSrc;
+            img.alt = "";
+            item.appendChild(img);
+          } else if (state.extraPngUrls.length > 0) {
+            const pngIdx = (lineIdx * 2 + idx) % state.extraPngUrls.length;
+            const img = document.createElement("img");
+            img.className = "custom-png-sticker" + (spec.key === "vinyl" ? " spin-vinyl" : "");
+            img.src = state.extraPngUrls[pngIdx];
+            img.alt = "";
+            item.appendChild(img);
+          } else {
+            const inner = document.createElement("div");
+            inner.className = "w-full h-full";
+            inner.innerHTML = ASSET_SVGS[spec.key] || ASSET_SVGS.vinyl;
+            item.appendChild(inner);
+          }
+
+          frag.appendChild(item);
+
+          state.livePropEls.push({
+            el: item,
+            baseX: tx,
+            baseY: ty,
+            baseRot: spec.rot,
+            jitterX: 0,
+            jitterY: 0,
+            jitterRot: 0,
+            phase: idx * 1.37 + lineIdx * 0.6,
+            isVinyl: spec.key === "vinyl",
+          });
+
+          if (!instant && window.gsap) {
+            const fromX = spec.enter === "left" ? tx - 140 : spec.enter === "right" ? tx + 140 : tx;
+            const fromY = spec.enter === "top" ? ty - 130 : spec.enter === "bottom" ? ty + 130 : ty;
+
+            gsap.fromTo(
+              item,
+              {
+                x: fromX,
+                y: fromY,
+                rotation: spec.rot + (idx % 2 === 0 ? -24 : 24),
+                scale: 0.58,
+                opacity: 0,
+              },
+              {
+                x: tx,
+                y: ty,
+                rotation: spec.rot,
+                scale: 1,
+                opacity: 1,
+                duration: 0.58,
+                delay: idx * 0.045,
+                ease: "back.out(1.5)",
+              }
+            );
+          } else {
+            item.style.transform = `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0) rotate(${spec.rot}deg)`;
+          }
+        });
+
+        el.collageLayer.appendChild(frag);
+      }
+
+      /* ----------------------------------------------------------
+         11. MIXED-FONT EDITORIAL SCRAPBOOK LYRICS ENGINE
+         ---------------------------------------------------------- */
+      function computeWordTimestamps(lineObj, nextLineObj) {
+        const words = lineObj.text.split(/\s+/).filter(Boolean);
+        if (!words.length) return { words: [], times: [] };
+
+        const gap = nextLineObj
+          ? Math.max(0.8, nextLineObj.time - lineObj.time)
+          : Math.max(1.8, Math.min(4.2, state.endTime - lineObj.time));
+
+        const weights = words.map((w) => Math.max(1, w.replace(/[^a-zA-Z0-9\u0900-\u097f]/g, "").length * 0.32 + 0.85));
+        const totalW = weights.reduce((a, b) => a + b, 0) || 1;
+        const span = Math.min(gap * 0.8, Math.max(0.55, words.length * 0.33));
+
+        let acc = 0;
+        const times = words.map((_, i) => {
+          const t = lineObj.time + (acc / totalW) * span;
+          acc += weights[i];
+          return t;
+        });
+
+        return { words, times };
+      }
+
+      function pickFocalWordIndex(words) {
+        let bestIdx = words.length - 1;
+        let bestLen = 0;
+        words.forEach((w, i) => {
+          const clean = w.replace(/[^a-zA-Z0-9\u0900-\u097f]/g, "");
+          if (clean.length >= bestLen) {
+            bestLen = clean.length;
+            bestIdx = i;
+          }
+        });
+        return bestIdx;
+      }
+
+      function mountCollageLine(lineIdx, instant = false) {
+        const lineObj = state.snippetLines[lineIdx];
+        if (!lineObj) {
+          el.collageStanza.innerHTML = "";
+          state.activeWordEls = [];
+          state.activeWordTimes = [];
+          return;
+        }
+
+        const nextLineObj = state.snippetLines[lineIdx + 1] || null;
+        const { words, times } = computeWordTimestamps(lineObj, nextLineObj);
+        const focalIdx = pickFocalWordIndex(words);
+
+        const sceneKey = state.sceneMode === "auto"
+          ? SCENE_ORDER[lineIdx % SCENE_ORDER.length]
+          : state.sceneMode;
+
+        state.activeLineIdx = lineIdx;
+        state.activeWordTimes = times;
+        state.activeWordEls = [];
+        state.revealedWordCount = 0;
+
+        renderCollageAssets(sceneKey, lineIdx, instant);
+        if (!instant) triggerCutFlashAndCameraWhip(lineIdx);
+
+        el.collageStanza.innerHTML = "";
+        const frag = document.createDocumentFragment();
+
+        words.forEach((word, i) => {
+          const span = document.createElement("span");
+          let styleCls = "style-grotesk";
+
+          if (i === focalIdx) {
+            styleCls = lineIdx % 2 === 0 ? "style-cutout" : "style-tape";
+          } else if (i === 0 && words.length > 2) {
+            styleCls = "style-display";
+          } else if (i % 3 === 1) {
+            styleCls = "style-serif";
+          } else if (word.length <= 3 && i > 0 && i % 4 === 2) {
+            styleCls = "style-mono";
+          }
+
+          span.className = `z-word ${styleCls}`;
+          span.textContent = word;
+          const tilt = i === focalIdx
+            ? (lineIdx % 2 === 0 ? -3.2 : 2.8)
+            : ((i % 3) - 1) * 1.4;
+          span.dataset.baseRot = String(tilt);
+
+          if (instant) {
+            span.style.opacity = "1";
+            span.style.transform = `rotate(${tilt}deg)`;
+          }
+
+          frag.appendChild(span);
+          state.activeWordEls.push(span);
+        });
+
+        el.collageStanza.appendChild(frag);
+        if (instant) state.revealedWordCount = words.length;
+      }
+
+      function revealCollageWord(wordEl, idx) {
+        if (!wordEl) return;
+        const baseRot = parseFloat(wordEl.dataset.baseRot || "0");
+        const isCutout = wordEl.classList.contains("style-cutout") || wordEl.classList.contains("style-tape");
+
+        if (!window.gsap) {
+          wordEl.style.opacity = "1";
+          wordEl.style.transform = `rotate(${baseRot}deg)`;
+          return;
+        }
+
+        gsap.killTweensOf(wordEl);
+        gsap.fromTo(
+          wordEl,
+          {
+            opacity: 0,
+            y: isCutout ? 24 : 16,
+            scale: isCutout ? 0.68 : 0.88,
+            rotation: baseRot + (idx % 2 === 0 ? -9 : 9),
+            filter: "blur(5px)",
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            rotation: baseRot,
+            filter: "blur(0px)",
+            duration: isCutout ? 0.52 : 0.42,
+            ease: isCutout ? "elastic.out(1, 0.62)" : "back.out(1.65)",
+          }
+        );
+      }
+
+      function syncCollageLyrics(effectiveNow, forceRebuild = false) {
+        if (!state.snippetLines.length) return;
+
+        let targetLineIdx = 0;
+        for (let i = 0; i < state.snippetLines.length; i++) {
+          if (state.snippetLines[i].time <= effectiveNow + 0.04) {
+            targetLineIdx = i;
+          } else {
+            break;
+          }
+        }
+
+        const isInitialPaused = !state.isPlaying && Math.abs(effectiveNow - state.startTime) < 0.2;
+
+        if (forceRebuild || targetLineIdx !== state.activeLineIdx) {
+          mountCollageLine(targetLineIdx, isInitialPaused);
+          if (isInitialPaused) return;
+        }
+
+        let targetCount = 0;
+        for (let w = 0; w < state.activeWordTimes.length; w++) {
+          if (state.activeWordTimes[w] <= effectiveNow + 0.04) {
+            targetCount = w + 1;
+          } else {
+            break;
+          }
+        }
+        if (targetCount < 1 && state.activeWordEls.length > 0) targetCount = 1;
+
+        if (targetCount < state.revealedWordCount) {
+          state.activeWordEls.forEach((wEl, i) => {
+            if (window.gsap) gsap.killTweensOf(wEl);
+            const show = i < targetCount;
+            wEl.style.opacity = show ? "1" : "0";
+            wEl.style.transform = `rotate(${wEl.dataset.baseRot || 0}deg)`;
+          });
+          state.revealedWordCount = targetCount;
+        } else if (targetCount > state.revealedWordCount) {
+          for (let w = state.revealedWordCount; w < targetCount; w++) {
+            revealCollageWord(state.activeWordEls[w], w);
+          }
+          state.revealedWordCount = targetCount;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         12. STOP-MOTION PAPER JITTER & BASS-REACTIVE COLLAGE FLOAT
+         ---------------------------------------------------------- */
+      function updateLivingCollage(ts) {
+        const t = ts * 0.001;
+        const doStepJitter = state.stopMotionEnabled && (ts - state.lastJitterTs > (state.isPlaying ? 105 : 240));
+        if (doStepJitter) state.lastJitterTs = ts;
+
+        const bass = state.bassEnergy;
+        const energy = state.camEnergy;
+
+        for (let i = 0; i < state.livePropEls.length; i++) {
+          const p = state.livePropEls[i];
+          if (!p.el || (window.gsap && gsap.isTweening(p.el))) continue;
+
+          if (doStepJitter) {
+            p.jitterX = (Math.random() - 0.5) * 3.8;
+            p.jitterY = (Math.random() - 0.5) * 3.8;
+            p.jitterRot = (Math.random() - 0.5) * 2.4;
+          }
+
+          const floatX = Math.sin(t * 1.15 + p.phase) * 9 * energy;
+          const floatY = Math.cos(t * 0.95 + p.phase) * 8 * energy;
+          const beatScale = 1 + bass * 0.065 * energy;
+
+          const x = p.baseX + floatX + (state.stopMotionEnabled ? p.jitterX : 0);
+          const y = p.baseY + floatY + (state.stopMotionEnabled ? p.jitterY : 0);
+          const rot = p.baseRot + Math.sin(t * 0.8 + p.phase) * 2.5 * energy + (state.stopMotionEnabled ? p.jitterRot : 0);
+
+          p.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${rot.toFixed(2)}deg) scale(${beatScale.toFixed(4)})`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         13. WEB AUDIO API: WARM INDIE VINYL LO-FI DEMO SYNTH
+         ---------------------------------------------------------- */
+      function ensureAudioGraph() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return false;
+
+        if (!state.audioCtx) {
+          state.audioCtx = new AudioCtx();
+          state.masterGain = state.audioCtx.createGain();
+          state.masterGain.gain.value = 0.84;
+
+          state.analyser = state.audioCtx.createAnalyser();
+          state.analyser.fftSize = 128;
+          state.analyser.smoothingTimeConstant = 0.8;
+          state.freqData = new Uint8Array(state.analyser.frequencyBinCount);
+
+          state.masterGain.connect(state.analyser);
+          state.analyser.connect(state.audioCtx.destination);
+        }
+
+        if (state.audioCtx.state === "suspended") {
+          state.audioCtx.resume().catch(() => {});
+        }
+        return true;
+      }
+
+      function connectMediaElementOnce() {
+        if (!ensureAudioGraph() || state.mediaConnected) return;
+        try {
+          const src = state.audioCtx.createMediaElementSource(el.audio);
+          src.connect(state.masterGain);
+          state.mediaConnected = true;
+        } catch (_) {}
+      }
+
+      const VINYL_CHORDS = [
+        { bass: 98.00, pad: [196.0, 246.94, 293.66, 369.99, 440.0] },
+        { bass: 82.41, pad: [164.81, 196.0, 246.94, 293.66, 369.99] },
+        { bass: 65.41, pad: [130.81, 196.0, 246.94, 293.66, 329.63] },
+        { bass: 73.42, pad: [146.83, 220.0, 261.63, 329.63, 369.99] },
+      ];
+
+      function triggerDemoBar() {
+        if (state.mode !== "demo" || !state.isPlaying || !ensureAudioGraph()) return;
+        const ctx = state.audioCtx;
+        const now = ctx.currentTime;
+        const bar = VINYL_CHORDS[state.demoStep % VINYL_CHORDS.length];
+        state.demoStep++;
+
+        const beat = 0.72;
+        const nodes = [];
+
+        [0, beat * 2, beat * 3].forEach((off, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(idx === 0 || idx === 1 ? 115 : bar.bass * 1.1, now + off);
+          osc.frequency.exponentialRampToValueAtTime(bar.bass * 0.72, now + off + 0.14);
+          g.gain.setValueAtTime(0.0001, now + off);
+          g.gain.exponentialRampToValueAtTime(0.32, now + off + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, now + off + 0.55);
+          osc.connect(g);
+          g.connect(state.masterGain);
+          osc.start(now + off);
+          osc.stop(now + off + 0.6);
+          nodes.push(osc);
+        });
+
+        const lpf = ctx.createBiquadFilter();
+        lpf.type = "lowpass";
+        lpf.frequency.setValueAtTime(1450, now);
+        lpf.frequency.exponentialRampToValueAtTime(480, now + 2.7);
+
+        const padG = ctx.createGain();
+        padG.gain.setValueAtTime(0.0001, now);
+        padG.gain.exponentialRampToValueAtTime(0.095, now + 0.14);
+        padG.gain.setValueAtTime(0.08, now + 2.1);
+        padG.gain.exponentialRampToValueAtTime(0.0001, now + 2.95);
+
+        lpf.connect(padG);
+        padG.connect(state.masterGain);
+
+        bar.pad.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          osc.type = i % 2 === 0 ? "triangle" : "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          osc.detune.setValueAtTime((i - 2) * 5, now);
+          osc.connect(lpf);
+          osc.start(now + i * 0.045);
+          osc.stop(now + 3.05);
+          nodes.push(osc);
+        });
+
+        state.demoNodes.push(...nodes);
+        if (state.demoNodes.length > 56) state.demoNodes = state.demoNodes.slice(-28);
+      }
+
+      function startDemoSynth() {
+        stopDemoSynth();
+        if (state.mode !== "demo") return;
+        triggerDemoBar();
+        state.demoTimer = setInterval(triggerDemoBar, 2900);
+      }
+
+      function stopDemoSynth() {
+        if (state.demoTimer) {
+          clearInterval(state.demoTimer);
+          state.demoTimer = null;
+        }
+        state.demoNodes.forEach((n) => { try { n.stop(); } catch (_) {} });
+        state.demoNodes = [];
+      }
+
+      function updateAudioReactivity() {
+        let bass = 0;
+        const eqVals = [0.16, 0.24, 0.2, 0.14];
+
+        if (state.isPlaying && state.analyser && state.freqData) {
+          state.analyser.getByteFrequencyData(state.freqData);
+          let sum = 0;
+          for (let i = 0; i < 6; i++) sum += state.freqData[i];
+          bass = Math.min(1, sum / (6 * 210));
+          [1, 4, 8, 15].forEach((bin, i) => {
+            eqVals[i] = Math.max(0.18, (state.freqData[bin] || 0) / 255);
+          });
+        } else if (state.isPlaying) {
+          const t = performance.now() * 0.005;
+          bass = 0.22 + Math.abs(Math.sin(t)) * 0.24;
+          for (let i = 0; i < 4; i++) {
+            eqVals[i] = 0.24 + Math.abs(Math.sin(t * (1.2 + i * 0.35))) * 0.55;
+          }
+        }
+
+        state.bassEnergy += (bass - state.bassEnergy) * 0.2;
+        el.eqBars.forEach((bar, i) => {
+          bar.style.height = state.isPlaying ? `${Math.round(3 + eqVals[i] * 11)}px` : "3.5px";
+        });
+      }
+
+      /* ----------------------------------------------------------
+         14. PLAYBACK ENGINE, SNIPPET LOOP & MASTER 60FPS LOOP
+         ---------------------------------------------------------- */
+      function getCurrentTime() {
+        return state.mode === "audio" ? el.audio.currentTime : state.currentTime;
+      }
+
+      function seekTo(sec) {
+        const clamped = Math.max(0, Math.min(state.duration, sec));
+        if (state.mode === "audio") {
+          try { el.audio.currentTime = clamped; } catch (_) {}
+        } else {
+          state.currentTime = clamped;
+        }
+        updateProgressUI(clamped);
+        syncCollageLyrics(clamped + state.syncOffset, true);
+      }
+
+      function updateProgressUI(nowSec) {
+        const clipLen = Math.max(0.1, state.endTime - state.startTime);
+        const rel = Math.max(0, Math.min(clipLen, nowSec - state.startTime));
+        const pct = (rel / clipLen) * 100;
+        el.progressFill.style.width = `${pct}%`;
+        el.progressKnob.style.left = `${pct}%`;
+        el.timeElapsed.textContent = formatTime(rel);
+      }
+
+      function setPlayUI(playing) {
+        state.isPlaying = playing;
+        document.body.classList.toggle("is-playing", playing);
+        el.playIcon.classList.toggle("hidden", playing);
+        el.pauseIcon.classList.toggle("hidden", !playing);
+        if (window.anime) {
+          anime({
+            targets: el.playPauseBtn,
+            scale: [0.88, 1.07, 1],
+            duration: 340,
+            easing: "easeOutElastic(1, 0.7)",
+          });
+        }
+        resetIdleDockTimer();
+      }
+
+      function startPlayback() {
+        ensureAudioGraph();
+        const now = getCurrentTime();
+        if (now < state.startTime || now >= state.endTime - 0.08) {
+          seekTo(state.startTime);
+        }
+
+        if (state.mode === "audio") {
+          connectMediaElementOnce();
+          el.audio.play().then(() => {
+            setPlayUI(true);
+            state.lastFrameTs = performance.now();
+            syncCollageLyrics(getCurrentTime() + state.syncOffset, true);
+          }).catch(() => {
+            showToast("Tap Play again to start audio", "error");
+            setPlayUI(false);
+          });
+        } else {
+          setPlayUI(true);
+          startDemoSynth();
+          state.lastFrameTs = performance.now();
+          syncCollageLyrics(getCurrentTime() + state.syncOffset, true);
+        }
+      }
+
+      function pausePlayback() {
+        if (state.mode === "audio") el.audio.pause();
+        else stopDemoSynth();
+        setPlayUI(false);
+      }
+
+      function togglePlay() {
+        if (state.isPlaying) pausePlayback();
+        else startPlayback();
+      }
+
+      function computeSnippetLines() {
+        const tol = 0.25;
+        const filtered = state.lines.filter(
+          (l) => l.time >= state.startTime - tol && l.time <= state.endTime + tol
+        );
+        state.snippetLines = filtered.length ? filtered : state.lines.slice();
+      }
+
+      function setSnippetBounds(start, end) {
+        const maxDur = Math.max(2, state.duration);
+        const s = Math.max(0, Math.min(start, maxDur - 1));
+        const e = Math.max(s + 1, Math.min(end, maxDur));
+
+        state.startTime = Number(s.toFixed(2));
+        state.endTime = Number(e.toFixed(2));
+
+        el.startTimeInput.value = formatTime(state.startTime);
+        el.endTimeInput.value = formatTime(state.endTime);
+
+        const clipLen = Math.max(0, state.endTime - state.startTime);
+        el.snippetWindowBadge.textContent = `${formatTime(state.startTime)} → ${formatTime(state.endTime)} (${Math.round(clipLen)}s)`;
+        el.timeTotal.textContent = formatTime(clipLen);
+
+        computeSnippetLines();
+        renderLyricPicker();
+
+        const now = getCurrentTime();
+        updateProgressUI(now);
+        syncCollageLyrics(now + state.syncOffset, true);
+      }
+
+      function renderLyricPicker() {
+        el.lyricsCountBadge.textContent = `${state.lines.length} lines`;
+        el.lyricPickerList.innerHTML = "";
+
+        if (!state.lines.length) {
+          el.lyricPickerList.innerHTML =
+            '<p class="p-4 text-xs text-white/45 text-center">No synced lyrics loaded yet.</p>';
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        state.lines.forEach((line, idx) => {
+          const inRange = line.time >= state.startTime - 0.25 && line.time <= state.endTime + 0.25;
+          const row = document.createElement("div");
+          row.className = `flex items-center justify-between gap-2 px-3 py-2.5 text-xs transition ${
+            inRange
+              ? "bg-rose-500/18 text-white border-l-2 border-rose-400"
+              : "text-white/55 hover:bg-white/[0.04]"
+          }`;
+
+          const left = document.createElement("button");
+          left.type = "button";
+          left.className = "flex-1 min-w-0 text-left flex items-center gap-2.5 truncate";
+          left.innerHTML = `
+            <span class="font-mono text-[10px] opacity-60 shrink-0">${formatTime(line.time)}</span>
+            <span class="truncate font-medium">${escapeHtml(line.text)}</span>
+          `;
+          left.addEventListener("click", () => {
+            const target = Math.max(0, Math.min(state.duration - 0.2, line.time - state.syncOffset));
+            if (target < state.startTime || target >= state.endTime) {
+              setSnippetBounds(target, Math.min(state.duration, target + 22));
+            }
+            seekTo(target);
+            if (!state.isPlaying) startPlayback();
+          });
+
+          const actions = document.createElement("div");
+          actions.className = "flex items-center gap-1 shrink-0";
+
+          const btnStart = document.createElement("button");
+          btnStart.type = "button";
+          btnStart.textContent = "Start";
+          btnStart.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnStart.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newStart = Math.max(0, line.time - state.syncOffset);
+            const newEnd = state.endTime <= newStart + 1.5
+              ? Math.min(state.duration, newStart + 22)
+              : state.endTime;
+            setSnippetBounds(newStart, newEnd);
+            seekTo(newStart);
+            showToast(`Snippet starts at ${formatTime(newStart)}`, "success");
+          });
+
+          const btnEnd = document.createElement("button");
+          btnEnd.type = "button";
+          btnEnd.textContent = "End";
+          btnEnd.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnEnd.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const next = state.lines[idx + 1];
+            const naturalEnd = next ? next.time - 0.05 : line.time + 3.4;
+            const newEnd = Math.min(state.duration, Math.max(1.5, naturalEnd - state.syncOffset));
+            const newStart = state.startTime >= newEnd - 1 ? Math.max(0, newEnd - 18) : state.startTime;
+            setSnippetBounds(newStart, newEnd);
+            showToast(`Snippet ends at ${formatTime(newEnd)}`, "success");
+          });
+
+          actions.appendChild(btnStart);
+          actions.appendChild(btnEnd);
+          row.appendChild(left);
+          row.appendChild(actions);
+          frag.appendChild(row);
+        });
+
+        el.lyricPickerList.appendChild(frag);
+      }
+
+      function startMasterLoop() {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+
+        const tick = (ts) => {
+          const dt = Math.min(0.15, (ts - (state.lastFrameTs || ts)) / 1000);
+          state.lastFrameTs = ts;
+
+          if (state.isPlaying) {
+            let now;
+            if (state.mode === "audio") {
+              now = el.audio.currentTime;
+            } else {
+              state.currentTime += dt;
+              now = state.currentTime;
+            }
+
+            if (now >= state.endTime) {
+              if (state.isLooping) {
+                seekTo(state.startTime);
+                now = state.startTime;
+                if (state.mode === "audio" && el.audio.paused) {
+                  el.audio.play().catch(() => {});
+                }
+              } else {
+                pausePlayback();
+                seekTo(state.startTime);
+              }
+            }
+
+            updateProgressUI(now);
+            syncCollageLyrics(now + state.syncOffset, false);
+          }
+
+          updateAudioReactivity();
+          updateLivingCollage(ts);
+          state.rafId = requestAnimationFrame(tick);
+        };
+
+        state.lastFrameTs = performance.now();
+        state.rafId = requestAnimationFrame(tick);
+      }
+
+      /* ----------------------------------------------------------
+         15. LOCAL MP3 UPLOAD, SMART PNG UPLOAD & LRCLIB.NET
+         ---------------------------------------------------------- */
+      function handleAudioFile(file) {
+        if (!file) return;
+        const ok = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|aac|flac)$/i.test(file.name);
+        if (!ok) {
+          showToast("Please upload a valid MP3, WAV, M4A, or OGG file", "error");
+          return;
+        }
+
+        pausePlayback();
+        stopDemoSynth();
+
+        if (state.audioObjectUrl) URL.revokeObjectURL(state.audioObjectUrl);
+        state.audioObjectUrl = URL.createObjectURL(file);
+        state.mode = "audio";
+        el.audio.src = state.audioObjectUrl;
+        el.audio.load();
+
+        el.audioDropLabel.textContent = file.name;
+        el.audioFileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · Loaded locally`;
+        el.audioStatusBadge.textContent = "Local Audio Active";
+        el.audioStatusBadge.className = "text-[11px] font-semibold text-emerald-400";
+
+        if (el.titleInput.value === "Paper Wings & Vinyl") {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+          el.titleInput.value = cleanName;
+          el.hudTitle.textContent = cleanName;
+          el.stanzaCaptionText.textContent = cleanName.toUpperCase();
+          el.artistInput.value = "Local Audio";
+          el.hudArtist.textContent = "Local Audio";
+        }
+
+        showToast(`Loaded "${file.name}"`, "success");
+      }
+
+      el.audio.addEventListener("loadedmetadata", () => {
+        if (!Number.isFinite(el.audio.duration) || el.audio.duration <= 0) return;
+        state.duration = el.audio.duration;
+        if (state.endTime > state.duration || state.endTime === 24.4) {
+          setSnippetBounds(0, Math.min(state.duration, 26));
+        } else {
+          setSnippetBounds(state.startTime, state.endTime);
+        }
+        seekTo(state.startTime);
+      });
+
+      el.audio.addEventListener("ended", () => {
+        if (state.isLooping) {
+          seekTo(state.startTime);
+          el.audio.play().catch(() => {});
+        } else {
+          pausePlayback();
+          seekTo(state.startTime);
+        }
+      });
+
+      function handleCustomPngFiles(fileList) {
+        const files = Array.from(fileList || []).filter(
+          (f) => f.type.startsWith("image/") || /\.(png|webp|jpg|jpeg|svg)$/i.test(f.name)
+        );
+        if (!files.length) {
+          showToast("No PNG/image files found in selection", "error");
+          return;
+        }
+
+        let matched = 0;
+        let extras = 0;
+
+        files.forEach((f) => {
+          const blobUrl = URL.createObjectURL(f);
+          state.blobUrlsToRevoke.push(blobUrl);
+          const slotKey = matchFilenameToSlot(f.name);
+          if (slotKey) {
+            state.mappedPngs[slotKey] = blobUrl;
+            matched++;
+          } else {
+            state.extraPngUrls.push(blobUrl);
+            extras++;
+          }
+        });
+
+        updatePngStatusBadge();
+        renderCollageAssets(state.activeSceneKey, Math.max(0, state.activeLineIdx), false);
+
+        if (matched > 0) {
+          showToast(`Mapped ${matched} PNG${matched > 1 ? "s" : ""} to their exact slots!`, "success");
+        } else {
+          showToast(`Loaded ${extras} custom PNG cutout${extras > 1 ? "s" : ""}!`, "success");
+        }
+      }
+
+      function applyTrackData(data, sourceLabel = "LRCLIB") {
+        if (data.trackName) {
+          el.titleInput.value = data.trackName;
+          el.hudTitle.textContent = data.trackName;
+          el.stanzaCaptionText.textContent = data.trackName.toUpperCase();
+        }
+        if (data.artistName) {
+          el.artistInput.value = data.artistName;
+          el.hudArtist.textContent = data.artistName;
+        }
+
+        if (data.syncedLyrics) {
+          const parsed = parseLRC(data.syncedLyrics);
+          if (!parsed.length) {
+            showToast("Fetched track had empty synced timestamps", "error");
+            return false;
+          }
+
+          state.lines = parsed;
+          el.manualLrcInput.value = data.syncedLyrics;
+
+          if (state.mode === "demo") {
+            const lastT = parsed[parsed.length - 1].time;
+            state.duration = Math.max(data.duration || 0, lastT + 4.5, 22);
+            const firstT = parsed[0].time;
+            setSnippetBounds(firstT, Math.min(state.duration, firstT + 24));
+          } else {
+            const inside = parsed.some((l) => l.time >= state.startTime && l.time <= state.endTime);
+            if (!inside && parsed[0].time < state.duration - 2) {
+              setSnippetBounds(parsed[0].time, Math.min(state.duration, parsed[0].time + 24));
+            } else {
+              computeSnippetLines();
+              renderLyricPicker();
+            }
+          }
+
+          seekTo(state.startTime);
+          el.lrclibStatusText.innerHTML = `<span class="text-emerald-400 font-semibold">Loaded ${parsed.length} synced lines from ${escapeHtml(sourceLabel)}!</span>`;
+          showToast(`Loaded ${parsed.length} synced lines from ${sourceLabel}`, "success");
+          return true;
+        } else if (data.plainLyrics) {
+          el.manualLrcInput.value = data.plainLyrics;
+          switchLrcTab("manual");
+          el.lrclibStatusText.innerHTML = `<span class="text-amber-400">Plain lyrics only (no timestamps). Try Search for a synced entry.</span>`;
+          showToast("No synced timestamps on this entry", "error");
+          return false;
+        }
+
+        el.lrclibStatusText.innerHTML = `<span class="text-rose-400">No lyrics found on this track.</span>`;
+        showToast("No lyrics available", "error");
+        return false;
+      }
+
+      async function fetchLrclibByUrl() {
+        const raw = el.lrclibUrlInput.value.trim();
+        if (!raw) {
+          showToast("Paste an lrclib.net/tracks/{id} link or Track ID", "error");
+          return;
+        }
+        const idMatch = raw.match(/(?:tracks|get)\/(\d+)/i) || raw.match(/^(\d+)$/) || raw.match(/(\d{4,})/);
+        if (!idMatch) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">Invalid LRCLIB link. Example: https://lrclib.net/tracks/28185115</span>`;
+          showToast("Invalid LRCLIB link or ID", "error");
+          return;
+        }
+
+        const trackId = idMatch[1];
+        el.fetchLrclibBtn.disabled = true;
+        el.fetchBtnLabel.textContent = "...";
+        el.fetchSpinner.classList.remove("hidden");
+        el.lrclibStatusText.textContent = `Fetching track #${trackId} from lrclib.net...`;
+
+        try {
+          const resp = await fetch(`https://lrclib.net/api/get/${trackId}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(resp.status === 404 ? `Track #${trackId} not found.` : `HTTP ${resp.status}`);
+          const data = await resp.json();
+          applyTrackData(data, `LRCLIB #${trackId}`);
+        } catch (err) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">${escapeHtml(err.message || "Network error")}</span>`;
+          showToast(err.message || "Failed to fetch from LRCLIB", "error");
+        } finally {
+          el.fetchLrclibBtn.disabled = false;
+          el.fetchBtnLabel.textContent = "Fetch";
+          el.fetchSpinner.classList.add("hidden");
+        }
+      }
+
+      async function searchLrclib() {
+        const q = el.lrclibSearchInput.value.trim();
+        if (!q) {
+          showToast("Enter a song title or artist", "error");
+          return;
+        }
+
+        el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/55 text-center py-4">Searching LRCLIB for "${escapeHtml(q)}"...</p>`;
+        try {
+          const resp = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(`Search failed (${resp.status})`);
+          const list = await resp.json();
+          if (!Array.isArray(list) || !list.length) {
+            el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/45 text-center py-4">No matching tracks found.</p>`;
+            return;
+          }
+
+          list.sort((a, b) => (b.syncedLyrics ? 1 : 0) - (a.syncedLyrics ? 1 : 0));
+          el.searchResultsBox.innerHTML = "";
+          const frag = document.createDocumentFragment();
+
+          list.slice(0, 16).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const hasSync = Boolean(item.syncedLyrics);
+            btn.className = "w-full text-left p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] transition flex items-center justify-between gap-2";
+            btn.innerHTML = `
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${escapeHtml(item.trackName || "Untitled")}</p>
+                <p class="text-[11px] text-white/50 truncate">${escapeHtml(item.artistName || "Unknown")} · ${formatTime(item.duration || 0)}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                hasSync ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/25" : "bg-white/10 text-white/45"
+              }">${hasSync ? "Synced" : "Plain"}</span>
+            `;
+            btn.addEventListener("click", () => {
+              el.lrclibUrlInput.value = `https://lrclib.net/tracks/${item.id}`;
+              applyTrackData(item, `LRCLIB #${item.id}`);
+            });
+            frag.appendChild(btn);
+          });
+
+          el.searchResultsBox.appendChild(frag);
+        } catch (err) {
+          el.searchResultsBox.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-4">${escapeHtml(err.message)}</p>`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         16. UI SETTERS (SCENE, DRAWER, REEL, CLEAN MODE)
+         ---------------------------------------------------------- */
+      function setSceneMode(modeId, preview = false) {
+        state.sceneMode = modeId;
+        const meta = SCENE_MODES.find((m) => m.id === modeId) || SCENE_MODES[0];
+        el.dockSceneLabel.textContent = meta.label;
+        el.activeSceneBadge.textContent = meta.badge;
+
+        el.sceneBtns.forEach((btn) => {
+          const active = btn.dataset.scenePick === modeId;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/45", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+
+        if (preview) {
+          const idx = Math.max(0, state.activeLineIdx);
+          mountCollageLine(idx, false);
+          state.activeWordEls.forEach((wEl, i) => {
+            setTimeout(() => revealCollageWord(wEl, i), i * 80);
+          });
+          state.revealedWordCount = state.activeWordEls.length;
+        }
+      }
+
+      function switchLrcTab(tab) {
+        el.lrcTabUrl.classList.toggle("hidden", tab !== "url");
+        el.lrcTabSearch.classList.toggle("hidden", tab !== "search");
+        el.lrcTabManual.classList.toggle("hidden", tab !== "manual");
+        el.lrcTabBtns.forEach((btn) => {
+          const active = btn.dataset.lrcTab === tab;
+          btn.className = `lrc-tab-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setSyncOffset(val) {
+        const clamped = Math.max(-5, Math.min(5, Math.round(val * 20) / 20));
+        state.syncOffset = clamped;
+        el.offsetSlider.value = String(clamped);
+        el.offsetLabel.textContent = `${clamped > 0 ? "+" : ""}${clamped.toFixed(2)}s`;
+        syncCollageLyrics(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !state.isDrawerOpen;
+        state.isDrawerOpen = open;
+        el.drawerBackdrop.style.pointerEvents = open ? "auto" : "none";
+
+        if (window.gsap) {
+          gsap.to(el.studioDrawer, {
+            x: open ? "0%" : "105%",
+            duration: 0.48,
+            ease: open ? "power3.out" : "power3.inOut",
+          });
+          gsap.to(el.drawerBackdrop, {
+            opacity: open ? 1 : 0,
+            duration: 0.34,
+            ease: "power2.out",
+          });
+        } else {
+          el.studioDrawer.style.transform = open ? "translateX(0)" : "translateX(105%)";
+          el.drawerBackdrop.style.opacity = open ? "1" : "0";
+        }
+
+        if (open) el.bottomDock.classList.remove("is-idle-dim");
+        else resetIdleDockTimer();
+      }
+
+      function toggleCleanMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isCleanMode;
+        state.isCleanMode = next;
+        if (next && state.isDrawerOpen) toggleDrawer(false);
+        document.body.classList.toggle("clean-mode", next);
+
+        if (window.gsap) {
+          gsap.to(el.topHud, {
+            opacity: next ? 0 : 1,
+            y: next ? -22 : 0,
+            duration: 0.38,
+            ease: "power3.out",
+          });
+          gsap.to(el.bottomDock, {
+            opacity: next ? 0 : 1,
+            y: next ? 28 : 0,
+            duration: 0.4,
+            ease: "power3.out",
+            onStart: () => { if (!next) el.bottomDock.style.pointerEvents = "auto"; },
+            onComplete: () => { if (next) el.bottomDock.style.pointerEvents = "none"; },
+          });
+        } else {
+          el.topHud.style.opacity = next ? "0" : "1";
+          el.bottomDock.style.opacity = next ? "0" : "1";
+        }
+
+        if (next) showToast("Clean Record Mode — Tap stage or press H / Esc to restore");
+      }
+
+      function toggleReelMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isReelMode;
+        state.isReelMode = next;
+        document.body.classList.toggle("reel-mode", next);
+        el.dockReelLabel.textContent = next ? "9:16" : "16:9";
+        setTimeout(() => {
+          renderCollageAssets(state.activeSceneKey, Math.max(0, state.activeLineIdx), true);
+        }, 420);
+        showToast(next ? "9:16 Vertical Zine Reel Frame" : "Full 16:9 Collage Stage");
+      }
+
+      function resetIdleDockTimer() {
+        clearTimeout(state.idleTimer);
+        el.bottomDock.classList.remove("is-idle-dim");
+        if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+          state.idleTimer = setTimeout(() => {
+            if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+              el.bottomDock.classList.add("is-idle-dim");
+            }
+          }, 3400);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         17. EVENT LISTENERS & KEYBOARD SHORTCUTS
+         ---------------------------------------------------------- */
+      el.playPauseBtn.addEventListener("click", togglePlay);
+      el.restartBtn.addEventListener("click", () => {
+        seekTo(state.startTime);
+        if (!state.isPlaying) startPlayback();
+      });
+
+      el.loopBtn.addEventListener("click", () => {
+        state.isLooping = !state.isLooping;
+        el.loopBtn.classList.toggle("text-rose-400", state.isLooping);
+        el.loopBtn.classList.toggle("bg-white/12", state.isLooping);
+        el.loopBtn.classList.toggle("text-white/40", !state.isLooping);
+        showToast(state.isLooping ? "Snippet Loop ON" : "Snippet Loop OFF");
+      });
+
+      function scrubProgress(clientX) {
+        const rect = el.progressTrack.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        seekTo(state.startTime + ratio * (state.endTime - state.startTime));
+      }
+      el.progressTrack.addEventListener("click", (e) => scrubProgress(e.clientX));
+      el.progressTrack.addEventListener("touchstart", (e) => {
+        if (e.touches[0]) scrubProgress(e.touches[0].clientX);
+      }, { passive: true });
+
+      function cycleSceneMode() {
+        const idx = SCENE_MODES.findIndex((m) => m.id === state.sceneMode);
+        const next = SCENE_MODES[(idx + 1) % SCENE_MODES.length];
+        setSceneMode(next.id, true);
+        showToast(`Collage Scene: ${next.badge}`);
+      }
+
+      function cyclePalette() {
+        const idx = PALETTES.findIndex((p) => p.id === state.paletteId);
+        const next = PALETTES[(idx + 1) % PALETTES.length];
+        applyPalette(next.id, true);
+      }
+
+      el.dockSceneCycleBtn.addEventListener("click", cycleSceneMode);
+      el.quickPaletteBtn.addEventListener("click", cyclePalette);
+      el.dockReelBtn.addEventListener("click", () => toggleReelMode());
+
+      el.openStudioBtn.addEventListener("click", () => toggleDrawer(true));
+      el.trackPillBtn.addEventListener("click", () => toggleDrawer(true));
+      el.closeStudioBtn.addEventListener("click", () => toggleDrawer(false));
+      el.drawerBackdrop.addEventListener("click", () => toggleDrawer(false));
+      el.cleanModeBtn.addEventListener("click", () => toggleCleanMode(true));
+      el.cleanExitBtn.addEventListener("click", () => toggleCleanMode(false));
+
+      el.stageFrame.addEventListener("click", () => {
+        if (state.isCleanMode) toggleCleanMode(false);
+      });
+
+      ["pointermove", "touchstart", "keydown"].forEach((evt) => {
+        window.addEventListener(evt, resetIdleDockTimer, { passive: true });
+      });
+
+      el.sceneBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setSceneMode(btn.dataset.scenePick, true));
+      });
+
+      el.customPngInput.addEventListener("change", (e) => {
+        if (e.target.files?.length) handleCustomPngFiles(e.target.files);
+      });
+      el.customFolderInput.addEventListener("change", (e) => {
+        if (e.target.files?.length) handleCustomPngFiles(e.target.files);
+      });
+      el.clearPngsBtn.addEventListener("click", () => {
+        state.blobUrlsToRevoke.forEach((u) => URL.revokeObjectURL(u));
+        state.blobUrlsToRevoke = [];
+        state.mappedPngs = {};
+        state.extraPngUrls = [];
+        el.customPngInput.value = "";
+        el.customFolderInput.value = "";
+        updatePngStatusBadge();
+        renderCollageAssets(state.activeSceneKey, Math.max(0, state.activeLineIdx), false);
+        showToast("Restored built-in halftone SVGs");
+      });
+
+      el.textSizeSlider.addEventListener("input", () => {
+        state.textScale = parseFloat(el.textSizeSlider.value);
+        document.documentElement.style.setProperty("--user-text-scale", state.textScale.toFixed(2));
+        el.textSizeLabel.textContent = `${Math.round(state.textScale * 100)}%`;
+      });
+
+      el.assetSizeSlider.addEventListener("input", () => {
+        state.assetScale = parseFloat(el.assetSizeSlider.value);
+        el.assetSizeLabel.textContent = `${Math.round(state.assetScale * 100)}%`;
+        renderCollageAssets(state.activeSceneKey, Math.max(0, state.activeLineIdx), true);
+      });
+
+      el.camEnergySlider.addEventListener("input", () => {
+        const pct = parseInt(el.camEnergySlider.value, 10);
+        state.camEnergy = pct / 100;
+        el.camEnergyLabel.textContent = `${pct}%`;
+      });
+
+      el.toggleStopMotionBtn.addEventListener("click", () => {
+        state.stopMotionEnabled = !state.stopMotionEnabled;
+        el.toggleStopMotionBtn.textContent = state.stopMotionEnabled ? "Stop-Mo: ON" : "Stop-Mo: OFF";
+        el.toggleStopMotionBtn.classList.toggle("bg-white/14", state.stopMotionEnabled);
+        el.toggleStopMotionBtn.classList.toggle("text-white/55", !state.stopMotionEnabled);
+      });
+      el.toggleTextureBtn.addEventListener("click", () => {
+        state.textureEnabled = !state.textureEnabled;
+        document.body.classList.toggle("texture-off", !state.textureEnabled);
+        el.toggleTextureBtn.textContent = state.textureEnabled ? "Paper: ON" : "Paper: OFF";
+        el.toggleTextureBtn.classList.toggle("bg-white/14", state.textureEnabled);
+        el.toggleTextureBtn.classList.toggle("text-white/55", !state.textureEnabled);
+      });
+      el.toggleFlashBtn.addEventListener("click", () => {
+        state.flashEnabled = !state.flashEnabled;
+        el.toggleFlashBtn.textContent = state.flashEnabled ? "Flash: ON" : "Flash: OFF";
+        el.toggleFlashBtn.classList.toggle("bg-white/14", state.flashEnabled);
+        el.toggleFlashBtn.classList.toggle("text-white/55", !state.flashEnabled);
+      });
+
+      el.customPaperPicker.addEventListener("input", () => {
+        state.palette.paper = el.customPaperPicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom Zine";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteTokens();
+      });
+      el.customInkPicker.addEventListener("input", () => {
+        state.palette.ink = el.customInkPicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom Zine";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteTokens();
+      });
+      el.customAccentPicker.addEventListener("input", () => {
+        state.palette.accent = el.customAccentPicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom Zine";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteTokens();
+      });
+
+      el.audioFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleAudioFile(e.target.files[0]);
+      });
+      ["dragenter", "dragover"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.add("border-rose-400", "bg-white/[0.08]");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.remove("border-rose-400", "bg-white/[0.08]");
+        });
+      });
+      el.audioDropZone.addEventListener("drop", (e) => {
+        if (e.dataTransfer?.files?.[0]) handleAudioFile(e.dataTransfer.files[0]);
+      });
+
+      el.titleInput.addEventListener("input", () => {
+        const t = el.titleInput.value.trim() || "Untitled";
+        el.hudTitle.textContent = t;
+        el.stanzaCaptionText.textContent = t.toUpperCase();
+      });
+      el.artistInput.addEventListener("input", () => {
+        el.hudArtist.textContent = el.artistInput.value.trim() || "Unknown Artist";
+      });
+
+      el.lrcTabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => switchLrcTab(btn.dataset.lrcTab));
+      });
+      el.fetchLrclibBtn.addEventListener("click", fetchLrclibByUrl);
+      el.lrclibUrlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") fetchLrclibByUrl(); });
+      el.searchLrclibBtn.addEventListener("click", searchLrclib);
+      el.lrclibSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLrclib(); });
+      el.applyManualLrcBtn.addEventListener("click", () => {
+        const parsed = parseLRC(el.manualLrcInput.value);
+        if (!parsed.length) {
+          showToast("Include [mm:ss.xx] timestamps before lyric lines", "error");
+          return;
+        }
+        state.lines = parsed;
+        computeSnippetLines();
+        renderLyricPicker();
+        syncCollageLyrics(getCurrentTime() + state.syncOffset, true);
+        showToast(`Applied ${parsed.length} synced lines`, "success");
+      });
+
+      el.startTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.startTimeInput.value);
+        if (p === null) {
+          el.startTimeInput.value = formatTime(state.startTime);
+          showToast("Use M:SS format (e.g. 0:45)", "error");
+          return;
+        }
+        setSnippetBounds(p, Math.max(p + 1, state.endTime));
+        seekTo(state.startTime);
+      });
+      el.endTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.endTimeInput.value);
+        if (p === null) {
+          el.endTimeInput.value = formatTime(state.endTime);
+          showToast("Use M:SS format (e.g. 1:15)", "error");
+          return;
+        }
+        setSnippetBounds(Math.min(state.startTime, p - 1), p);
+      });
+      el.useNowStartBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(now, Math.max(now + 2, state.endTime));
+        showToast(`Start set to ${formatTime(now)}`);
+      });
+      el.useNowEndBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(Math.min(state.startTime, Math.max(0, now - 2)), Math.max(1.5, now));
+        showToast(`End set to ${formatTime(now)}`);
+      });
+      el.resetFullSongBtn.addEventListener("click", () => {
+        setSnippetBounds(0, state.duration);
+        showToast("Snippet reset to full song");
+      });
+
+      el.offsetSlider.addEventListener("input", () => setSyncOffset(parseFloat(el.offsetSlider.value)));
+      el.offsetMinusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset - 0.1));
+      el.offsetPlusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset + 0.1));
+      el.offsetResetBtn.addEventListener("click", () => setSyncOffset(0));
+
+      let resizeTimer = null;
+      const onStageResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          renderCollageAssets(state.activeSceneKey, Math.max(0, state.activeLineIdx), true);
+        }, 120);
+      };
+      if (window.ResizeObserver) {
+        new ResizeObserver(onStageResize).observe(el.stageFrame);
+      }
+      window.addEventListener("resize", onStageResize);
+
+      window.addEventListener("keydown", (e) => {
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "TEXTAREA";
+
+        if (e.key === "Escape") {
+          if (state.isCleanMode) toggleCleanMode(false);
+          else if (state.isDrawerOpen) toggleDrawer(false);
+          return;
+        }
+        if (typing) return;
+
+        const key = e.key.toLowerCase();
+        if (e.code === "Space") {
+          e.preventDefault();
+          togglePlay();
+        } else if (key === "v") {
+          cycleSceneMode();
+        } else if (key === "c") {
+          cyclePalette();
+        } else if (key === "h") {
+          toggleCleanMode();
+        } else if (key === "s") {
+          toggleDrawer();
+        } else if (key === "r") {
+          seekTo(state.startTime);
+          if (!state.isPlaying) startPlayback();
+        }
+      });
+
+      /* ----------------------------------------------------------
+         18. BOOTSTRAP APPLICATION
+         ---------------------------------------------------------- */
+      function init() {
+        buildPaletteGrid();
+        state.lines = parseLRC(DEMO_LRC);
+        el.manualLrcInput.value = DEMO_LRC;
+
+        applyPalette("newsprint", false);
+        setSceneMode("auto", false);
+        setSnippetBounds(0, 24.4);
+        startMasterLoop();
+
+        // Automatically detect & mount user's 10 PNGs from ./assets/ folder!
+        autoLoadLocalAssetsFolder();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

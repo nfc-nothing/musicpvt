@@ -1,0 +1,3649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Liquid Glass Lyric Studio — GlassSurface Player &amp; Typing Lyrics</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Premium Animation Libraries: GSAP 3 & Anime.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+  <!-- Curated Aesthetic Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Syne:wght@700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       1. DESIGN TOKENS & GLASS SURFACE VARIABLES
+       ============================================================ */
+    :root {
+      --glass-radius: 30px;
+      --glass-blur: 11px;
+      --glass-bg-opacity: 0.24;
+      --glass-sat: 1.35;
+      --accent: #e2f1ff;
+      --accent-soft: rgba(226, 241, 255, 0.3);
+      --wave-core: #dbeafe;
+      --wave-mid: rgba(224, 242, 254, 0.88);
+      --wave-back: rgba(148, 197, 255, 0.48);
+      --wave-highlight: rgba(255, 255, 255, 0.96);
+      --wave-glow: rgba(224, 242, 254, 0.65);
+      --bg-dim: 0.26;
+      --lyric-font: "Bricolage Grotesque", sans-serif;
+      --lyric-weight: 700;
+      --lyric-style: normal;
+      --lyric-tracking: -0.03em;
+    }
+
+    [data-lyric-font="bricolage"] {
+      --lyric-font: "Bricolage Grotesque", sans-serif;
+      --lyric-weight: 700;
+      --lyric-style: normal;
+      --lyric-tracking: -0.03em;
+    }
+
+    [data-lyric-font="fraunces"] {
+      --lyric-font: "Fraunces", Georgia, serif;
+      --lyric-weight: 600;
+      --lyric-style: italic;
+      --lyric-tracking: -0.015em;
+    }
+
+    [data-lyric-font="editorial"] {
+      --lyric-font: "Instrument Serif", Georgia, serif;
+      --lyric-weight: 400;
+      --lyric-style: italic;
+      --lyric-tracking: 0.006em;
+    }
+
+    [data-lyric-font="plexmono"] {
+      --lyric-font: "IBM Plex Mono", monospace;
+      --lyric-weight: 500;
+      --lyric-style: normal;
+      --lyric-tracking: -0.025em;
+    }
+
+    [data-lyric-font="jakarta"] {
+      --lyric-font: "Plus Jakarta Sans", sans-serif;
+      --lyric-weight: 700;
+      --lyric-style: normal;
+      --lyric-tracking: -0.03em;
+    }
+
+    [data-lyric-font="grotesk"] {
+      --lyric-font: "Space Grotesk", sans-serif;
+      --lyric-weight: 600;
+      --lyric-style: normal;
+      --lyric-tracking: -0.025em;
+    }
+
+    /* ============================================================
+       2. GLOBAL BASE & RESPONSIVE STAGE (16:9 FULL & 9:16 REEL)
+       ============================================================ */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #060608;
+      color: #ffffff;
+      font-family: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+
+    .studio-desk {
+      position: relative;
+      width: 100vw;
+      max-width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 45%, #141419 0%, #050507 100%);
+      overflow: hidden;
+    }
+
+    .stage-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0b0b0e;
+      transition:
+        width 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.6s ease;
+    }
+
+    body.reel-mode .stage-frame {
+      height: min(88dvh, 820px);
+      width: min(92vw, calc(min(88dvh, 820px) * 0.5625));
+      border-radius: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 38px 110px rgba(0, 0, 0, 0.9);
+    }
+
+    /* ============================================================
+       3. BACKGROUND WALLPAPER LAYER + 8 AESTHETIC IMAGE FILTERS
+       ============================================================ */
+    .bg-stage-layer {
+      position: absolute;
+      inset: -8%;
+      width: 116%;
+      height: 116%;
+      z-index: 1;
+      overflow: hidden;
+      will-change: transform;
+      transform-origin: center center;
+    }
+
+    .bg-wallpaper-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+      transition: filter 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: filter, transform;
+    }
+
+    /* 8 Curated Aesthetic Wallpaper Filters */
+    [data-bg-filter="original"] .bg-wallpaper-img {
+      filter: none;
+    }
+    [data-bg-filter="noir"] .bg-wallpaper-img {
+      filter: grayscale(100%) contrast(1.26) brightness(0.92);
+    }
+    [data-bg-filter="silver"] .bg-wallpaper-img {
+      filter: grayscale(92%) contrast(0.95) brightness(1.06);
+    }
+    [data-bg-filter="warm35"] .bg-wallpaper-img {
+      filter: sepia(0.32) contrast(1.1) saturate(1.18) hue-rotate(-8deg) brightness(0.96);
+    }
+    [data-bg-filter="aesblur"] .bg-wallpaper-img {
+      filter: blur(15px) saturate(1.28) contrast(1.06) brightness(0.93);
+      transform: scale(1.08);
+    }
+    [data-bg-filter="bloom"] .bg-wallpaper-img {
+      filter: brightness(1.05) contrast(0.93) saturate(1.22);
+    }
+    [data-bg-filter="tokyo"] .bg-wallpaper-img {
+      filter: contrast(1.26) saturate(1.48) brightness(0.82) hue-rotate(-22deg);
+    }
+    [data-bg-filter="matte"] .bg-wallpaper-img {
+      filter: contrast(0.86) brightness(0.95) saturate(0.68) sepia(0.14);
+    }
+
+    /* Soft Dreamy Bloom & Color Wash Overlay */
+    .bg-bloom-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.65s ease;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 240, 220, 0.22), transparent 55%),
+        radial-gradient(circle at 74% 68%, rgba(168, 218, 255, 0.18), transparent 55%);
+      mix-blend-mode: screen;
+    }
+    [data-bg-filter="bloom"] .bg-bloom-overlay {
+      opacity: 1;
+    }
+    [data-bg-filter="aesblur"] .bg-bloom-overlay {
+      opacity: 0.55;
+      background:
+        radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.16), transparent 56%),
+        radial-gradient(circle at 75% 74%, rgba(205, 232, 255, 0.14), transparent 58%);
+    }
+
+    /* Adaptive Readability Scrim + Cinema Vignette */
+    .bg-dim-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at center, rgba(0, 0, 0, calc(var(--bg-dim) * 0.45)) 18%, rgba(0, 0, 0, calc(var(--bg-dim) + 0.34)) 100%);
+      transition: background 0.35s ease;
+    }
+
+    /* Floating Dust / Bokeh Canvas */
+    #atmosphereCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 4;
+      pointer-events: none;
+      display: block;
+    }
+
+    /* 35mm Film Grain SVG Overlay */
+    .film-grain {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 0.06;
+      mix-blend-mode: overlay;
+      transition: opacity 0.4s ease;
+    }
+    body.grain-off .film-grain {
+      opacity: 0;
+    }
+
+    /* ============================================================
+       4. REACT-BITS GLASSSURFACE LIQUID REFRACTION MUSIC PLAYER
+          (AUTHENTIC SVG DISPLACEMENT MAP + CHROMATIC RGB REFRACTION)
+       ============================================================ */
+    .glass-player-anchor {
+      position: absolute;
+      top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      width: min(92%, 442px);
+      pointer-events: auto;
+    }
+
+    body.reel-mode .glass-player-anchor {
+      width: min(92%, 360px);
+      top: 1.05rem;
+    }
+
+    /* React Bits GlassSurface Container */
+    .glass-surface {
+      position: relative;
+      width: 100%;
+      border-radius: var(--glass-radius);
+      overflow: hidden;
+      transition:
+        box-shadow 0.35s ease,
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.25s ease;
+    }
+
+    /* Chromium Real-Time SVG Displacement Refraction Mode */
+    .glass-surface--svg {
+      background: linear-gradient(
+        162deg,
+        rgba(255, 255, 255, calc(var(--glass-bg-opacity) * 0.42)) 0%,
+        rgba(20, 23, 31, var(--glass-bg-opacity)) 38%,
+        rgba(12, 14, 20, calc(var(--glass-bg-opacity) + 0.14)) 100%
+      );
+      backdrop-filter: url(#glassSurfaceFilter) saturate(var(--glass-sat));
+      -webkit-backdrop-filter: url(#glassSurfaceFilter) saturate(var(--glass-sat));
+      box-shadow:
+        inset 0 1.5px 1px rgba(255, 255, 255, 0.58),
+        inset 0 -1px 1px rgba(255, 255, 255, 0.18),
+        inset 0 0 18px 2px rgba(255, 255, 255, 0.12),
+        0 26px 64px rgba(0, 0, 0, 0.56),
+        0 6px 18px rgba(0, 0, 0, 0.34);
+    }
+
+    /* Fallback Smooth VisionOS Liquid Glass (Safari / Firefox / when Refraction = 0) */
+    .glass-surface--fallback {
+      background: linear-gradient(
+        160deg,
+        rgba(255, 255, 255, 0.16) 0%,
+        rgba(20, 22, 30, calc(var(--glass-bg-opacity) + 0.24)) 42%,
+        rgba(12, 14, 20, calc(var(--glass-bg-opacity) + 0.34)) 100%
+      );
+      backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(calc(var(--glass-sat) + 0.5)) brightness(1.06);
+      -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(calc(var(--glass-sat) + 0.5)) brightness(1.06);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow:
+        inset 0 1.5px 0 0 rgba(255, 255, 255, 0.55),
+        inset 0 -1px 0 0 rgba(255, 255, 255, 0.18),
+        inset 0 0 22px 2px rgba(255, 255, 255, 0.08),
+        0 26px 64px rgba(0, 0, 0, 0.56);
+    }
+
+    /* Liquid Glass Luminous Directional Rim Bevel */
+    .glass-surface::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1.25px;
+      background: linear-gradient(
+        138deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.24) 24%,
+        rgba(255, 255, 255, 0.05) 54%,
+        rgba(255, 255, 255, 0.14) 82%,
+        rgba(255, 255, 255, 0.44) 100%
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 6;
+    }
+
+    /* Curved Overhead Crystal Glass Reflection Arc */
+    .glass-reflection-arc {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 2;
+      background:
+        radial-gradient(120% 56% at 50% -14%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.11) 38%, transparent 66%),
+        linear-gradient(112deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.03) 28%, transparent 52%, rgba(255, 255, 255, 0.09) 100%),
+        radial-gradient(90% 42% at 50% 114%, rgba(255, 255, 255, 0.16) 0%, transparent 60%);
+      mix-blend-mode: screen;
+    }
+
+    /* Interactive Pointer-Tracked Liquid Specular Sheen */
+    .glass-specular-sheen {
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      top: -120px;
+      left: -120px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 3;
+      opacity: 0;
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.34) 0%,
+        rgba(255, 255, 255, 0.1) 42%,
+        transparent 72%
+      );
+      mix-blend-mode: soft-light;
+      will-change: transform, opacity;
+      transition: opacity 0.4s ease;
+    }
+
+    .glass-surface-svg-defs {
+      position: absolute;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .glass-player-inner {
+      position: relative;
+      z-index: 4;
+      padding: 0.65rem 1rem 0.72rem;
+    }
+
+    @media (max-width: 480px) {
+      .glass-player-inner {
+        padding: 0.58rem 0.85rem 0.66rem;
+      }
+    }
+
+    /* Top Micro Utility Icon Strip inside the Glass Player (matching reference) */
+    .player-top-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.15rem;
+      padding-bottom: 0.45rem;
+      margin-bottom: 0.42rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .strip-icon-btn {
+      position: relative;
+      width: 28px;
+      height: 24px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.62);
+      transition: color 0.2s ease, background 0.2s ease, transform 0.18s ease;
+    }
+
+    .strip-icon-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .strip-icon-btn:active {
+      transform: scale(0.9);
+    }
+
+    .strip-icon-btn.is-active {
+      color: #ffffff;
+    }
+
+    .strip-icon-btn.is-active::after {
+      content: "";
+      position: absolute;
+      bottom: 1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 3px;
+      border-radius: 999px;
+      background: #ffffff;
+      box-shadow: 0 0 6px #ffffff;
+    }
+
+    /* Compact Volume Bar inside Player */
+    input[type="range"].player-vol-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3.5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.24);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"].player-vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.75);
+      transition: transform 0.15s ease;
+    }
+
+    input[type="range"].player-vol-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    /* ============================================================
+       5. TYPING-EFFECT LYRICS STAGE
+          DESKTOP = TOP-LEFT  |  MOBILE & 9:16 REEL = BOTTOM-LEFT
+       ============================================================ */
+    .typing-lyrics-stage {
+      position: absolute;
+      z-index: 18;
+      pointer-events: none;
+      text-align: left;
+      /* Wide Desktop Default: Top-Left beside the top-center Glass Player */
+      top: 1.75rem;
+      left: 2rem;
+      right: auto;
+      bottom: auto;
+      max-width: min(370px, calc(50vw - 252px));
+      transition:
+        top 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        bottom 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        left 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        max-width 0.5s ease;
+    }
+
+    /* Medium Desktop / Tablet (769px – 1160px): Upper-left safely below top player */
+    @media (min-width: 769px) and (max-width: 1160px) {
+      .typing-lyrics-stage {
+        top: 10.6rem;
+        left: 1.75rem;
+        max-width: min(460px, 68vw);
+      }
+    }
+
+    /* Mobile View (<= 768px): Bottom-Left */
+    @media (max-width: 768px) {
+      .typing-lyrics-stage {
+        top: auto;
+        bottom: max(1.65rem, calc(env(safe-area-inset-bottom) + 1.25rem));
+        left: max(1.15rem, env(safe-area-inset-left));
+        right: max(1.15rem, env(safe-area-inset-right));
+        max-width: 90vw;
+      }
+    }
+
+    /* 9:16 Vertical Reel Mode: Bottom-Left inside the portrait frame */
+    body.reel-mode .typing-lyrics-stage {
+      top: auto !important;
+      bottom: 1.85rem !important;
+      left: 1.25rem !important;
+      right: 1.25rem !important;
+      max-width: 90% !important;
+    }
+
+    .lyrics-box-backdrop {
+      display: inline-block;
+      max-width: 100%;
+      padding: 0;
+      border-radius: 20px;
+      transition: background 0.35s ease, padding 0.35s ease, backdrop-filter 0.35s ease, border-color 0.35s ease;
+    }
+
+    body.lyrics-frost .lyrics-box-backdrop {
+      padding: 0.9rem 1.15rem;
+      background: rgba(10, 11, 16, 0.38);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
+    }
+
+    .lyric-prev-line {
+      font-family: var(--lyric-font);
+      font-weight: 500;
+      font-style: var(--lyric-style);
+      letter-spacing: var(--lyric-tracking);
+      font-size: clamp(0.88rem, 1.35vw, 1.08rem);
+      line-height: 1.38;
+      color: rgba(255, 255, 255, 0.44);
+      margin-bottom: 0.42rem;
+      min-height: 1.25em;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.78);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
+    .lyric-active-line {
+      font-family: var(--lyric-font);
+      font-weight: var(--lyric-weight);
+      font-style: var(--lyric-style);
+      letter-spacing: var(--lyric-tracking);
+      font-size: clamp(1.36rem, 2.65vw, 2.2rem);
+      line-height: 1.24;
+      color: #ffffff;
+      text-shadow:
+        0 4px 26px rgba(0, 0, 0, 0.85),
+        0 0 32px rgba(255, 255, 255, 0.24);
+      word-break: break-word;
+    }
+
+    [data-lyric-font="editorial"] .lyric-active-line {
+      font-size: clamp(1.78rem, 3.35vw, 2.75rem);
+      line-height: 1.12;
+    }
+
+    [data-lyric-font="fraunces"] .lyric-active-line {
+      font-size: clamp(1.48rem, 2.85vw, 2.35rem);
+      line-height: 1.2;
+    }
+
+    [data-lyric-font="plexmono"] .lyric-active-line {
+      font-size: clamp(1.18rem, 2.2vw, 1.82rem);
+      line-height: 1.32;
+    }
+
+    body.reel-mode .lyric-active-line {
+      font-size: 1.44rem;
+    }
+    body.reel-mode[data-lyric-font="editorial"] .lyric-active-line {
+      font-size: 1.95rem;
+    }
+    body.reel-mode[data-lyric-font="fraunces"] .lyric-active-line {
+      font-size: 1.56rem;
+    }
+
+    .typed-char {
+      display: inline-block;
+      white-space: pre;
+      transform-origin: bottom center;
+      will-change: transform, opacity, filter;
+      animation: charSilkReveal 0.34s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes charSilkReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(7px) scale(0.92);
+        filter: blur(5px);
+        text-shadow: 0 0 18px var(--wave-highlight), 0 0 28px var(--wave-glow);
+      }
+      55% {
+        opacity: 1;
+        filter: blur(0.4px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+        text-shadow: 0 4px 26px rgba(0, 0, 0, 0.85), 0 0 32px rgba(255, 255, 255, 0.22);
+      }
+    }
+
+    .typing-cursor {
+      display: inline-block;
+      width: 2.5px;
+      height: 0.94em;
+      margin-left: 4px;
+      vertical-align: -0.1em;
+      border-radius: 999px;
+      background: linear-gradient(to bottom, #ffffff 0%, var(--wave-core) 100%);
+      box-shadow: 0 0 12px var(--wave-highlight), 0 0 24px var(--wave-glow);
+      transition: transform 0.14s ease;
+      animation: cursorSoftBreath 1.1s ease-in-out infinite;
+    }
+
+    .typing-cursor.is-typing {
+      animation: none;
+      opacity: 1;
+      transform: scaleY(1.06);
+    }
+
+    @keyframes cursorSoftBreath {
+      0%, 100% { opacity: 0.95; }
+      50% { opacity: 0.18; }
+    }
+
+    /* ============================================================
+       6. FLOATING QUICK PILLS (BOTTOM-RIGHT) & STUDIO DRAWER
+       ============================================================ */
+    .quick-corner-pills {
+      position: fixed;
+      bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+      right: max(1rem, env(safe-area-inset-right));
+      z-index: 32;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .glass-hud {
+      background: rgba(12, 13, 18, 0.62);
+      backdrop-filter: blur(26px) saturate(165%);
+      -webkit-backdrop-filter: blur(26px) saturate(165%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow:
+        0 16px 40px rgba(0, 0, 0, 0.58),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    }
+
+    .clean-exit-btn {
+      position: fixed;
+      bottom: max(1rem, env(safe-area-inset-bottom));
+      right: max(1rem, env(safe-area-inset-right));
+      z-index: 48;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    body.clean-mode .clean-exit-btn {
+      pointer-events: auto;
+    }
+    body.clean-mode .clean-exit-btn:hover,
+    body.clean-mode .clean-exit-btn:focus-visible {
+      opacity: 0.96;
+    }
+
+    /* Studio Drawer */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(3, 4, 8, 0.56);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .studio-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(100vw, 468px);
+      height: 100dvh;
+      z-index: 60;
+      background: rgba(11, 12, 17, 0.88);
+      backdrop-filter: blur(36px) saturate(175%);
+      -webkit-backdrop-filter: blur(36px) saturate(175%);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: -28px 0 90px rgba(0, 0, 0, 0.84);
+      transform: translateX(105%);
+      display: flex;
+      flex-direction: column;
+      user-select: text;
+      overflow: hidden;
+    }
+
+    .drawer-scroll-area {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.34);
+    }
+
+    .lenis-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    }
+    .lenis-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .lenis-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .lenis-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+
+    /* Studio Sliders */
+    input[type="range"].studio-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--accent);
+      box-shadow: 0 0 12px var(--accent-soft);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    /* Toast Pill */
+    .toast-pill {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(24px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+      .studio-drawer {
+        width: 100vw;
+        border-left: none;
+      }
+      /* Keep corner pills unobtrusive on mobile so Bottom-Left lyrics breathe freely */
+      .quick-corner-pills {
+        bottom: max(0.95rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+        right: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body data-bg-filter="original" data-lyric-font="bricolage">
+
+  <!-- Hidden HTML5 Audio Element -->
+  <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+
+  <!-- Hidden Quick Wallpaper Input (triggered directly from Top Glass Player Strip) -->
+  <input id="quickBgInput" type="file" accept="image/*" class="hidden" />
+
+  <!-- Anime.js Toast Notification -->
+  <div id="toastPill" class="toast-pill glass-hud px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs sm:text-sm font-medium text-white max-w-[92vw]">
+    <span id="toastDot" class="w-2 h-2 rounded-full bg-sky-400 shrink-0"></span>
+    <span id="toastText" class="truncate">Ready</span>
+  </div>
+
+  <!-- ============================================================
+       MAIN WALLPAPER + LIQUID GLASSSURFACE STAGE
+       ============================================================ -->
+  <div class="studio-desk">
+    <main id="stageFrame" class="stage-frame">
+
+      <!-- Layer 1: Moving Background Wallpaper Image -->
+      <div id="bgStageLayer" class="bg-stage-layer">
+        <img id="bgWallpaperImg" class="bg-wallpaper-img" src="" alt="Aesthetic stage wallpaper" />
+      </div>
+
+      <!-- Layer 2: Dreamy Bloom Wash Overlay -->
+      <div class="bg-bloom-overlay" aria-hidden="true"></div>
+
+      <!-- Layer 3: Adaptive Dim / Cinema Vignette Overlay -->
+      <div class="bg-dim-overlay" aria-hidden="true"></div>
+
+      <!-- Layer 4: Subtle Floating Bokeh / Dust Atmosphere Canvas -->
+      <canvas id="atmosphereCanvas" aria-hidden="true"></canvas>
+
+      <!-- Layer 5: 35mm Film Grain SVG Overlay -->
+      <svg class="film-grain" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <filter id="cinemaNoise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#cinemaNoise)" />
+      </svg>
+
+      <!-- ============================================================
+           TOP CENTER: REACT-BITS GLASSSURFACE LIQUID MUSIC PLAYER
+           ============================================================ -->
+      <section class="glass-player-anchor" aria-label="Liquid Glass Music Player">
+        <div id="glassPlayer" class="glass-surface glass-surface--fallback">
+
+          <!-- Curved Liquid Crystal Reflection Arc + Pointer Specular Sheen -->
+          <div class="glass-reflection-arc" aria-hidden="true"></div>
+          <div id="glassSpecularSheen" class="glass-specular-sheen" aria-hidden="true"></div>
+
+          <!-- Authentic React Bits GlassSurface SVG Displacement + RGB Chromatic Filter -->
+          <svg class="glass-surface-svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <filter id="glassSurfaceFilter" color-interpolation-filters="sRGB" x="0%" y="0%" width="100%" height="100%">
+                <feImage id="gsFeImage" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+
+                <feDisplacementMap id="gsRedChannel" in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="G" scale="-180" result="dispRed" />
+                <feColorMatrix in="dispRed" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red" />
+
+                <feDisplacementMap id="gsGreenChannel" in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="G" scale="-170" result="dispGreen" />
+                <feColorMatrix in="dispGreen" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green" />
+
+                <feDisplacementMap id="gsBlueChannel" in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="G" scale="-160" result="dispBlue" />
+                <feColorMatrix in="dispBlue" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue" />
+
+                <feBlend in="red" in2="green" mode="screen" result="rg" />
+                <feBlend in="rg" in2="blue" mode="screen" result="output" />
+                <feGaussianBlur id="gsGaussianBlur" in="output" stdDeviation="0.5" />
+              </filter>
+            </defs>
+          </svg>
+
+          <div class="glass-player-inner">
+            <!-- Top Sleek Utility Icon Strip (Functional Aesthetic Controls) -->
+            <div class="player-top-strip">
+              <button id="stripMusicBtn" type="button" title="Play / Pause (Space)" class="strip-icon-btn is-active">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </button>
+
+              <button id="stripBgBtn" type="button" title="Upload Background Wallpaper" class="strip-icon-btn">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+              </button>
+
+              <button id="stripFilterBtn" type="button" title="Cycle Wallpaper Filter (F)" class="strip-icon-btn">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" opacity="0.55" />
+                </svg>
+              </button>
+
+              <button id="stripMotionBtn" type="button" title="Cycle Background Motion (M)" class="strip-icon-btn is-active">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12c2-4 5-4 7 0s5 4 7 0 4-4 6 0" />
+                </svg>
+              </button>
+
+              <button id="stripLoopBtn" type="button" title="Toggle Snippet Loop" class="strip-icon-btn is-active">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m17 2 4 4-4 4" />
+                  <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+                  <path d="m7 22-4-4 4-4" />
+                  <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+                </svg>
+              </button>
+
+              <button id="stripReelBtn" type="button" title="Toggle 16:9 / 9:16 Vertical Reel Frame" class="strip-icon-btn">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="6" y="2" width="12" height="20" rx="2.5" />
+                </svg>
+              </button>
+
+              <button id="stripCleanBtn" type="button" title="Clean Screen-Record Mode (H)" class="strip-icon-btn">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+
+              <button id="stripStudioBtn" type="button" title="Open Studio Drawer (S)" class="strip-icon-btn">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Middle Row: Album Cover + Track Info + Transport Controls -->
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <!-- Album Cover Thumbnail with Live Spotify-Style Corner Badge -->
+                <button
+                  id="coverBtn"
+                  type="button"
+                  title="Change Cover / Open Studio"
+                  class="relative w-12 h-12 sm:w-[52px] sm:h-[52px] rounded-xl overflow-visible shrink-0 group focus:outline-none"
+                >
+                  <div class="w-full h-full rounded-xl overflow-hidden bg-[#101116] border border-white/15 shadow-lg">
+                    <img id="playerCoverImg" src="" alt="Album artwork" class="hidden w-full h-full object-cover" />
+                    <!-- Default AM-Inspired Crisp Soundwave Cover SVG -->
+                    <svg id="playerCoverSvg" class="w-full h-full block" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="100" height="100" fill="#0d0e12" />
+                      <path
+                        d="M 8 50 Q 15 50 18 46 T 24 56 T 30 38 T 36 66 T 42 28 T 48 72 T 54 32 T 60 64 T 66 42 T 72 56 T 78 46 T 84 52 L 92 50"
+                        fill="none"
+                        stroke="#ffffff"
+                        stroke-width="2.6"
+                        stroke-linecap="round"
+                        opacity="0.92"
+                      />
+                      <path
+                        d="M 8 50 Q 15 50 18 54 T 24 44 T 30 62 T 36 34 T 42 72 T 48 28 T 54 68 T 60 36 T 66 58 T 72 44 T 78 54 T 84 48 L 92 50"
+                        fill="none"
+                        stroke="#ffffff"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                        opacity="0.48"
+                      />
+                    </svg>
+                  </div>
+                  <!-- Tiny Vibrant Music Source Dot -->
+                  <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-[2px] border-[#151820] flex items-center justify-center shadow-md">
+                    <svg class="w-2.5 h-2.5 text-[#08150d]" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+                    </svg>
+                  </span>
+                </button>
+
+                <!-- Track Title & Artist -->
+                <div class="min-w-0">
+                  <h1 id="playerTitle" class="text-[14px] sm:text-[15px] font-bold text-white truncate leading-tight tracking-tight drop-shadow-sm">
+                    I Wanna Be Yours
+                  </h1>
+                  <p id="playerArtist" class="text-[12px] font-medium text-white/68 truncate mt-0.5 leading-tight">
+                    Arctic Monkeys · Demo Synth
+                  </p>
+                </div>
+              </div>
+
+              <!-- Transport Controls: Prev / Play-Pause / Next -->
+              <div class="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                <button
+                  id="prevBtn"
+                  type="button"
+                  title="Previous Line"
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-white/75 hover:text-white hover:bg-white/12 transition active:scale-90"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 20L9 12l10-8v16zM5 4h2v16H5V4z" />
+                  </svg>
+                </button>
+
+                <button
+                  id="playPauseBtn"
+                  type="button"
+                  title="Play / Pause (Space)"
+                  class="w-9 h-9 rounded-full bg-white/16 hover:bg-white/26 border border-white/20 flex items-center justify-center text-white transition active:scale-90 shadow-md"
+                >
+                  <svg id="playIcon" class="w-4 h-4 translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="6 4 20 12 6 20 6 4" />
+                  </svg>
+                  <svg id="pauseIcon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4.5" height="16" rx="1.2" />
+                    <rect x="13.5" y="4" width="4.5" height="16" rx="1.2" />
+                  </svg>
+                </button>
+
+                <button
+                  id="nextBtn"
+                  type="button"
+                  title="Next Line"
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-white/75 hover:text-white hover:bg-white/12 transition active:scale-90"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 4l10 8-10 8V4zm12 0h2v16h-2V4z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Layered Liquid-Glass Aurora Wave Scrubber + Timestamps -->
+            <div class="mt-2 space-y-1">
+              <div id="waveScrubber" class="relative w-full h-7 flex items-center cursor-pointer select-none">
+                <svg id="waveSvg" class="w-full h-7 overflow-visible" viewBox="0 0 360 30" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="waveGradBack" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop id="wgBack0" offset="0%" stop-color="rgba(255,255,255,0.12)" />
+                      <stop id="wgBack1" offset="55%" stop-color="rgba(186,230,253,0.45)" />
+                      <stop id="wgBack2" offset="100%" stop-color="rgba(255,255,255,0.22)" />
+                    </linearGradient>
+                    <linearGradient id="waveGradMid" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop id="wgMid0" offset="0%" stop-color="rgba(224,242,254,0.34)" />
+                      <stop id="wgMid1" offset="50%" stop-color="rgba(255,255,255,0.72)" />
+                      <stop id="wgMid2" offset="100%" stop-color="rgba(186,230,253,0.46)" />
+                    </linearGradient>
+                    <linearGradient id="waveGradFront" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop id="wgFront0" offset="0%" stop-color="rgba(255,255,255,0.42)" />
+                      <stop id="wgFront1" offset="48%" stop-color="rgba(255,255,255,0.92)" />
+                      <stop id="wgFront2" offset="100%" stop-color="rgba(224,242,254,0.68)" />
+                    </linearGradient>
+                    <linearGradient id="waveBarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop id="wgBar0" offset="0%" stop-color="rgba(224,242,254,0.62)" />
+                      <stop id="wgBar1" offset="100%" stop-color="#ffffff" />
+                    </linearGradient>
+                    <filter id="waveSoftGlow" x="-20%" y="-60%" width="140%" height="220%">
+                      <feGaussianBlur stdDeviation="2.6" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <!-- Remaining frosted glass baseline track -->
+                  <line id="waveRemainLine" x1="0" y1="21" x2="360" y2="21" stroke="rgba(255,255,255,0.2)" stroke-width="4" stroke-linecap="round" />
+
+                  <!-- 3 Overlapping Translucent Liquid-Glass Aurora Wave Hills -->
+                  <path id="waveHillBack" d="M 0 21 Z" fill="url(#waveGradBack)" opacity="0.88" />
+                  <path id="waveHillMid" d="M 0 21 Z" fill="url(#waveGradMid)" opacity="0.92" />
+                  <path id="waveHillFront" d="M 0 21 Z" fill="url(#waveGradFront)" opacity="0.95" />
+
+                  <!-- Played luminous glass progress baseline -->
+                  <line id="waveBaseBar" x1="0" y1="21" x2="0" y2="21" stroke="url(#waveBarGrad)" stroke-width="4.4" stroke-linecap="round" filter="url(#waveSoftGlow)" />
+
+                  <!-- Crisp Glowing Circular Ring Playhead Thumb (matching 2nd reference) -->
+                  <g id="waveThumbGroup" transform="translate(0, 21)" filter="url(#waveSoftGlow)">
+                    <circle id="waveThumbHalo" cx="0" cy="0" r="8.5" fill="var(--wave-glow)" opacity="0.34" />
+                    <circle id="waveThumbCore" cx="0" cy="0" r="5.6" fill="var(--wave-core)" stroke="#ffffff" stroke-width="2.2" />
+                  </g>
+                </svg>
+              </div>
+
+              <!-- Bottom Meta Row: Elapsed | Compact Volume | Remaining -->
+              <div class="flex items-center justify-between gap-2 text-[10px] font-mono text-white/62 tabular-nums">
+                <span id="timeElapsed">0:00</span>
+
+                <div class="flex items-center gap-1.5">
+                  <button id="muteBtn" type="button" title="Mute / Unmute" class="text-white/65 hover:text-white transition">
+                    <svg id="volIcon" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                  </button>
+                  <input id="volumeSlider" type="range" min="0" max="1" step="0.02" value="0.85" class="player-vol-slider w-16 sm:w-20" aria-label="Volume" />
+                </div>
+
+                <span id="timeRemaining">-0:24</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============================================================
+           TYPING-EFFECT SYNCED LYRICS
+           DESKTOP: TOP-LEFT  |  MOBILE & 9:16 REEL: BOTTOM-LEFT
+           ============================================================ -->
+      <section id="typingLyricsStage" class="typing-lyrics-stage" aria-live="polite">
+        <div class="lyrics-box-backdrop">
+          <p id="prevTypedLine" class="lyric-prev-line"></p>
+          <p id="activeTypedLine" class="lyric-active-line">
+            <span id="typedTextSpan"></span><span id="typingCursor" class="typing-cursor" aria-hidden="true"></span>
+          </p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ============================================================
+       FLOATING BOTTOM-RIGHT QUICK STUDIO & WALLPAPER PILLS
+       ============================================================ -->
+  <div id="quickCornerPills" class="quick-corner-pills">
+    <button
+      id="quickFilterPill"
+      type="button"
+      title="Cycle Wallpaper Filter (F)"
+      class="glass-hud hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[11px] font-semibold text-white/85 hover:text-white hover:bg-white/10 transition active:scale-95"
+    >
+      <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+      <span id="quickFilterName">Original</span>
+    </button>
+
+    <button
+      id="openStudioPill"
+      type="button"
+      title="Open Studio — MP3, LRCLIB, Wallpaper & Glass Controls (S)"
+      class="glass-hud inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-xs font-bold text-white hover:bg-white/14 transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="4" y1="21" x2="4" y2="14" />
+        <line x1="4" y1="10" x2="4" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12" y2="3" />
+        <line x1="20" y1="21" x2="20" y2="16" />
+        <line x1="20" y1="12" x2="20" y2="3" />
+        <line x1="2" y1="14" x2="6" y2="14" />
+        <line x1="10" y1="8" x2="14" y2="8" />
+        <line x1="18" y1="16" x2="22" y2="16" />
+      </svg>
+      <span>Studio</span>
+    </button>
+  </div>
+
+  <!-- Discrete Corner Exit for Clean Mode -->
+  <button
+    id="cleanExitBtn"
+    type="button"
+    title="Exit Clean Mode (H or Esc)"
+    class="clean-exit-btn glass-hud px-3.5 py-1.5 rounded-full text-xs font-semibold text-white/90"
+  >
+    Exit Clean Mode
+  </button>
+
+  <!-- ============================================================
+       STUDIO DRAWER (LENIS SMOOTH SCROLL)
+       ============================================================ -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <aside id="studioDrawer" class="studio-drawer" aria-label="Liquid Glass Lyric Studio Settings">
+    <!-- Drawer Header -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <div>
+        <h2 class="text-base font-extrabold text-white tracking-tight">Liquid Glass Studio</h2>
+        <p class="text-[11px] text-white/50">Wallpaper · Filters · GlassSurface · MP3 &amp; LRCLIB</p>
+      </div>
+      <button
+        id="closeStudioBtn"
+        type="button"
+        aria-label="Close Studio"
+        class="w-9 h-9 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center text-white/80 hover:text-white transition"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Smooth Native Scrollable Body (Mouse Wheel, Trackpad & Mobile Touch) -->
+    <div id="drawerScrollWrapper" class="drawer-scroll-area">
+      <div id="drawerScrollContent" class="px-5 py-5 space-y-6">
+
+        <!-- SECTION 1: BACKGROUND WALLPAPER, FILTERS & MOVING EFFECTS -->
+        <section class="space-y-3.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">1. Background Image &amp; Filters</h3>
+            <span id="bgStatusBadge" class="text-[11px] font-semibold text-sky-400">Editorial Art</span>
+          </div>
+
+          <!-- Drag & Drop Background Image Uploader -->
+          <label
+            id="bgDropZone"
+            for="bgFileInput"
+            class="block w-full p-3.5 rounded-2xl border border-dashed border-white/20 hover:border-sky-400/80 bg-white/[0.03] hover:bg-white/[0.06] transition cursor-pointer text-center"
+          >
+            <input id="bgFileInput" type="file" accept="image/*" class="hidden" />
+            <div class="flex items-center justify-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-sky-300 shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+              </div>
+              <div class="text-left min-w-0">
+                <p id="bgDropLabel" class="text-xs font-bold text-white truncate">Upload Custom Background Wallpaper</p>
+                <p class="text-[11px] text-white/45">PNG, JPG, WEBP · Instant filters &amp; liquid motion</p>
+              </div>
+            </div>
+          </label>
+
+          <!-- 3 Built-In Aesthetic Canvas Wallpapers -->
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" data-preset-bg="ink" class="preset-bg-btn py-2 px-2 rounded-xl bg-white/14 border border-white/40 text-[11px] font-bold text-white transition">
+              Ink Editorial
+            </button>
+            <button type="button" data-preset-bg="midnight" class="preset-bg-btn py-2 px-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[11px] font-semibold text-white/80 transition">
+              Midnight Rain
+            </button>
+            <button type="button" data-preset-bg="velvet" class="preset-bg-btn py-2 px-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[11px] font-semibold text-white/80 transition">
+              Velvet Dusk
+            </button>
+          </div>
+
+          <!-- 8 Curated Aesthetic Image Filters -->
+          <div class="space-y-2">
+            <span class="text-[11px] font-semibold text-white/70">Aesthetic Image Filter</span>
+            <div class="grid grid-cols-4 gap-1.5">
+              <button type="button" data-filter-pick="original" class="filter-btn py-2 px-1.5 rounded-xl bg-white/15 border border-white/40 text-[10px] font-bold text-white transition">Original</button>
+              <button type="button" data-filter-pick="noir" class="filter-btn py-2 px-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[10px] font-semibold text-white/80 transition">Noir B&amp;W</button>
+              <button type="button" data-filter-pick="silver" class="filter-btn py-2 px-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[10px] font-semibold text-white/80 transition">Silver Mist</button>
+              <button type="button" data-filter-pick="warm35" class="filter-btn py-2 px-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[10px] font-semibold text-white/80 transition">Warm 35mm</button>
+              <button type="button" data-filter-pick="aesblur" class="filter-btn py-2 px-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[10px] font-semibold text-white/80 transition">Aesthetic Blur</button>
+              <button type="button" data-filter-pick="bloom" class="filter-btn py-2 px-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[10px] font-semibold text-white/80 transition">Dreamy Bloom</button>
+              <button type="button" data-filter-pick="tokyo" class="filter-btn py-2 px-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[10px] font-semibold text-white/80 transition">Tokyo Neon</button>
+              <button type="button" data-filter-pick="matte" class="filter-btn py-2 px-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] text-[10px] font-semibold text-white/80 transition">Faded Matte</button>
+            </div>
+          </div>
+
+          <!-- Aesthetic Moving Background Effect Selector -->
+          <div class="space-y-2">
+            <span class="text-[11px] font-semibold text-white/70">Aesthetic Moving Background</span>
+            <div class="grid grid-cols-4 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-[10px] font-bold">
+              <button type="button" data-motion-pick="kenburns" class="motion-btn py-1.5 rounded-lg bg-white text-black transition">Ken Burns</button>
+              <button type="button" data-motion-pick="float" class="motion-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Float</button>
+              <button type="button" data-motion-pick="pulse" class="motion-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Bass Pulse</button>
+              <button type="button" data-motion-pick="static" class="motion-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Static</button>
+            </div>
+          </div>
+
+          <!-- Background Dim + Grain + Dust Particles + Lyrics Frost Toggles -->
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-3">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-white/80">Wallpaper Dim / Contrast</span>
+                <span id="bgDimVal" class="font-mono font-bold text-sky-300">26%</span>
+              </div>
+              <input id="bgDimSlider" type="range" min="0" max="75" step="1" value="26" class="studio-slider w-full" aria-label="Wallpaper dimness" />
+            </div>
+
+            <div class="grid grid-cols-3 gap-1.5 pt-1">
+              <button id="toggleGrainBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">Grain: ON</button>
+              <button id="toggleParticlesBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/14 border border-white/25 text-[10px] font-bold text-white transition">Dust: ON</button>
+              <button id="toggleLyricsFrostBtn" type="button" class="py-1.5 px-2 rounded-xl bg-white/[0.05] border border-white/12 text-[10px] font-bold text-white/65 transition">Frost Box: OFF</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: AUDIO UPLOAD & TRACK INFO -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">2. Song MP3 &amp; Cover</h3>
+            <span id="audioStatusBadge" class="text-[11px] font-semibold text-sky-400">Demo Synth Ready</span>
+          </div>
+
+          <label
+            id="audioDropZone"
+            for="audioFileInput"
+            class="block w-full p-3.5 rounded-2xl border border-dashed border-white/20 hover:border-sky-400/80 bg-white/[0.03] hover:bg-white/[0.06] transition cursor-pointer text-center"
+          >
+            <input id="audioFileInput" type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" class="hidden" />
+            <div class="flex items-center justify-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-sky-300 shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+              <div class="text-left min-w-0">
+                <p id="audioDropLabel" class="text-xs font-bold text-white truncate">Drop MP3 / WAV / M4A or tap to upload</p>
+                <p id="audioFileMeta" class="text-[11px] text-white/45">100% browser-local · Live audio-reactive wave</p>
+              </div>
+            </div>
+          </label>
+
+          <div class="grid grid-cols-[62px_1fr] gap-3 items-center">
+            <label
+              for="coverFileInput"
+              title="Upload Album Cover"
+              class="w-[62px] h-[62px] rounded-2xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] overflow-hidden flex flex-col items-center justify-center cursor-pointer transition"
+            >
+              <input id="coverFileInput" type="file" accept="image/*" class="hidden" />
+              <img id="drawerCoverImg" src="" alt="" class="hidden w-full h-full object-cover" />
+              <div id="drawerCoverPlaceholder" class="flex flex-col items-center text-white/55">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+                <span class="text-[9px] mt-0.5 font-semibold">Cover</span>
+              </div>
+            </label>
+
+            <div class="space-y-2">
+              <input
+                id="titleInput"
+                type="text"
+                value="I Wanna Be Yours"
+                placeholder="Track Title"
+                class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-sky-400/70 focus:outline-none text-xs font-semibold text-white placeholder-white/35"
+              />
+              <input
+                id="artistInput"
+                type="text"
+                value="Arctic Monkeys"
+                placeholder="Artist Name"
+                class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-sky-400/70 focus:outline-none text-xs text-white/85 placeholder-white/35"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 3: SYNCED LYRICS (LRCLIB.NET) -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">3. Synced Lyrics (LRCLIB.net)</h3>
+            <span id="lyricsCountBadge" class="text-[11px] font-mono text-white/55">8 lines</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-bold">
+            <button type="button" data-lrc-tab="url" class="lrc-tab-btn py-1.5 rounded-lg bg-white text-black transition">LRCLIB Link</button>
+            <button type="button" data-lrc-tab="search" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Search</button>
+            <button type="button" data-lrc-tab="manual" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Manual LRC</button>
+          </div>
+
+          <div id="lrcTabUrl" class="space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibUrlInput"
+                type="text"
+                placeholder="https://lrclib.net/tracks/28185115 or 28185115"
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-sky-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="fetchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95 flex items-center gap-1.5"
+              >
+                <span id="fetchBtnLabel">Fetch</span>
+                <svg id="fetchSpinner" class="hidden w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25" />
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p id="lrclibStatusText" class="text-[11px] text-white/48">
+              Paste any <span class="text-white/80 font-medium">lrclib.net/tracks/{id}</span> link to load synced lyrics instantly.
+            </p>
+          </div>
+
+          <div id="lrcTabSearch" class="hidden space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibSearchInput"
+                type="text"
+                placeholder="Search song name or artist..."
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-sky-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="searchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95"
+              >
+                Search
+              </button>
+            </div>
+            <div id="searchResultsBox" class="max-h-48 lenis-scroll space-y-1.5 pr-0.5">
+              <p class="text-[11px] text-white/45 text-center py-4">Search LRCLIB's synced library and click any track.</p>
+            </div>
+          </div>
+
+          <div id="lrcTabManual" class="hidden space-y-2">
+            <textarea
+              id="manualLrcInput"
+              rows="5"
+              placeholder="[00:00.00] First synced line&#10;[00:03.20] Second synced line"
+              class="w-full p-3 rounded-xl bg-white/[0.07] border border-white/14 focus:border-sky-400/70 focus:outline-none text-xs font-mono text-white placeholder-white/35 resize-y"
+            ></textarea>
+            <button
+              id="applyManualLrcBtn"
+              type="button"
+              class="w-full py-2.5 rounded-xl bg-white/15 hover:bg-white/24 border border-white/15 text-xs font-bold text-white transition"
+            >
+              Apply Manual LRC
+            </button>
+          </div>
+        </section>
+
+        <!-- SECTION 4: EXACT SONG PART TRIMMER & SYNC OFFSET -->
+        <section class="space-y-3.5 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">4. Exact Song Part (Loop)</h3>
+            <span id="snippetWindowBadge" class="text-[11px] font-mono font-semibold text-sky-300">0:00 → 0:24 (24s)</span>
+          </div>
+
+          <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">Start</span>
+                <button id="useNowStartBtn" type="button" class="text-[10px] font-bold text-sky-300 hover:underline">Now</button>
+              </div>
+              <input id="startTimeInput" type="text" value="0:00" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">End</span>
+                <button id="useNowEndBtn" type="button" class="text-[10px] font-bold text-sky-300 hover:underline">Now</button>
+              </div>
+              <input id="endTimeInput" type="text" value="0:24" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <button
+              id="resetFullSongBtn"
+              type="button"
+              class="h-[54px] px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-[11px] font-bold text-white/80 hover:text-white transition"
+            >
+              Reset<br/>Full
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <p class="text-[11px] text-white/55">Tap <span class="text-white font-semibold">Start</span> / <span class="text-white font-semibold">End</span> on any line to play only that part:</p>
+            <div id="lyricPickerWrapper" class="h-44 lenis-scroll rounded-2xl bg-black/45 border border-white/10">
+              <div id="lyricPickerList" class="divide-y divide-white/[0.06]"></div>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-white/85">Lyric Sync Offset</span>
+              <div class="flex items-center gap-1.5">
+                <button id="offsetMinusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">-0.1s</button>
+                <span id="offsetLabel" class="min-w-[54px] text-center font-mono text-xs font-bold text-white">0.00s</span>
+                <button id="offsetPlusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">+0.1s</button>
+                <button id="offsetResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/8 hover:bg-white/16 text-[10px] text-white/70 transition">0</button>
+              </div>
+            </div>
+            <input id="offsetSlider" type="range" min="-5" max="5" step="0.05" value="0" class="studio-slider w-full" aria-label="Lyric sync offset" />
+          </div>
+        </section>
+
+        <!-- SECTION 5: REACT-BITS GLASSSURFACE CUSTOMIZER & TYPING FONT -->
+        <section class="space-y-4 pt-3 border-t border-white/10 pb-8">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">5. GlassSurface &amp; Typing Font</h3>
+            <span id="glassModeBadge" class="text-[10px] font-mono text-emerald-300">Liquid SVG</span>
+          </div>
+
+          <!-- Authentic React Bits GlassSurface Live Sliders -->
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-white/70">Distortion</span>
+                  <span id="gsDistVal" class="font-mono text-sky-300">-180</span>
+                </div>
+                <input id="gsDistSlider" type="range" min="-300" max="0" step="5" value="-180" class="studio-slider w-full" />
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-white/70">Blur</span>
+                  <span id="gsBlurVal" class="font-mono text-sky-300">11px</span>
+                </div>
+                <input id="gsBlurSlider" type="range" min="0" max="24" step="1" value="11" class="studio-slider w-full" />
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-white/70">Displace</span>
+                  <span id="gsDisplaceVal" class="font-mono text-sky-300">0.5</span>
+                </div>
+                <input id="gsDisplaceSlider" type="range" min="0" max="4" step="0.1" value="0.5" class="studio-slider w-full" />
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-white/70">BG Opacity</span>
+                  <span id="gsOpacityVal" class="font-mono text-sky-300">0.24</span>
+                </div>
+                <input id="gsOpacitySlider" type="range" min="0.05" max="0.65" step="0.01" value="0.24" class="studio-slider w-full" />
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-white/70">Radius</span>
+                  <span id="gsRadiusVal" class="font-mono text-sky-300">30px</span>
+                </div>
+                <input id="gsRadiusSlider" type="range" min="16" max="42" step="1" value="30" class="studio-slider w-full" />
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-[11px]">
+                  <span class="text-white/70">RGB Prism</span>
+                  <span id="gsRgbVal" class="font-mono text-sky-300">10</span>
+                </div>
+                <input id="gsRgbSlider" type="range" min="0" max="30" step="1" value="10" class="studio-slider w-full" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Typing Font Pairing -->
+          <div class="space-y-2">
+            <span class="text-[11px] font-semibold text-white/70">Typing Lyric Font</span>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-font-pick="bricolage" class="font-btn p-2.5 rounded-xl text-left bg-white/14 border border-white/40 transition">
+                <p class="text-xs font-bold text-white" style="font-family: 'Bricolage Grotesque', sans-serif;">Bricolage</p>
+                <p class="text-[10px] text-white/50">Expressive Neo-Sans</p>
+              </button>
+              <button type="button" data-font-pick="fraunces" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-xs italic font-semibold text-white" style="font-family: 'Fraunces', serif;">Fraunces</p>
+                <p class="text-[10px] text-white/50">Soft Luxury Serif</p>
+              </button>
+              <button type="button" data-font-pick="editorial" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-sm italic text-white leading-tight" style="font-family: 'Instrument Serif', serif;">Instrument Serif</p>
+                <p class="text-[10px] text-white/50">Poetic Editorial Italic</p>
+              </button>
+              <button type="button" data-font-pick="plexmono" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-xs font-medium text-white" style="font-family: 'IBM Plex Mono', monospace;">IBM Plex Mono</p>
+                <p class="text-[10px] text-white/50">Refined Typewriter</p>
+              </button>
+              <button type="button" data-font-pick="jakarta" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-xs font-extrabold text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">Jakarta Sans</p>
+                <p class="text-[10px] text-white/50">Apple Minimal Clean</p>
+              </button>
+              <button type="button" data-font-pick="grotesk" class="font-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+                <p class="text-xs font-bold text-white" style="font-family: 'Space Grotesk', sans-serif;">Space Grotesk</p>
+                <p class="text-[10px] text-white/50">Sleek Tech Display</p>
+              </button>
+            </div>
+          </div>
+
+          <p class="text-[10px] text-white/40 text-center">
+            Shortcuts: <span class="text-white/75 font-semibold">Space</span> Play · <span class="text-white/75 font-semibold">F</span> Filter · <span class="text-white/75 font-semibold">M</span> Motion · <span class="text-white/75 font-semibold">R</span> Restart · <span class="text-white/75 font-semibold">S</span> Studio · <span class="text-white/75 font-semibold">H</span> Clean
+          </p>
+        </section>
+
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    /* ============================================================
+       LIQUID GLASS LYRIC STUDIO
+       React-Bits GlassSurface Engine + Typing Lyrics + BG Filters
+       GSAP 3 + Anime.js + Lenis + Web Audio API + LRCLIB.net
+       ============================================================ */
+    (() => {
+      "use strict";
+
+      /* ----------------------------------------------------------
+         1. CURATED DEMO LYRICS (MOODY INDIE VIBE)
+         ---------------------------------------------------------- */
+      const DEMO_LRC = `
+[00:00.20] Secrets I have held in my heart
+[00:03.40] Are harder to hide than I thought
+[00:06.60] Maybe I just wanna be yours
+[00:09.80] I wanna be yours, I wanna be yours
+[00:13.20] Let me be your midnight static in the dark
+[00:16.60] Every quiet frame glowing like a spark
+[00:19.80] Tracing soft reflections on the glass
+[00:22.20] Waiting for the silver hours to pass
+      `.trim();
+
+      const FILTER_LIST = [
+        { id: "original", name: "Original" },
+        { id: "noir", name: "Noir B&W" },
+        { id: "silver", name: "Silver Mist" },
+        { id: "warm35", name: "Warm 35mm" },
+        { id: "aesblur", name: "Aesthetic Blur" },
+        { id: "bloom", name: "Dreamy Bloom" },
+        { id: "tokyo", name: "Tokyo Neon" },
+        { id: "matte", name: "Faded Matte" },
+      ];
+
+      const MOTION_LIST = [
+        { id: "kenburns", name: "Ken Burns" },
+        { id: "float", name: "Liquid Float" },
+        { id: "pulse", name: "Bass Pulse" },
+        { id: "static", name: "Static" },
+      ];
+
+      /* ----------------------------------------------------------
+         2. APPLICATION STATE
+         ---------------------------------------------------------- */
+      const state = {
+        mode: "demo",                 // "demo" | "audio"
+        audioObjectUrl: null,
+        coverObjectUrl: null,
+        bgObjectUrl: null,
+        presetBg: "ink",
+        bgFilter: "original",
+        bgMotion: "kenburns",
+        bgDim: 26,
+        grainEnabled: true,
+        particlesEnabled: true,
+        lyricsFrost: false,
+        lyricFont: "bricolage",
+
+        isPlaying: false,
+        isLooping: true,
+        isDrawerOpen: false,
+        isCleanMode: false,
+        isReelMode: false,
+        volume: 0.85,
+        lastVolume: 0.85,
+
+        duration: 24.8,
+        startTime: 0.0,
+        endTime: 24.8,
+        syncOffset: 0.0,
+        currentTime: 0.0,
+
+        lines: [],
+        snippetLines: [],
+        activeIndex: 0,
+        typedCharCount: -1,
+        lastActiveForTyping: -1,
+        cursorPulseTimer: null,
+
+        // Ambient Tint Extracted for Liquid-Glass Wave Palette
+        sampledTintRgb: [216, 232, 248],
+
+        // React Bits GlassSurface Parameters
+        glass: {
+          supportsSvgBackdrop: false,
+          borderRadius: 30,
+          borderWidth: 0.07,
+          blur: 11,
+          brightness: 50,
+          opacity: 0.93,
+          distortionScale: -180,
+          displace: 0.5,
+          rgbOffset: 10,
+          bgOpacity: 0.24,
+          saturation: 1.35,
+        },
+
+        // Web Audio API
+        audioCtx: null,
+        masterGain: null,
+        analyser: null,
+        freqData: null,
+        mediaConnected: false,
+        demoTimer: null,
+        demoStep: 0,
+        demoNodes: [],
+        bassEnergy: 0,
+
+        // Motion & Atmosphere
+        bgMotionTween: null,
+        pointerX: 0,
+        pointerY: 0,
+        smoothPX: 0,
+        smoothPY: 0,
+        wavePhase: 0,
+        waveAmp: 0,
+        rafId: null,
+        lastFrameTs: 0,
+        lenisDrawer: null,
+        lenisPicker: null,
+      };
+
+      /* ----------------------------------------------------------
+         3. DOM REFERENCES
+         ---------------------------------------------------------- */
+      const el = {
+        audio: document.getElementById("audioPlayer"),
+        quickBgInput: document.getElementById("quickBgInput"),
+        stageFrame: document.getElementById("stageFrame"),
+        bgStageLayer: document.getElementById("bgStageLayer"),
+        bgWallpaperImg: document.getElementById("bgWallpaperImg"),
+        atmosphereCanvas: document.getElementById("atmosphereCanvas"),
+
+        // Toast
+        toastPill: document.getElementById("toastPill"),
+        toastDot: document.getElementById("toastDot"),
+        toastText: document.getElementById("toastText"),
+
+        // Top Liquid GlassSurface Player
+        glassPlayer: document.getElementById("glassPlayer"),
+        glassSpecularSheen: document.getElementById("glassSpecularSheen"),
+        gsFeImage: document.getElementById("gsFeImage"),
+        gsRedChannel: document.getElementById("gsRedChannel"),
+        gsGreenChannel: document.getElementById("gsGreenChannel"),
+        gsBlueChannel: document.getElementById("gsBlueChannel"),
+        gsGaussianBlur: document.getElementById("gsGaussianBlur"),
+
+        stripMusicBtn: document.getElementById("stripMusicBtn"),
+        stripBgBtn: document.getElementById("stripBgBtn"),
+        stripFilterBtn: document.getElementById("stripFilterBtn"),
+        stripMotionBtn: document.getElementById("stripMotionBtn"),
+        stripLoopBtn: document.getElementById("stripLoopBtn"),
+        stripReelBtn: document.getElementById("stripReelBtn"),
+        stripCleanBtn: document.getElementById("stripCleanBtn"),
+        stripStudioBtn: document.getElementById("stripStudioBtn"),
+
+        coverBtn: document.getElementById("coverBtn"),
+        playerCoverImg: document.getElementById("playerCoverImg"),
+        playerCoverSvg: document.getElementById("playerCoverSvg"),
+        playerTitle: document.getElementById("playerTitle"),
+        playerArtist: document.getElementById("playerArtist"),
+        prevBtn: document.getElementById("prevBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        playIcon: document.getElementById("playIcon"),
+        pauseIcon: document.getElementById("pauseIcon"),
+        nextBtn: document.getElementById("nextBtn"),
+
+        waveScrubber: document.getElementById("waveScrubber"),
+        waveSvg: document.getElementById("waveSvg"),
+        waveRemainLine: document.getElementById("waveRemainLine"),
+        waveBaseBar: document.getElementById("waveBaseBar"),
+        waveHillBack: document.getElementById("waveHillBack"),
+        waveHillMid: document.getElementById("waveHillMid"),
+        waveHillFront: document.getElementById("waveHillFront"),
+        waveThumbGroup: document.getElementById("waveThumbGroup"),
+        wgBack0: document.getElementById("wgBack0"),
+        wgBack1: document.getElementById("wgBack1"),
+        wgBack2: document.getElementById("wgBack2"),
+        wgMid0: document.getElementById("wgMid0"),
+        wgMid1: document.getElementById("wgMid1"),
+        wgMid2: document.getElementById("wgMid2"),
+        wgFront0: document.getElementById("wgFront0"),
+        wgFront1: document.getElementById("wgFront1"),
+        wgFront2: document.getElementById("wgFront2"),
+        wgBar0: document.getElementById("wgBar0"),
+        wgBar1: document.getElementById("wgBar1"),
+        timeElapsed: document.getElementById("timeElapsed"),
+        timeRemaining: document.getElementById("timeRemaining"),
+        muteBtn: document.getElementById("muteBtn"),
+        volumeSlider: document.getElementById("volumeSlider"),
+
+        // Typing Lyrics Stage
+        typingLyricsStage: document.getElementById("typingLyricsStage"),
+        prevTypedLine: document.getElementById("prevTypedLine"),
+        typedTextSpan: document.getElementById("typedTextSpan"),
+        typingCursor: document.getElementById("typingCursor"),
+
+        // Quick Corner Pills & Clean Mode
+        quickCornerPills: document.getElementById("quickCornerPills"),
+        quickFilterPill: document.getElementById("quickFilterPill"),
+        quickFilterName: document.getElementById("quickFilterName"),
+        openStudioPill: document.getElementById("openStudioPill"),
+        cleanExitBtn: document.getElementById("cleanExitBtn"),
+
+        // Studio Drawer
+        drawerBackdrop: document.getElementById("drawerBackdrop"),
+        studioDrawer: document.getElementById("studioDrawer"),
+        closeStudioBtn: document.getElementById("closeStudioBtn"),
+        drawerScrollWrapper: document.getElementById("drawerScrollWrapper"),
+        drawerScrollContent: document.getElementById("drawerScrollContent"),
+
+        // Section 1: Wallpaper & Filters
+        bgStatusBadge: document.getElementById("bgStatusBadge"),
+        bgDropZone: document.getElementById("bgDropZone"),
+        bgFileInput: document.getElementById("bgFileInput"),
+        bgDropLabel: document.getElementById("bgDropLabel"),
+        presetBgBtns: document.querySelectorAll(".preset-bg-btn"),
+        filterBtns: document.querySelectorAll(".filter-btn"),
+        motionBtns: document.querySelectorAll(".motion-btn"),
+        bgDimSlider: document.getElementById("bgDimSlider"),
+        bgDimVal: document.getElementById("bgDimVal"),
+        toggleGrainBtn: document.getElementById("toggleGrainBtn"),
+        toggleParticlesBtn: document.getElementById("toggleParticlesBtn"),
+        toggleLyricsFrostBtn: document.getElementById("toggleLyricsFrostBtn"),
+
+        // Section 2: Audio & Cover
+        audioStatusBadge: document.getElementById("audioStatusBadge"),
+        audioDropZone: document.getElementById("audioDropZone"),
+        audioFileInput: document.getElementById("audioFileInput"),
+        audioDropLabel: document.getElementById("audioDropLabel"),
+        audioFileMeta: document.getElementById("audioFileMeta"),
+        coverFileInput: document.getElementById("coverFileInput"),
+        drawerCoverImg: document.getElementById("drawerCoverImg"),
+        drawerCoverPlaceholder: document.getElementById("drawerCoverPlaceholder"),
+        titleInput: document.getElementById("titleInput"),
+        artistInput: document.getElementById("artistInput"),
+
+        // Section 3: LRCLIB
+        lyricsCountBadge: document.getElementById("lyricsCountBadge"),
+        lrcTabBtns: document.querySelectorAll(".lrc-tab-btn"),
+        lrcTabUrl: document.getElementById("lrcTabUrl"),
+        lrcTabSearch: document.getElementById("lrcTabSearch"),
+        lrcTabManual: document.getElementById("lrcTabManual"),
+        lrclibUrlInput: document.getElementById("lrclibUrlInput"),
+        fetchLrclibBtn: document.getElementById("fetchLrclibBtn"),
+        fetchBtnLabel: document.getElementById("fetchBtnLabel"),
+        fetchSpinner: document.getElementById("fetchSpinner"),
+        lrclibStatusText: document.getElementById("lrclibStatusText"),
+        lrclibSearchInput: document.getElementById("lrclibSearchInput"),
+        searchLrclibBtn: document.getElementById("searchLrclibBtn"),
+        searchResultsBox: document.getElementById("searchResultsBox"),
+        manualLrcInput: document.getElementById("manualLrcInput"),
+        applyManualLrcBtn: document.getElementById("applyManualLrcBtn"),
+
+        // Section 4: Trimmer & Offset
+        snippetWindowBadge: document.getElementById("snippetWindowBadge"),
+        startTimeInput: document.getElementById("startTimeInput"),
+        endTimeInput: document.getElementById("endTimeInput"),
+        useNowStartBtn: document.getElementById("useNowStartBtn"),
+        useNowEndBtn: document.getElementById("useNowEndBtn"),
+        resetFullSongBtn: document.getElementById("resetFullSongBtn"),
+        lyricPickerWrapper: document.getElementById("lyricPickerWrapper"),
+        lyricPickerList: document.getElementById("lyricPickerList"),
+        offsetSlider: document.getElementById("offsetSlider"),
+        offsetLabel: document.getElementById("offsetLabel"),
+        offsetMinusBtn: document.getElementById("offsetMinusBtn"),
+        offsetPlusBtn: document.getElementById("offsetPlusBtn"),
+        offsetResetBtn: document.getElementById("offsetResetBtn"),
+
+        // Section 5: GlassSurface Controls & Fonts
+        glassModeBadge: document.getElementById("glassModeBadge"),
+        gsDistSlider: document.getElementById("gsDistSlider"),
+        gsDistVal: document.getElementById("gsDistVal"),
+        gsBlurSlider: document.getElementById("gsBlurSlider"),
+        gsBlurVal: document.getElementById("gsBlurVal"),
+        gsDisplaceSlider: document.getElementById("gsDisplaceSlider"),
+        gsDisplaceVal: document.getElementById("gsDisplaceVal"),
+        gsOpacitySlider: document.getElementById("gsOpacitySlider"),
+        gsOpacityVal: document.getElementById("gsOpacityVal"),
+        gsRadiusSlider: document.getElementById("gsRadiusSlider"),
+        gsRadiusVal: document.getElementById("gsRadiusVal"),
+        gsRgbSlider: document.getElementById("gsRgbSlider"),
+        gsRgbVal: document.getElementById("gsRgbVal"),
+        fontBtns: document.querySelectorAll(".font-btn"),
+      };
+
+      /* ----------------------------------------------------------
+         4. UTILITIES (TOAST, TIME, ESCAPE, LRC PARSER)
+         ---------------------------------------------------------- */
+      let toastTimer = null;
+      function showToast(msg, type = "info") {
+        el.toastText.textContent = msg;
+        el.toastDot.className = "w-2 h-2 rounded-full shrink-0 " + (
+          type === "error" ? "bg-rose-500" :
+          type === "success" ? "bg-emerald-400" :
+          "bg-sky-400"
+        );
+        clearTimeout(toastTimer);
+
+        if (window.anime) {
+          anime.remove(el.toastPill);
+          anime({
+            targets: el.toastPill,
+            translateX: ["-50%", "-50%"],
+            translateY: [22, 0],
+            opacity: [0, 1],
+            scale: [0.92, 1],
+            duration: 380,
+            easing: "easeOutElastic(1, 0.74)",
+          });
+        } else {
+          el.toastPill.style.opacity = "1";
+          el.toastPill.style.transform = "translateX(-50%) translateY(0)";
+        }
+
+        toastTimer = setTimeout(() => {
+          if (window.anime) {
+            anime({
+              targets: el.toastPill,
+              translateX: ["-50%", "-50%"],
+              translateY: [0, 16],
+              opacity: [1, 0],
+              duration: 260,
+              easing: "easeInQuad",
+            });
+          } else {
+            el.toastPill.style.opacity = "0";
+          }
+        }, 2800);
+      }
+
+      function formatTime(sec) {
+        if (!Number.isFinite(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+
+      function parseTimeInput(str) {
+        if (!str) return null;
+        const clean = str.trim();
+        if (/^\d+(\.\d+)?$/.test(clean)) return parseFloat(clean);
+        const m = clean.match(/^(\d+):(\d{1,2})(?:\.(\d+))?$/);
+        if (!m) return null;
+        const mins = parseInt(m[1], 10);
+        const secs = parseInt(m[2], 10);
+        if (secs >= 60) return null;
+        const frac = m[3] ? parseFloat("0." + m[3]) : 0;
+        return mins * 60 + secs + frac;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function parseLRC(rawText) {
+        if (!rawText || typeof rawText !== "string") return [];
+        const rawLines = rawText.split(/\r?\n/);
+        const timeRx = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+        const parsed = [];
+
+        for (const raw of rawLines) {
+          const stamps = [];
+          let m;
+          timeRx.lastIndex = 0;
+          while ((m = timeRx.exec(raw)) !== null) {
+            const mins = parseInt(m[1], 10);
+            const secs = parseInt(m[2], 10);
+            const msStr = m[3] || "0";
+            const ms = msStr.length === 1
+              ? parseInt(msStr, 10) / 10
+              : msStr.length === 2
+              ? parseInt(msStr, 10) / 100
+              : parseInt(msStr.slice(0, 3), 10) / 1000;
+            stamps.push(mins * 60 + secs + ms);
+          }
+          if (!stamps.length) continue;
+          const cleanText = raw
+            .replace(timeRx, "")
+            .replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, "")
+            .trim();
+          if (!cleanText) continue;
+          for (const t of stamps) parsed.push({ time: Number(t.toFixed(3)), text: cleanText });
+        }
+
+        parsed.sort((a, b) => a.time - b.time);
+        return parsed;
+      }
+
+      /* ----------------------------------------------------------
+         5. AUTHENTIC REACT-BITS GLASSSURFACE ENGINE
+         ---------------------------------------------------------- */
+      function detectSvgBackdropSupport() {
+        const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
+        const isFirefox = /Firefox/.test(navigator.userAgent);
+        if (isWebkit || isFirefox) return false;
+
+        const test = document.createElement("div");
+        test.style.backdropFilter = "url(#glassSurfaceFilter)";
+        return test.style.backdropFilter !== "";
+      }
+
+      /**
+       * Generates the React Bits GlassSurface RGB displacement map SVG data URI
+       * and updates feDisplacementMap RGB prism offsets + Gaussian blur live.
+       */
+      function updateGlassSurfaceMap() {
+        const g = state.glass;
+        const rect = el.glassPlayer.getBoundingClientRect();
+        const width = Math.max(240, Math.round(rect.width || 420));
+        const height = Math.max(120, Math.round(rect.height || 168));
+        const edgeSize = Math.min(width, height) * (g.borderWidth * 0.5);
+
+        const svgContent = `
+          <svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="red-grad" x1="100%" y1="0%" x2="0%" y2="0%">
+                <stop offset="0%" stop-color="#0000"/>
+                <stop offset="100%" stop-color="red"/>
+              </linearGradient>
+              <linearGradient id="blue-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#0000"/>
+                <stop offset="100%" stop-color="blue"/>
+              </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="${width}" height="${height}" fill="black"/>
+            <rect x="0" y="0" width="${width}" height="${height}" rx="${g.borderRadius}" fill="url(#red-grad)"/>
+            <rect x="0" y="0" width="${width}" height="${height}" rx="${g.borderRadius}" fill="url(#blue-grad)" style="mix-blend-mode: difference"/>
+            <rect
+              x="${edgeSize}"
+              y="${edgeSize}"
+              width="${Math.max(10, width - edgeSize * 2)}"
+              height="${Math.max(10, height - edgeSize * 2)}"
+              rx="${g.borderRadius}"
+              fill="hsl(0 0% ${g.brightness}% / ${g.opacity})"
+              style="filter:blur(${g.blur}px)"
+            />
+          </svg>
+        `.trim();
+
+        const encoded = `data:image/svg+xml,${encodeURIComponent(svgContent)}`;
+        el.gsFeImage.setAttribute("href", encoded);
+        el.gsFeImage.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", encoded);
+
+        el.gsRedChannel.setAttribute("scale", String(g.distortionScale));
+        el.gsGreenChannel.setAttribute("scale", String(g.distortionScale + g.rgbOffset));
+        el.gsBlueChannel.setAttribute("scale", String(g.distortionScale + g.rgbOffset * 2));
+        el.gsGaussianBlur.setAttribute("stdDeviation", String(g.displace));
+
+        // Sync CSS tokens
+        const root = document.documentElement;
+        root.style.setProperty("--glass-radius", `${g.borderRadius}px`);
+        root.style.setProperty("--glass-blur", `${g.blur}px`);
+        root.style.setProperty("--glass-bg-opacity", String(g.bgOpacity));
+        root.style.setProperty("--glass-sat", String(g.saturation));
+
+        const useSvg = g.supportsSvgBackdrop && g.distortionScale !== 0;
+        el.glassPlayer.classList.toggle("glass-surface--svg", useSvg);
+        el.glassPlayer.classList.toggle("glass-surface--fallback", !useSvg);
+        el.glassModeBadge.textContent = useSvg ? "Liquid SVG Refraction" : "Frosted VisionOS Glass";
+      }
+
+      /**
+       * Samples the active wallpaper/cover softly and harmonizes the multi-layered
+       * aurora wave scrubber & circular ring thumb with the liquid glass reflection tint.
+       */
+      function sampleAmbientGlassTintFromImage(imgEl) {
+        try {
+          if (!imgEl || !imgEl.naturalWidth) return;
+          const c = document.createElement("canvas");
+          c.width = 24;
+          c.height = 24;
+          const ctx = c.getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(imgEl, 0, 0, 24, 24);
+          const data = ctx.getImageData(0, 0, 24, 24).data;
+          let r = 0, g = 0, b = 0, count = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            if (lum < 25 || lum > 245) continue;
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            count++;
+          }
+          if (count > 0) {
+            // Mix gently with frosted crystal white (55% image tint + 45% luminous white)
+            const tr = Math.round((r / count) * 0.52 + 255 * 0.48);
+            const tg = Math.round((g / count) * 0.52 + 255 * 0.48);
+            const tb = Math.round((b / count) * 0.52 + 255 * 0.48);
+            state.sampledTintRgb = [tr, tg, tb];
+          }
+        } catch (_) {
+          state.sampledTintRgb = [220, 236, 252];
+        }
+        updateGlassWavePalette();
+      }
+
+      function updateGlassWavePalette() {
+        let [r, g, b] = state.sampledTintRgb;
+        const f = state.bgFilter;
+
+        // Harmonize frosted crystal wave palette with the active wallpaper filter
+        if (f === "noir" || f === "silver") {
+          r = 236; g = 240; b = 246;
+        } else if (f === "warm35") {
+          r = 255; g = 216; b = 176;
+        } else if (f === "tokyo") {
+          r = 236; g = 186; b = 255;
+        } else if (f === "bloom") {
+          r = 246; g = 232; b = 252;
+        } else if (f === "matte") {
+          r = 228; g = 222; b = 214;
+        }
+
+        // Deep glass refraction accent for circular thumb core + translucent wave fills
+        const coreR = Math.round(r * 0.72 + 45);
+        const coreG = Math.round(g * 0.72 + 45);
+        const coreB = Math.round(b * 0.72 + 48);
+
+        const root = document.documentElement;
+        root.style.setProperty("--wave-core", `rgba(${coreR}, ${coreG}, ${coreB}, 0.86)`);
+        root.style.setProperty("--wave-glow", `rgba(${r}, ${g}, ${b}, 0.62)`);
+        root.style.setProperty("--wave-highlight", `rgba(255, 255, 255, 0.96)`);
+
+        el.wgBack0?.setAttribute("stop-color", `rgba(${r}, ${g}, ${b}, 0.08)`);
+        el.wgBack1?.setAttribute("stop-color", `rgba(${r}, ${g}, ${b}, 0.44)`);
+        el.wgBack2?.setAttribute("stop-color", `rgba(${r}, ${g}, ${b}, 0.16)`);
+
+        el.wgMid0?.setAttribute("stop-color", `rgba(${r}, ${g}, ${b}, 0.22)`);
+        el.wgMid1?.setAttribute("stop-color", `rgba(255, 255, 255, 0.68)`);
+        el.wgMid2?.setAttribute("stop-color", `rgba(${r}, ${g}, ${b}, 0.36)`);
+
+        el.wgFront0?.setAttribute("stop-color", `rgba(255, 255, 255, 0.32)`);
+        el.wgFront1?.setAttribute("stop-color", `rgba(255, 255, 255, 0.92)`);
+        el.wgFront2?.setAttribute("stop-color", `rgba(${r}, ${g}, ${b}, 0.56)`);
+
+        el.wgBar0?.setAttribute("stop-color", `rgba(${r}, ${g}, ${b}, 0.58)`);
+        el.wgBar1?.setAttribute("stop-color", `rgba(255, 255, 255, 0.96)`);
+      }
+
+      /* ----------------------------------------------------------
+         6. PROCEDURAL HIGH-ART BUILT-IN WALLPAPERS + IMAGE UPLOAD
+         ---------------------------------------------------------- */
+      function generateBuiltInWallpaper(presetId) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1600;
+        canvas.height = 1000;
+        const ctx = canvas.getContext("2d");
+        const w = canvas.width;
+        const h = canvas.height;
+
+        if (presetId === "ink") {
+          // High-fashion monochrome editorial silver-ivory & sculptural obsidian ink art
+          const bg = ctx.createRadialGradient(w * 0.52, h * 0.42, 60, w * 0.5, h * 0.5, w * 0.72);
+          bg.addColorStop(0, "#edeae4");
+          bg.addColorStop(0.58, "#cfc9c0");
+          bg.addColorStop(1, "#7d7770");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, w, h);
+
+          // Ethereal luminous halo rings behind center silhouette
+          ctx.save();
+          ctx.strokeStyle = "rgba(255,255,255,0.55)";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(w * 0.54, h * 0.46, 265, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(24,22,26,0.12)";
+          ctx.lineWidth = 48;
+          ctx.beginPath();
+          ctx.arc(w * 0.54, h * 0.46, 330, Math.PI * 0.85, Math.PI * 1.95);
+          ctx.stroke();
+
+          // Abstract flowing ink ribbons & dramatic diagonal editorial brushwork
+          for (let i = 0; i < 9; i++) {
+            const grad = ctx.createLinearGradient(w * 0.15, h * 0.1, w * 0.85, h * 0.95);
+            grad.addColorStop(0, `rgba(18, 18, 22, ${0.14 + i * 0.045})`);
+            grad.addColorStop(0.55, `rgba(38, 34, 42, ${0.22 + i * 0.04})`);
+            grad.addColorStop(1, "rgba(12, 12, 16, 0.78)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            const offset = i * 42;
+            ctx.moveTo(w * 0.25 + offset, h);
+            ctx.bezierCurveTo(
+              w * 0.36 + offset * 0.5, h * 0.52,
+              w * 0.58 - offset * 0.35, h * 0.24,
+              w * 0.72 + offset * 0.4, h * 0.08 + offset * 0.2
+            );
+            ctx.bezierCurveTo(
+              w * 0.62 + offset * 0.45, h * 0.38,
+              w * 0.52 + offset * 0.6, h * 0.66,
+              w * 0.46 + offset * 0.85, h
+            );
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          // Subtle crimson accent glint & architectural light streaks
+          const glint = ctx.createRadialGradient(w * 0.57, h * 0.44, 6, w * 0.57, h * 0.44, 150);
+          glint.addColorStop(0, "rgba(198, 42, 62, 0.35)");
+          glint.addColorStop(1, "rgba(198, 42, 62, 0)");
+          ctx.fillStyle = glint;
+          ctx.fillRect(0, 0, w, h);
+
+          // Minimal oversized faded watermark typography at bottom center
+          ctx.fillStyle = "rgba(255, 255, 255, 0.32)";
+          ctx.font = '800 112px "Syne", sans-serif';
+          ctx.textAlign = "center";
+          ctx.fillText("N O C T U R N E", w * 0.5, h * 0.86);
+          ctx.restore();
+        } else if (presetId === "midnight") {
+          // Moody cyber-rain midnight skyline gradient with soft bokeh lights
+          const bg = ctx.createLinearGradient(0, 0, w, h);
+          bg.addColorStop(0, "#050914");
+          bg.addColorStop(0.45, "#0d1b2e");
+          bg.addColorStop(1, "#180c24");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, w, h);
+
+          const bokeh = [
+            [0.24, 0.35, 210, "rgba(56, 189, 248, 0.32)"],
+            [0.72, 0.28, 250, "rgba(168, 85, 247, 0.32)"],
+            [0.52, 0.68, 290, "rgba(244, 63, 94, 0.22)"],
+            [0.82, 0.72, 180, "rgba(34, 211, 238, 0.26)"],
+            [0.18, 0.76, 190, "rgba(99, 102, 241, 0.28)"],
+          ];
+          bokeh.forEach(([rx, ry, rad, color]) => {
+            const g = ctx.createRadialGradient(w * rx, h * ry, 8, w * rx, h * ry, rad);
+            g.addColorStop(0, color);
+            g.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, w, h);
+          });
+
+          // Fine diagonal rain streaks
+          ctx.strokeStyle = "rgba(210, 238, 255, 0.14)";
+          ctx.lineWidth = 1.4;
+          for (let i = 0; i < 120; i++) {
+            const x = Math.random() * w;
+            const y = Math.random() * h;
+            const len = 26 + Math.random() * 58;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - len * 0.22, y + len);
+            ctx.stroke();
+          }
+        } else {
+          // Velvet Dusk warm atmospheric film horizon
+          const bg = ctx.createLinearGradient(0, 0, w * 0.85, h);
+          bg.addColorStop(0, "#140b12");
+          bg.addColorStop(0.42, "#4a1d28");
+          bg.addColorStop(0.74, "#b85c38");
+          bg.addColorStop(1, "#1e1214");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, w, h);
+
+          const sun = ctx.createRadialGradient(w * 0.52, h * 0.48, 20, w * 0.52, h * 0.48, 360);
+          sun.addColorStop(0, "rgba(255, 224, 178, 0.65)");
+          sun.addColorStop(0.45, "rgba(245, 130, 68, 0.28)");
+          sun.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = sun;
+          ctx.fillRect(0, 0, w, h);
+
+          // Minimal horizon silhouette waves
+          ctx.fillStyle = "rgba(16, 10, 14, 0.68)";
+          ctx.beginPath();
+          ctx.moveTo(0, h * 0.72);
+          ctx.bezierCurveTo(w * 0.28, h * 0.62, w * 0.62, h * 0.82, w, h * 0.66);
+          ctx.lineTo(w, h);
+          ctx.lineTo(0, h);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        return canvas.toDataURL("image/jpeg", 0.9);
+      }
+
+      function applyPresetWallpaper(presetId) {
+        state.presetBg = presetId;
+        el.bgWallpaperImg.src = generateBuiltInWallpaper(presetId);
+        el.bgDropLabel.textContent = "Upload Custom Background Wallpaper";
+        el.bgStatusBadge.textContent =
+          presetId === "ink" ? "Ink Editorial" :
+          presetId === "midnight" ? "Midnight Rain" : "Velvet Dusk";
+
+        el.presetBgBtns.forEach((btn) => {
+          const active = btn.dataset.presetBg === presetId;
+          btn.classList.toggle("bg-white/14", active);
+          btn.classList.toggle("border-white/40", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+      }
+
+      function handleBgUpload(file) {
+        if (!file || !file.type.startsWith("image/")) {
+          showToast("Please upload a valid PNG, JPG, or WEBP image", "error");
+          return;
+        }
+        if (state.bgObjectUrl) URL.revokeObjectURL(state.bgObjectUrl);
+        state.bgObjectUrl = URL.createObjectURL(file);
+        el.bgWallpaperImg.src = state.bgObjectUrl;
+        el.bgDropLabel.textContent = file.name;
+        el.bgStatusBadge.textContent = "Custom Wallpaper";
+        el.bgStatusBadge.className = "text-[11px] font-semibold text-emerald-400";
+
+        el.presetBgBtns.forEach((btn) => {
+          btn.classList.remove("bg-white/14", "border-white/40");
+          btn.classList.add("bg-white/[0.04]", "border-white/10");
+        });
+
+        showToast(`Wallpaper loaded: "${file.name}"`, "success");
+      }
+
+      /* ----------------------------------------------------------
+         7. AESTHETIC MOVING WALLPAPER ENGINE (GSAP)
+         ---------------------------------------------------------- */
+      function setBgMotion(motionId, announce = false) {
+        state.bgMotion = motionId;
+        if (state.bgMotionTween) {
+          state.bgMotionTween.kill();
+          state.bgMotionTween = null;
+        }
+
+        el.stripMotionBtn.classList.toggle("is-active", motionId !== "static");
+        el.motionBtns.forEach((btn) => {
+          const active = btn.dataset.motionPick === motionId;
+          btn.className = `motion-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+
+        if (window.gsap) {
+          gsap.killTweensOf(el.bgStageLayer);
+          gsap.set(el.bgStageLayer, { x: 0, y: 0, xPercent: 0, yPercent: 0, rotation: 0, scale: 1.02 });
+
+          if (motionId === "kenburns") {
+            state.bgMotionTween = gsap.to(el.bgStageLayer, {
+              scale: 1.09,
+              xPercent: -1.8,
+              yPercent: -1.2,
+              duration: 16,
+              repeat: -1,
+              yoyo: true,
+              ease: "sine.inOut",
+            });
+          } else if (motionId === "float") {
+            state.bgMotionTween = gsap.to(el.bgStageLayer, {
+              xPercent: 1.9,
+              yPercent: -1.6,
+              rotation: 0.65,
+              scale: 1.06,
+              duration: 9.5,
+              repeat: -1,
+              yoyo: true,
+              ease: "sine.inOut",
+            });
+          }
+        }
+
+        if (announce) {
+          const meta = MOTION_LIST.find((m) => m.id === motionId) || MOTION_LIST[0];
+          showToast(`Background Motion: ${meta.name}`);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         8. FLOATING ATMOSPHERE DUST / BOKEH PARTICLES CANVAS
+         ---------------------------------------------------------- */
+      const atmo = { ctx: null, w: 0, h: 0, dpr: 1, motes: [] };
+
+      function initAtmosphereCanvas() {
+        atmo.ctx = el.atmosphereCanvas.getContext("2d");
+        resizeAtmosphere();
+      }
+
+      function resizeAtmosphere() {
+        const w = Math.max(240, el.stageFrame.clientWidth || window.innerWidth);
+        const h = Math.max(320, el.stageFrame.clientHeight || window.innerHeight);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        atmo.w = w;
+        atmo.h = h;
+        atmo.dpr = dpr;
+        el.atmosphereCanvas.width = Math.round(w * dpr);
+        el.atmosphereCanvas.height = Math.round(h * dpr);
+
+        const count = Math.max(24, Math.min(54, Math.round((w * h) / 28000)));
+        atmo.motes = [];
+        for (let i = 0; i < count; i++) {
+          atmo.motes.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: 0.9 + Math.random() * 2.4,
+            vx: (Math.random() - 0.5) * 0.22,
+            vy: -0.14 - Math.random() * 0.34,
+            alpha: 0.14 + Math.random() * 0.42,
+            phase: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+
+      function renderAtmosphere(ts) {
+        const ctx = atmo.ctx;
+        if (!ctx) return;
+        ctx.clearRect(0, 0, atmo.w * atmo.dpr, atmo.h * atmo.dpr);
+        if (!state.particlesEnabled) return;
+
+        ctx.save();
+        ctx.scale(atmo.dpr, atmo.dpr);
+        const t = ts * 0.001;
+        const boost = 1 + state.bassEnergy * 0.5;
+
+        for (let i = 0; i < atmo.motes.length; i++) {
+          const m = atmo.motes[i];
+          m.x += m.vx + Math.sin(t * 0.6 + m.phase) * 0.14;
+          m.y += m.vy * boost;
+          if (m.y < -10) { m.y = atmo.h + 10; m.x = Math.random() * atmo.w; }
+          if (m.x < -10) m.x = atmo.w + 10;
+          if (m.x > atmo.w + 10) m.x = -10;
+
+          const a = m.alpha * (0.65 + 0.35 * Math.sin(t * 1.4 + m.phase));
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${a.toFixed(3)})`;
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      /* ----------------------------------------------------------
+         9. MULTI-LAYERED LIQUID-GLASS AURORA WAVE SCRUBBER
+            (TINTED TO MATCH THE GLASS SURFACE REFLECTION)
+         ---------------------------------------------------------- */
+      function buildLiquidHillPath(splitX, baselineY, maxHeight, phase, freq, centerBias) {
+        if (splitX < 4 || maxHeight < 0.25) {
+          return `M 0 ${baselineY} L ${splitX.toFixed(1)} ${baselineY} Z`;
+        }
+        const steps = Math.max(18, Math.min(48, Math.round(splitX / 5)));
+        let d = `M 0 ${baselineY}`;
+
+        for (let i = 0; i <= steps; i++) {
+          const u = i / steps;
+          const x = u * splitX;
+
+          const env = Math.pow(Math.sin(u * Math.PI), 1.38);
+          const peakShift = Math.exp(-Math.pow((u - centerBias) * 2.4, 2));
+          const ripple = 0.58 + 0.42 * Math.sin(u * Math.PI * freq - phase);
+          const h = maxHeight * env * (0.42 + 0.58 * peakShift) * ripple;
+
+          const y = baselineY - Math.max(0, h);
+          d += ` L ${x.toFixed(1)} ${y.toFixed(2)}`;
+        }
+
+        d += ` L ${splitX.toFixed(1)} ${baselineY} Z`;
+        return d;
+      }
+
+      function renderSquigglyWave(nowSec, dt) {
+        const clipLen = Math.max(0.1, state.endTime - state.startTime);
+        const rel = Math.max(0, Math.min(clipLen, nowSec - state.startTime));
+        const ratio = rel / clipLen;
+        const totalW = 360;
+        const baseY = 21;
+        const splitX = Math.max(0, Math.min(totalW, ratio * totalW));
+
+        const targetAmp = state.isPlaying ? 12.2 + state.bassEnergy * 6.8 : 2.2;
+        state.waveAmp += (targetAmp - state.waveAmp) * 0.1;
+        state.wavePhase += dt * (state.isPlaying ? 2.85 : 0.45);
+
+        const lenFactor = Math.min(1, splitX / 58);
+        const amp = state.waveAmp * lenFactor;
+
+        const dBack = buildLiquidHillPath(splitX, baseY, amp * 1.08, state.wavePhase * 0.72, 1.8, 0.56);
+        const dMid = buildLiquidHillPath(splitX, baseY, amp * 0.88, state.wavePhase * 1.05 + 1.4, 2.3, 0.44);
+        const dFront = buildLiquidHillPath(splitX, baseY, amp * 0.64, state.wavePhase * 1.42 + 2.8, 2.9, 0.66);
+
+        el.waveHillBack.setAttribute("d", dBack);
+        el.waveHillMid.setAttribute("d", dMid);
+        el.waveHillFront.setAttribute("d", dFront);
+
+        el.waveBaseBar.setAttribute("x2", splitX.toFixed(1));
+        el.waveRemainLine.setAttribute("x1", Math.min(totalW, splitX + 5).toFixed(1));
+        el.waveThumbGroup.setAttribute("transform", `translate(${splitX.toFixed(1)}, ${baseY})`);
+
+        el.timeElapsed.textContent = formatTime(rel);
+        el.timeRemaining.textContent = `-${formatTime(Math.max(0, clipLen - rel))}`;
+      }
+
+      /* ----------------------------------------------------------
+         10. REAL-TIME TYPING-EFFECT SYNCED LYRICS ENGINE
+         ---------------------------------------------------------- */
+      function updateTypingLyrics(effectiveNow, force = false) {
+        if (!state.snippetLines.length) {
+          el.prevTypedLine.textContent = "";
+          el.typedTextSpan.textContent = "Upload MP3 & fetch LRCLIB lyrics...";
+          return;
+        }
+
+        let idx = 0;
+        for (let i = 0; i < state.snippetLines.length; i++) {
+          if (state.snippetLines[i].time <= effectiveNow + 0.04) {
+            idx = i;
+          } else {
+            break;
+          }
+        }
+
+        const lineObj = state.snippetLines[idx];
+        const prevObj = idx > 0 ? state.snippetLines[idx - 1] : null;
+        const nextObj = state.snippetLines[idx + 1] || null;
+        const fullText = lineObj.text;
+
+        const lineDur = nextObj
+          ? Math.max(0.95, Math.min(6.8, nextObj.time - lineObj.time))
+          : Math.max(2.0, Math.min(5.0, state.endTime - lineObj.time));
+
+        const isInitialPaused = !state.isPlaying && Math.abs(effectiveNow - state.startTime) < 0.2;
+        let targetChars;
+        if (isInitialPaused) {
+          targetChars = fullText.length;
+        } else {
+          const elapsed = Math.max(0, effectiveNow - lineObj.time + 0.05);
+          const typingWindow = Math.max(0.65, Math.min(lineDur * 0.78, fullText.length * 0.068));
+          const rawProg = Math.max(0, Math.min(1, elapsed / typingWindow));
+          const easedProg = 1 - Math.pow(1 - rawProg, 1.28);
+          targetChars = Math.max(1, Math.min(fullText.length, Math.ceil(easedProg * fullText.length)));
+        }
+
+        const lineChanged = idx !== state.lastActiveForTyping;
+        if (!force && !lineChanged && targetChars === state.typedCharCount) return;
+
+        state.activeIndex = idx;
+
+        if (lineChanged || force) {
+          state.lastActiveForTyping = idx;
+          state.typedCharCount = 0;
+          el.prevTypedLine.textContent = prevObj ? prevObj.text : "";
+          el.typedTextSpan.innerHTML = "";
+
+          if (window.gsap && prevObj) {
+            gsap.fromTo(
+              el.prevTypedLine,
+              { opacity: 0.92, y: 14, filter: "blur(0px)" },
+              { opacity: 0.44, y: 0, filter: "blur(0.4px)", duration: 0.56, ease: "power3.out" }
+            );
+          }
+        }
+
+        if (targetChars < state.typedCharCount) {
+          el.typedTextSpan.textContent = fullText.slice(0, targetChars);
+          state.typedCharCount = targetChars;
+        } else if (targetChars > state.typedCharCount) {
+          const fragment = document.createDocumentFragment();
+          for (let c = state.typedCharCount; c < targetChars; c++) {
+            const span = document.createElement("span");
+            span.className = "typed-char";
+            span.textContent = fullText[c];
+            fragment.appendChild(span);
+          }
+          el.typedTextSpan.appendChild(fragment);
+          state.typedCharCount = targetChars;
+
+          el.typingCursor.classList.add("is-typing");
+          clearTimeout(state.cursorPulseTimer);
+          state.cursorPulseTimer = setTimeout(() => {
+            el.typingCursor.classList.remove("is-typing");
+          }, 260);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         11. WEB AUDIO API: MOODY INDIE DEMO SYNTH + BASS ANALYSER
+         ---------------------------------------------------------- */
+      function ensureAudioGraph() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return false;
+
+        if (!state.audioCtx) {
+          state.audioCtx = new AudioCtx();
+          state.masterGain = state.audioCtx.createGain();
+          state.masterGain.gain.value = state.volume;
+
+          state.analyser = state.audioCtx.createAnalyser();
+          state.analyser.fftSize = 128;
+          state.analyser.smoothingTimeConstant = 0.84;
+          state.freqData = new Uint8Array(state.analyser.frequencyBinCount);
+
+          state.masterGain.connect(state.analyser);
+          state.analyser.connect(state.audioCtx.destination);
+        }
+
+        if (state.audioCtx.state === "suspended") {
+          state.audioCtx.resume().catch(() => {});
+        }
+        return true;
+      }
+
+      function connectMediaElementOnce() {
+        if (!ensureAudioGraph() || state.mediaConnected) return;
+        try {
+          const src = state.audioCtx.createMediaElementSource(el.audio);
+          src.connect(state.masterGain);
+          state.mediaConnected = true;
+        } catch (_) {}
+      }
+
+      // Moody slow-burn indie progression (Cm7 → Fm7 → G7sus4 → Cm9)
+      const INDIE_CHORDS = [
+        { bass: 65.41, pad: [130.81, 155.56, 196.0, 233.08, 293.66] },
+        { bass: 87.31, pad: [174.61, 207.65, 261.63, 311.13, 349.23] },
+        { bass: 49.00, pad: [146.83, 196.0, 246.94, 293.66, 329.63] },
+        { bass: 65.41, pad: [130.81, 196.0, 233.08, 293.66, 311.13] },
+      ];
+
+      function triggerDemoChord() {
+        if (state.mode !== "demo" || !state.isPlaying || !ensureAudioGraph()) return;
+        const ctx = state.audioCtx;
+        const now = ctx.currentTime;
+        const chord = INDIE_CHORDS[state.demoStep % INDIE_CHORDS.length];
+        state.demoStep++;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(300, now);
+        filter.frequency.exponentialRampToValueAtTime(1100, now + 1.2);
+        filter.frequency.exponentialRampToValueAtTime(390, now + 3.2);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.1, now + 0.35);
+        gain.gain.setValueAtTime(0.088, now + 2.3);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
+
+        filter.connect(gain);
+        gain.connect(state.masterGain);
+
+        const nodes = [];
+        [0, 1.6].forEach((offset) => {
+          const bOsc = ctx.createOscillator();
+          const bGain = ctx.createGain();
+          bOsc.type = "sine";
+          bOsc.frequency.setValueAtTime(chord.bass, now + offset);
+          bGain.gain.setValueAtTime(0.0001, now + offset);
+          bGain.gain.exponentialRampToValueAtTime(0.28, now + offset + 0.06);
+          bGain.gain.exponentialRampToValueAtTime(0.001, now + offset + 1.45);
+          bOsc.connect(bGain);
+          bGain.connect(state.masterGain);
+          bOsc.start(now + offset);
+          bOsc.stop(now + offset + 1.55);
+          nodes.push(bOsc);
+        });
+
+        chord.pad.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          osc.type = idx % 2 === 0 ? "triangle" : "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          osc.detune.setValueAtTime((idx - 2) * 5.0, now);
+          osc.connect(filter);
+          osc.start(now + idx * 0.04);
+          osc.stop(now + 3.6);
+          nodes.push(osc);
+        });
+
+        state.demoNodes.push(...nodes);
+        if (state.demoNodes.length > 44) state.demoNodes = state.demoNodes.slice(-22);
+      }
+
+      function startDemoSynth() {
+        stopDemoSynth();
+        if (state.mode !== "demo") return;
+        triggerDemoChord();
+        state.demoTimer = setInterval(triggerDemoChord, 3200);
+      }
+
+      function stopDemoSynth() {
+        if (state.demoTimer) {
+          clearInterval(state.demoTimer);
+          state.demoTimer = null;
+        }
+        state.demoNodes.forEach((n) => { try { n.stop(); } catch (_) {} });
+        state.demoNodes = [];
+      }
+
+      function setVolume(val) {
+        state.volume = Math.max(0, Math.min(1, val));
+        el.volumeSlider.value = String(state.volume);
+        el.audio.volume = state.volume;
+        if (state.masterGain && state.audioCtx) {
+          state.masterGain.gain.setTargetAtTime(state.volume, state.audioCtx.currentTime, 0.03);
+        }
+      }
+
+      function updateAudioReactivity() {
+        let bass = 0;
+        if (state.isPlaying && state.analyser && state.freqData) {
+          state.analyser.getByteFrequencyData(state.freqData);
+          let sum = 0;
+          for (let i = 0; i < 6; i++) sum += state.freqData[i];
+          bass = Math.min(1, sum / (6 * 215));
+        } else if (state.isPlaying) {
+          bass = 0.22 + Math.sin(performance.now() * 0.004) * 0.14;
+        }
+        state.bassEnergy += (bass - state.bassEnergy) * 0.18;
+
+        // Bass Pulse or Mouse Parallax on Wallpaper Layer
+        if (state.bgMotion === "pulse" && window.gsap) {
+          state.smoothPX += (state.pointerX - state.smoothPX) * 0.05;
+          state.smoothPY += (state.pointerY - state.smoothPY) * 0.05;
+          gsap.set(el.bgStageLayer, {
+            scale: 1.03 + state.bassEnergy * 0.065,
+            x: state.smoothPX * -16,
+            y: state.smoothPY * -12,
+          });
+        }
+      }
+
+      /* ----------------------------------------------------------
+         12. PLAYBACK ENGINE, SNIPPET BOUNDS & 60FPS MASTER LOOP
+         ---------------------------------------------------------- */
+      function getCurrentTime() {
+        return state.mode === "audio" ? el.audio.currentTime : state.currentTime;
+      }
+
+      function seekTo(sec) {
+        const clamped = Math.max(0, Math.min(state.duration, sec));
+        if (state.mode === "audio") {
+          try { el.audio.currentTime = clamped; } catch (_) {}
+        } else {
+          state.currentTime = clamped;
+        }
+        renderSquigglyWave(clamped, 0);
+        updateTypingLyrics(clamped + state.syncOffset, true);
+      }
+
+      function setPlayUI(playing) {
+        state.isPlaying = playing;
+        el.playIcon.classList.toggle("hidden", playing);
+        el.pauseIcon.classList.toggle("hidden", !playing);
+        el.stripMusicBtn.classList.toggle("is-active", playing);
+      }
+
+      function startPlayback() {
+        ensureAudioGraph();
+        const now = getCurrentTime();
+        if (now < state.startTime || now >= state.endTime - 0.08) {
+          seekTo(state.startTime);
+        }
+
+        if (state.mode === "audio") {
+          connectMediaElementOnce();
+          el.audio.play().then(() => {
+            setPlayUI(true);
+            state.lastFrameTs = performance.now();
+          }).catch(() => {
+            showToast("Tap Play again to start audio", "error");
+            setPlayUI(false);
+          });
+        } else {
+          setPlayUI(true);
+          startDemoSynth();
+          state.lastFrameTs = performance.now();
+        }
+      }
+
+      function pausePlayback() {
+        if (state.mode === "audio") el.audio.pause();
+        else stopDemoSynth();
+        setPlayUI(false);
+      }
+
+      function togglePlay() {
+        if (state.isPlaying) pausePlayback();
+        else startPlayback();
+      }
+
+      function computeSnippetLines() {
+        const tol = 0.25;
+        const filtered = state.lines.filter(
+          (l) => l.time >= state.startTime - tol && l.time <= state.endTime + tol
+        );
+        state.snippetLines = filtered.length ? filtered : state.lines.slice();
+      }
+
+      function setSnippetBounds(start, end) {
+        const maxDur = Math.max(2, state.duration);
+        const s = Math.max(0, Math.min(start, maxDur - 1));
+        const e = Math.max(s + 1, Math.min(end, maxDur));
+
+        state.startTime = Number(s.toFixed(2));
+        state.endTime = Number(e.toFixed(2));
+
+        el.startTimeInput.value = formatTime(state.startTime);
+        el.endTimeInput.value = formatTime(state.endTime);
+
+        const clipLen = Math.max(0, state.endTime - state.startTime);
+        el.snippetWindowBadge.textContent = `${formatTime(state.startTime)} → ${formatTime(state.endTime)} (${Math.round(clipLen)}s)`;
+
+        computeSnippetLines();
+        renderLyricPicker();
+
+        const now = getCurrentTime();
+        renderSquigglyWave(now, 0);
+        updateTypingLyrics(now + state.syncOffset, true);
+      }
+
+      function renderLyricPicker() {
+        el.lyricsCountBadge.textContent = `${state.lines.length} lines`;
+        el.lyricPickerList.innerHTML = "";
+
+        if (!state.lines.length) {
+          el.lyricPickerList.innerHTML =
+            '<p class="p-4 text-xs text-white/45 text-center">No synced lyrics loaded yet.</p>';
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        state.lines.forEach((line, idx) => {
+          const inRange = line.time >= state.startTime - 0.25 && line.time <= state.endTime + 0.25;
+          const row = document.createElement("div");
+          row.className = `flex items-center justify-between gap-2 px-3 py-2.5 text-xs transition ${
+            inRange
+              ? "bg-sky-500/18 text-white border-l-2 border-sky-400"
+              : "text-white/55 hover:bg-white/[0.04]"
+          }`;
+
+          const left = document.createElement("button");
+          left.type = "button";
+          left.className = "flex-1 min-w-0 text-left flex items-center gap-2.5 truncate";
+          left.innerHTML = `
+            <span class="font-mono text-[10px] opacity-60 shrink-0">${formatTime(line.time)}</span>
+            <span class="truncate font-medium">${escapeHtml(line.text)}</span>
+          `;
+          left.addEventListener("click", () => {
+            const target = Math.max(0, Math.min(state.duration - 0.2, line.time - state.syncOffset));
+            if (target < state.startTime || target >= state.endTime) {
+              setSnippetBounds(target, Math.min(state.duration, target + 22));
+            }
+            seekTo(target);
+            if (!state.isPlaying) startPlayback();
+          });
+
+          const actions = document.createElement("div");
+          actions.className = "flex items-center gap-1 shrink-0";
+
+          const btnStart = document.createElement("button");
+          btnStart.type = "button";
+          btnStart.textContent = "Start";
+          btnStart.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnStart.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newStart = Math.max(0, line.time - state.syncOffset);
+            const newEnd = state.endTime <= newStart + 1.5
+              ? Math.min(state.duration, newStart + 22)
+              : state.endTime;
+            setSnippetBounds(newStart, newEnd);
+            seekTo(newStart);
+            showToast(`Snippet starts at ${formatTime(newStart)}`, "success");
+          });
+
+          const btnEnd = document.createElement("button");
+          btnEnd.type = "button";
+          btnEnd.textContent = "End";
+          btnEnd.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnEnd.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const next = state.lines[idx + 1];
+            const naturalEnd = next ? next.time - 0.05 : line.time + 4.0;
+            const newEnd = Math.min(state.duration, Math.max(1.5, naturalEnd - state.syncOffset));
+            const newStart = state.startTime >= newEnd - 1 ? Math.max(0, newEnd - 18) : state.startTime;
+            setSnippetBounds(newStart, newEnd);
+            showToast(`Snippet ends at ${formatTime(newEnd)}`, "success");
+          });
+
+          actions.appendChild(btnStart);
+          actions.appendChild(btnEnd);
+          row.appendChild(left);
+          row.appendChild(actions);
+          frag.appendChild(row);
+        });
+
+        el.lyricPickerList.appendChild(frag);
+        state.lenisPicker?.resize();
+      }
+
+      function startMasterLoop() {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+
+        const frame = (ts) => {
+          const dt = Math.min(0.1, (ts - (state.lastFrameTs || ts)) / 1000);
+          state.lastFrameTs = ts;
+
+          let now = getCurrentTime();
+          if (state.isPlaying) {
+            if (state.mode === "demo") {
+              state.currentTime += dt;
+              now = state.currentTime;
+            }
+
+            if (now >= state.endTime) {
+              if (state.isLooping) {
+                seekTo(state.startTime);
+                now = state.startTime;
+                if (state.mode === "audio" && el.audio.paused) {
+                  el.audio.play().catch(() => {});
+                }
+              } else {
+                pausePlayback();
+                seekTo(state.startTime);
+                now = state.startTime;
+              }
+            }
+
+            updateTypingLyrics(now + state.syncOffset, false);
+          }
+
+          updateAudioReactivity();
+          renderSquigglyWave(now, dt);
+          renderAtmosphere(ts);
+
+          state.rafId = requestAnimationFrame(frame);
+        };
+
+        state.lastFrameTs = performance.now();
+        state.rafId = requestAnimationFrame(frame);
+      }
+
+      /* ----------------------------------------------------------
+         13. LOCAL MP3 UPLOAD, COVER & LRCLIB.NET INTEGRATION
+         ---------------------------------------------------------- */
+      function handleAudioFile(file) {
+        if (!file) return;
+        const ok = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|aac|flac)$/i.test(file.name);
+        if (!ok) {
+          showToast("Please upload a valid MP3, WAV, M4A, or OGG file", "error");
+          return;
+        }
+
+        pausePlayback();
+        stopDemoSynth();
+
+        if (state.audioObjectUrl) URL.revokeObjectURL(state.audioObjectUrl);
+        state.audioObjectUrl = URL.createObjectURL(file);
+        state.mode = "audio";
+        el.audio.src = state.audioObjectUrl;
+        el.audio.load();
+
+        el.audioDropLabel.textContent = file.name;
+        el.audioFileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · Loaded locally`;
+        el.audioStatusBadge.textContent = "Local Audio Active";
+        el.audioStatusBadge.className = "text-[11px] font-semibold text-emerald-400";
+
+        if (el.titleInput.value === "I Wanna Be Yours") {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+          el.titleInput.value = cleanName;
+          el.playerTitle.textContent = cleanName;
+          el.artistInput.value = "Local Audio";
+          el.playerArtist.textContent = "Local Audio";
+        }
+
+        showToast(`Loaded "${file.name}"`, "success");
+      }
+
+      el.audio.addEventListener("loadedmetadata", () => {
+        if (!Number.isFinite(el.audio.duration) || el.audio.duration <= 0) return;
+        state.duration = el.audio.duration;
+        if (state.endTime > state.duration || state.endTime === 24.8) {
+          setSnippetBounds(0, Math.min(state.duration, 26));
+        } else {
+          setSnippetBounds(state.startTime, state.endTime);
+        }
+        seekTo(state.startTime);
+      });
+
+      el.audio.addEventListener("ended", () => {
+        if (state.isLooping) {
+          seekTo(state.startTime);
+          el.audio.play().catch(() => {});
+        } else {
+          pausePlayback();
+          seekTo(state.startTime);
+        }
+      });
+
+      function handleCoverFile(file) {
+        if (!file || !file.type.startsWith("image/")) {
+          showToast("Please select a valid image file", "error");
+          return;
+        }
+        if (state.coverObjectUrl) URL.revokeObjectURL(state.coverObjectUrl);
+        state.coverObjectUrl = URL.createObjectURL(file);
+
+        el.playerCoverImg.src = state.coverObjectUrl;
+        el.playerCoverImg.classList.remove("hidden");
+        el.playerCoverSvg.classList.add("hidden");
+
+        el.drawerCoverImg.src = state.coverObjectUrl;
+        el.drawerCoverImg.classList.remove("hidden");
+        el.drawerCoverPlaceholder.classList.add("hidden");
+        showToast("Album cover updated", "success");
+      }
+
+      function applyTrackData(data, sourceLabel = "LRCLIB") {
+        if (data.trackName) {
+          el.titleInput.value = data.trackName;
+          el.playerTitle.textContent = data.trackName;
+        }
+        if (data.artistName) {
+          el.artistInput.value = data.artistName;
+          el.playerArtist.textContent = data.artistName;
+        }
+
+        if (data.syncedLyrics) {
+          const parsed = parseLRC(data.syncedLyrics);
+          if (!parsed.length) {
+            showToast("Fetched track had empty synced timestamps", "error");
+            return false;
+          }
+
+          state.lines = parsed;
+          el.manualLrcInput.value = data.syncedLyrics;
+
+          if (state.mode === "demo") {
+            const lastT = parsed[parsed.length - 1].time;
+            state.duration = Math.max(data.duration || 0, lastT + 4.5, 24);
+            const firstT = parsed[0].time;
+            setSnippetBounds(firstT, Math.min(state.duration, firstT + 24));
+          } else {
+            const inside = parsed.some((l) => l.time >= state.startTime && l.time <= state.endTime);
+            if (!inside && parsed[0].time < state.duration - 2) {
+              setSnippetBounds(parsed[0].time, Math.min(state.duration, parsed[0].time + 24));
+            } else {
+              computeSnippetLines();
+              renderLyricPicker();
+            }
+          }
+
+          seekTo(state.startTime);
+          el.lrclibStatusText.innerHTML = `<span class="text-emerald-400 font-semibold">Loaded ${parsed.length} synced lines from ${escapeHtml(sourceLabel)}!</span>`;
+          showToast(`Loaded ${parsed.length} synced lines from ${sourceLabel}`, "success");
+          return true;
+        } else if (data.plainLyrics) {
+          el.manualLrcInput.value = data.plainLyrics;
+          switchLrcTab("manual");
+          el.lrclibStatusText.innerHTML = `<span class="text-amber-400">Plain lyrics only (no timestamps). Try Search for a synced entry.</span>`;
+          showToast("No synced timestamps on this entry", "error");
+          return false;
+        }
+
+        el.lrclibStatusText.innerHTML = `<span class="text-rose-400">No lyrics found on this track.</span>`;
+        showToast("No lyrics available", "error");
+        return false;
+      }
+
+      async function fetchLrclibByUrl() {
+        const raw = el.lrclibUrlInput.value.trim();
+        if (!raw) {
+          showToast("Paste an lrclib.net/tracks/{id} link or Track ID", "error");
+          return;
+        }
+        const idMatch = raw.match(/(?:tracks|get)\/(\d+)/i) || raw.match(/^(\d+)$/) || raw.match(/(\d{4,})/);
+        if (!idMatch) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">Invalid LRCLIB link. Example: https://lrclib.net/tracks/28185115</span>`;
+          showToast("Invalid LRCLIB link or ID", "error");
+          return;
+        }
+
+        const trackId = idMatch[1];
+        el.fetchLrclibBtn.disabled = true;
+        el.fetchBtnLabel.textContent = "...";
+        el.fetchSpinner.classList.remove("hidden");
+        el.lrclibStatusText.textContent = `Fetching track #${trackId} from lrclib.net...`;
+
+        try {
+          const resp = await fetch(`https://lrclib.net/api/get/${trackId}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(resp.status === 404 ? `Track #${trackId} not found.` : `HTTP ${resp.status}`);
+          const data = await resp.json();
+          applyTrackData(data, `LRCLIB #${trackId}`);
+        } catch (err) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">${escapeHtml(err.message || "Network error")}</span>`;
+          showToast(err.message || "Failed to fetch from LRCLIB", "error");
+        } finally {
+          el.fetchLrclibBtn.disabled = false;
+          el.fetchBtnLabel.textContent = "Fetch";
+          el.fetchSpinner.classList.add("hidden");
+        }
+      }
+
+      async function searchLrclib() {
+        const q = el.lrclibSearchInput.value.trim();
+        if (!q) {
+          showToast("Enter a song title or artist", "error");
+          return;
+        }
+
+        el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/55 text-center py-4">Searching LRCLIB for "${escapeHtml(q)}"...</p>`;
+        try {
+          const resp = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(`Search failed (${resp.status})`);
+          const list = await resp.json();
+          if (!Array.isArray(list) || !list.length) {
+            el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/45 text-center py-4">No matching tracks found.</p>`;
+            return;
+          }
+
+          list.sort((a, b) => (b.syncedLyrics ? 1 : 0) - (a.syncedLyrics ? 1 : 0));
+          el.searchResultsBox.innerHTML = "";
+          const frag = document.createDocumentFragment();
+
+          list.slice(0, 16).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const hasSync = Boolean(item.syncedLyrics);
+            btn.className = "w-full text-left p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] transition flex items-center justify-between gap-2";
+            btn.innerHTML = `
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${escapeHtml(item.trackName || "Untitled")}</p>
+                <p class="text-[11px] text-white/50 truncate">${escapeHtml(item.artistName || "Unknown")} · ${formatTime(item.duration || 0)}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                hasSync ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/25" : "bg-white/10 text-white/45"
+              }">${hasSync ? "Synced" : "Plain"}</span>
+            `;
+            btn.addEventListener("click", () => {
+              el.lrclibUrlInput.value = `https://lrclib.net/tracks/${item.id}`;
+              applyTrackData(item, `LRCLIB #${item.id}`);
+            });
+            frag.appendChild(btn);
+          });
+
+          el.searchResultsBox.appendChild(frag);
+        } catch (err) {
+          el.searchResultsBox.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-4">${escapeHtml(err.message)}</p>`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         14. FILTERS, FONTS, DRAWER, CLEAN MODE, REEL & LENIS
+         ---------------------------------------------------------- */
+      function setBgFilter(filterId, announce = false) {
+        state.bgFilter = filterId;
+        document.body.setAttribute("data-bg-filter", filterId);
+        const meta = FILTER_LIST.find((f) => f.id === filterId) || FILTER_LIST[0];
+        el.quickFilterName.textContent = meta.name;
+        el.stripFilterBtn.classList.toggle("is-active", filterId !== "original");
+
+        el.filterBtns.forEach((btn) => {
+          const active = btn.dataset.filterPick === filterId;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/40", active);
+          btn.classList.toggle("text-white", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+          btn.classList.toggle("text-white/80", !active);
+        });
+
+        updateGlassWavePalette();
+        if (announce) showToast(`Wallpaper Filter: ${meta.name}`);
+      }
+
+      function setLyricFont(fontId) {
+        state.lyricFont = fontId;
+        document.body.setAttribute("data-lyric-font", fontId);
+        el.fontBtns.forEach((btn) => {
+          const active = btn.dataset.fontPick === fontId;
+          btn.classList.toggle("bg-white/14", active);
+          btn.classList.toggle("border-white/40", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+      }
+
+      function switchLrcTab(tab) {
+        el.lrcTabUrl.classList.toggle("hidden", tab !== "url");
+        el.lrcTabSearch.classList.toggle("hidden", tab !== "search");
+        el.lrcTabManual.classList.toggle("hidden", tab !== "manual");
+        el.lrcTabBtns.forEach((btn) => {
+          const active = btn.dataset.lrcTab === tab;
+          btn.className = `lrc-tab-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setSyncOffset(val) {
+        const clamped = Math.max(-5, Math.min(5, Math.round(val * 20) / 20));
+        state.syncOffset = clamped;
+        el.offsetSlider.value = String(clamped);
+        el.offsetLabel.textContent = `${clamped > 0 ? "+" : ""}${clamped.toFixed(2)}s`;
+        updateTypingLyrics(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !state.isDrawerOpen;
+        state.isDrawerOpen = open;
+        el.drawerBackdrop.style.pointerEvents = open ? "auto" : "none";
+
+        if (window.gsap) {
+          gsap.to(el.studioDrawer, {
+            x: open ? "0%" : "105%",
+            duration: 0.52,
+            ease: open ? "power3.out" : "power3.inOut",
+          });
+          gsap.to(el.drawerBackdrop, {
+            opacity: open ? 1 : 0,
+            duration: 0.38,
+            ease: "power2.out",
+          });
+        } else {
+          el.studioDrawer.style.transform = open ? "translateX(0)" : "translateX(105%)";
+          el.drawerBackdrop.style.opacity = open ? "1" : "0";
+        }
+
+        if (open) {
+          el.drawerScrollWrapper.scrollTop = el.drawerScrollWrapper.scrollTop;
+        }
+      }
+
+      function toggleCleanMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isCleanMode;
+        state.isCleanMode = next;
+        if (next && state.isDrawerOpen) toggleDrawer(false);
+        document.body.classList.toggle("clean-mode", next);
+        el.stripCleanBtn.classList.toggle("is-active", next);
+
+        if (window.gsap) {
+          gsap.to(el.quickCornerPills, {
+            opacity: next ? 0 : 1,
+            y: next ? 24 : 0,
+            duration: 0.4,
+            ease: "power3.out",
+            onStart: () => { if (!next) el.quickCornerPills.style.pointerEvents = "auto"; },
+            onComplete: () => { if (next) el.quickCornerPills.style.pointerEvents = "none"; },
+          });
+        } else {
+          el.quickCornerPills.style.opacity = next ? "0" : "1";
+        }
+
+        if (next) showToast("Clean Record Mode — Press H or click bottom-right to restore");
+      }
+
+      function toggleReelMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isReelMode;
+        state.isReelMode = next;
+        document.body.classList.toggle("reel-mode", next);
+        el.stripReelBtn.classList.toggle("is-active", next);
+        setTimeout(() => {
+          updateGlassSurfaceMap();
+          resizeAtmosphere();
+        }, 420);
+        showToast(next ? "9:16 Vertical Reel (Bottom-Left Typing Lyrics)" : "Desktop Stage (Top-Left Typing Lyrics)");
+      }
+
+      function initLenisSmoothScroll() {
+        // Native overflow-y scrolling on .drawer-scroll-area and .lenis-scroll guarantees
+        // instant, zero-lock scrolling across mouse wheel, trackpad, and mobile touch.
+      }
+
+      function initGlassSpecularReflection() {
+        if (!el.glassPlayer || !el.glassSpecularSheen) return;
+        const quickX = window.gsap
+          ? gsap.quickTo(el.glassSpecularSheen, "x", { duration: 0.35, ease: "power3.out" })
+          : null;
+        const quickY = window.gsap
+          ? gsap.quickTo(el.glassSpecularSheen, "y", { duration: 0.35, ease: "power3.out" })
+          : null;
+
+        el.glassPlayer.addEventListener("pointermove", (e) => {
+          if (e.pointerType && e.pointerType !== "mouse") return;
+          const rect = el.glassPlayer.getBoundingClientRect();
+          const lx = e.clientX - rect.left;
+          const ly = e.clientY - rect.top;
+          if (quickX && quickY) {
+            quickX(lx);
+            quickY(ly);
+          } else {
+            el.glassSpecularSheen.style.transform = `translate(${lx}px, ${ly}px)`;
+          }
+          el.glassSpecularSheen.style.opacity = "0.92";
+        }, { passive: true });
+
+        el.glassPlayer.addEventListener("pointerleave", () => {
+          el.glassSpecularSheen.style.opacity = "0";
+        });
+      }
+
+      /* ----------------------------------------------------------
+         15. EVENT LISTENERS & KEYBOARD SHORTCUTS
+         ---------------------------------------------------------- */
+      el.playPauseBtn.addEventListener("click", togglePlay);
+      el.stripMusicBtn.addEventListener("click", togglePlay);
+
+      el.prevBtn.addEventListener("click", () => {
+        if (state.activeIndex > 0) {
+          const prevLine = state.snippetLines[state.activeIndex - 1];
+          seekTo(Math.max(state.startTime, prevLine.time - state.syncOffset));
+        } else {
+          seekTo(state.startTime);
+        }
+        if (!state.isPlaying) startPlayback();
+      });
+
+      el.nextBtn.addEventListener("click", () => {
+        if (state.activeIndex + 1 < state.snippetLines.length) {
+          const nextLine = state.snippetLines[state.activeIndex + 1];
+          seekTo(Math.min(state.endTime - 0.1, nextLine.time - state.syncOffset));
+        } else {
+          seekTo(state.startTime);
+        }
+        if (!state.isPlaying) startPlayback();
+      });
+
+      // Squiggly Wave Scrubber (Click + Drag + Touch)
+      let isScrubbing = false;
+      function scrubWave(clientX) {
+        const rect = el.waveScrubber.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        seekTo(state.startTime + ratio * (state.endTime - state.startTime));
+      }
+      el.waveScrubber.addEventListener("pointerdown", (e) => {
+        isScrubbing = true;
+        el.waveScrubber.setPointerCapture?.(e.pointerId);
+        scrubWave(e.clientX);
+      });
+      el.waveScrubber.addEventListener("pointermove", (e) => {
+        if (isScrubbing) scrubWave(e.clientX);
+      });
+      window.addEventListener("pointerup", () => { isScrubbing = false; });
+
+      // Volume Controls
+      el.volumeSlider.addEventListener("input", () => setVolume(parseFloat(el.volumeSlider.value)));
+      el.muteBtn.addEventListener("click", () => {
+        if (state.volume > 0) {
+          state.lastVolume = state.volume;
+          setVolume(0);
+        } else {
+          setVolume(state.lastVolume || 0.85);
+        }
+      });
+
+      // Top Glass Player Micro Utility Strip Actions
+      el.stripBgBtn.addEventListener("click", () => el.quickBgInput.click());
+      el.quickBgInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleBgUpload(e.target.files[0]);
+      });
+
+      function cycleFilter() {
+        const idx = FILTER_LIST.findIndex((f) => f.id === state.bgFilter);
+        const next = FILTER_LIST[(idx + 1) % FILTER_LIST.length];
+        setBgFilter(next.id, true);
+      }
+      function cycleMotion() {
+        const idx = MOTION_LIST.findIndex((m) => m.id === state.bgMotion);
+        const next = MOTION_LIST[(idx + 1) % MOTION_LIST.length];
+        setBgMotion(next.id, true);
+      }
+
+      el.stripFilterBtn.addEventListener("click", cycleFilter);
+      el.quickFilterPill.addEventListener("click", cycleFilter);
+      el.stripMotionBtn.addEventListener("click", cycleMotion);
+      el.stripLoopBtn.addEventListener("click", () => {
+        state.isLooping = !state.isLooping;
+        el.stripLoopBtn.classList.toggle("is-active", state.isLooping);
+        showToast(state.isLooping ? "Snippet Loop ON" : "Snippet Loop OFF");
+      });
+      el.stripReelBtn.addEventListener("click", () => toggleReelMode());
+      el.stripCleanBtn.addEventListener("click", () => toggleCleanMode());
+      el.stripStudioBtn.addEventListener("click", () => toggleDrawer(true));
+      el.coverBtn.addEventListener("click", () => toggleDrawer(true));
+
+      el.openStudioPill.addEventListener("click", () => toggleDrawer(true));
+      el.closeStudioBtn.addEventListener("click", () => toggleDrawer(false));
+      el.drawerBackdrop.addEventListener("click", () => toggleDrawer(false));
+      el.cleanExitBtn.addEventListener("click", () => toggleCleanMode(false));
+      el.stageFrame.addEventListener("click", (e) => {
+        if (!state.isCleanMode) return;
+        if (e.target.closest("#glassPlayer")) return;
+        toggleCleanMode(false);
+      });
+      el.bgWallpaperImg.addEventListener("load", () => {
+        sampleAmbientGlassTintFromImage(el.bgWallpaperImg);
+      });
+
+      // Wallpaper Upload & Presets
+      el.bgFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleBgUpload(e.target.files[0]);
+      });
+      ["dragenter", "dragover"].forEach((evt) => {
+        el.bgDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.bgDropZone.classList.add("border-sky-400", "bg-white/[0.08]");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        el.bgDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.bgDropZone.classList.remove("border-sky-400", "bg-white/[0.08]");
+        });
+      });
+      el.bgDropZone.addEventListener("drop", (e) => {
+        if (e.dataTransfer?.files?.[0]) handleBgUpload(e.dataTransfer.files[0]);
+      });
+
+      el.presetBgBtns.forEach((btn) => {
+        btn.addEventListener("click", () => applyPresetWallpaper(btn.dataset.presetBg));
+      });
+      el.filterBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setBgFilter(btn.dataset.filterPick, false));
+      });
+      el.motionBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setBgMotion(btn.dataset.motionPick, false));
+      });
+
+      // Wallpaper Dim, Grain, Dust, Lyrics Frost
+      el.bgDimSlider.addEventListener("input", () => {
+        state.bgDim = parseInt(el.bgDimSlider.value, 10);
+        el.bgDimVal.textContent = `${state.bgDim}%`;
+        document.documentElement.style.setProperty("--bg-dim", (state.bgDim / 100).toFixed(2));
+      });
+
+      el.toggleGrainBtn.addEventListener("click", () => {
+        state.grainEnabled = !state.grainEnabled;
+        document.body.classList.toggle("grain-off", !state.grainEnabled);
+        el.toggleGrainBtn.textContent = state.grainEnabled ? "Grain: ON" : "Grain: OFF";
+        el.toggleGrainBtn.classList.toggle("bg-white/14", state.grainEnabled);
+        el.toggleGrainBtn.classList.toggle("text-white/65", !state.grainEnabled);
+      });
+
+      el.toggleParticlesBtn.addEventListener("click", () => {
+        state.particlesEnabled = !state.particlesEnabled;
+        el.toggleParticlesBtn.textContent = state.particlesEnabled ? "Dust: ON" : "Dust: OFF";
+        el.toggleParticlesBtn.classList.toggle("bg-white/14", state.particlesEnabled);
+        el.toggleParticlesBtn.classList.toggle("text-white/65", !state.particlesEnabled);
+      });
+
+      el.toggleLyricsFrostBtn.addEventListener("click", () => {
+        state.lyricsFrost = !state.lyricsFrost;
+        document.body.classList.toggle("lyrics-frost", state.lyricsFrost);
+        el.toggleLyricsFrostBtn.textContent = state.lyricsFrost ? "Frost Box: ON" : "Frost Box: OFF";
+        el.toggleLyricsFrostBtn.classList.toggle("bg-white/14", state.lyricsFrost);
+        el.toggleLyricsFrostBtn.classList.toggle("text-white", state.lyricsFrost);
+        el.toggleLyricsFrostBtn.classList.toggle("text-white/65", !state.lyricsFrost);
+      });
+
+      // Audio & Cover Upload
+      el.audioFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleAudioFile(e.target.files[0]);
+      });
+      ["dragenter", "dragover"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.add("border-sky-400", "bg-white/[0.08]");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.remove("border-sky-400", "bg-white/[0.08]");
+        });
+      });
+      el.audioDropZone.addEventListener("drop", (e) => {
+        if (e.dataTransfer?.files?.[0]) handleAudioFile(e.dataTransfer.files[0]);
+      });
+
+      el.coverFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleCoverFile(e.target.files[0]);
+      });
+
+      el.titleInput.addEventListener("input", () => {
+        el.playerTitle.textContent = el.titleInput.value.trim() || "Untitled";
+      });
+      el.artistInput.addEventListener("input", () => {
+        el.playerArtist.textContent = el.artistInput.value.trim() || "Unknown Artist";
+      });
+
+      // LRCLIB Controls
+      el.lrcTabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => switchLrcTab(btn.dataset.lrcTab));
+      });
+      el.fetchLrclibBtn.addEventListener("click", fetchLrclibByUrl);
+      el.lrclibUrlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") fetchLrclibByUrl(); });
+      el.searchLrclibBtn.addEventListener("click", searchLrclib);
+      el.lrclibSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLrclib(); });
+      el.applyManualLrcBtn.addEventListener("click", () => {
+        const parsed = parseLRC(el.manualLrcInput.value);
+        if (!parsed.length) {
+          showToast("Include [mm:ss.xx] timestamps before lyric lines", "error");
+          return;
+        }
+        state.lines = parsed;
+        computeSnippetLines();
+        renderLyricPicker();
+        updateTypingLyrics(getCurrentTime() + state.syncOffset, true);
+        showToast(`Applied ${parsed.length} synced lines`, "success");
+      });
+
+      // Snippet Trimmer Inputs
+      el.startTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.startTimeInput.value);
+        if (p === null) {
+          el.startTimeInput.value = formatTime(state.startTime);
+          showToast("Use M:SS format (e.g. 0:45)", "error");
+          return;
+        }
+        setSnippetBounds(p, Math.max(p + 1, state.endTime));
+        seekTo(state.startTime);
+      });
+      el.endTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.endTimeInput.value);
+        if (p === null) {
+          el.endTimeInput.value = formatTime(state.endTime);
+          showToast("Use M:SS format (e.g. 1:15)", "error");
+          return;
+        }
+        setSnippetBounds(Math.min(state.startTime, p - 1), p);
+      });
+      el.useNowStartBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(now, Math.max(now + 2, state.endTime));
+        showToast(`Start set to ${formatTime(now)}`);
+      });
+      el.useNowEndBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(Math.min(state.startTime, Math.max(0, now - 2)), Math.max(1.5, now));
+        showToast(`End set to ${formatTime(now)}`);
+      });
+      el.resetFullSongBtn.addEventListener("click", () => {
+        setSnippetBounds(0, state.duration);
+        showToast("Snippet reset to full song");
+      });
+
+      el.offsetSlider.addEventListener("input", () => setSyncOffset(parseFloat(el.offsetSlider.value)));
+      el.offsetMinusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset - 0.1));
+      el.offsetPlusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset + 0.1));
+      el.offsetResetBtn.addEventListener("click", () => setSyncOffset(0));
+
+      // Live React Bits GlassSurface Sliders
+      el.gsDistSlider.addEventListener("input", () => {
+        state.glass.distortionScale = parseInt(el.gsDistSlider.value, 10);
+        el.gsDistVal.textContent = String(state.glass.distortionScale);
+        updateGlassSurfaceMap();
+      });
+      el.gsBlurSlider.addEventListener("input", () => {
+        state.glass.blur = parseInt(el.gsBlurSlider.value, 10);
+        el.gsBlurVal.textContent = `${state.glass.blur}px`;
+        updateGlassSurfaceMap();
+      });
+      el.gsDisplaceSlider.addEventListener("input", () => {
+        state.glass.displace = parseFloat(el.gsDisplaceSlider.value);
+        el.gsDisplaceVal.textContent = state.glass.displace.toFixed(1);
+        updateGlassSurfaceMap();
+      });
+      el.gsOpacitySlider.addEventListener("input", () => {
+        state.glass.bgOpacity = parseFloat(el.gsOpacitySlider.value);
+        el.gsOpacityVal.textContent = state.glass.bgOpacity.toFixed(2);
+        updateGlassSurfaceMap();
+      });
+      el.gsRadiusSlider.addEventListener("input", () => {
+        state.glass.borderRadius = parseInt(el.gsRadiusSlider.value, 10);
+        el.gsRadiusVal.textContent = `${state.glass.borderRadius}px`;
+        updateGlassSurfaceMap();
+      });
+      el.gsRgbSlider.addEventListener("input", () => {
+        state.glass.rgbOffset = parseInt(el.gsRgbSlider.value, 10);
+        el.gsRgbVal.textContent = String(state.glass.rgbOffset);
+        updateGlassSurfaceMap();
+      });
+
+      el.fontBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setLyricFont(btn.dataset.fontPick));
+      });
+
+      // Subtle Pointer Parallax Tracking
+      window.addEventListener("pointermove", (e) => {
+        if (e.pointerType && e.pointerType !== "mouse") return;
+        state.pointerX = (e.clientX / window.innerWidth - 0.5) * 2;
+        state.pointerY = (e.clientY / window.innerHeight - 0.5) * 2;
+      }, { passive: true });
+
+      // Resize observer to keep GlassSurface displacement map pixel-perfect
+      const resizeObserver = window.ResizeObserver
+        ? new ResizeObserver(() => {
+            updateGlassSurfaceMap();
+            resizeAtmosphere();
+          })
+        : null;
+      resizeObserver?.observe(el.glassPlayer);
+      resizeObserver?.observe(el.stageFrame);
+      window.addEventListener("resize", () => {
+        updateGlassSurfaceMap();
+        resizeAtmosphere();
+      });
+
+      // Global Keyboard Shortcuts
+      window.addEventListener("keydown", (e) => {
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "TEXTAREA";
+
+        if (e.key === "Escape") {
+          if (state.isCleanMode) toggleCleanMode(false);
+          else if (state.isDrawerOpen) toggleDrawer(false);
+          return;
+        }
+        if (typing) return;
+
+        const key = e.key.toLowerCase();
+        if (e.code === "Space") {
+          e.preventDefault();
+          togglePlay();
+        } else if (key === "f") {
+          cycleFilter();
+        } else if (key === "m") {
+          cycleMotion();
+        } else if (key === "h") {
+          toggleCleanMode();
+        } else if (key === "s") {
+          toggleDrawer();
+        } else if (key === "r") {
+          seekTo(state.startTime);
+          if (!state.isPlaying) startPlayback();
+        }
+      });
+
+      /* ----------------------------------------------------------
+         16. BOOTSTRAP APPLICATION
+         ---------------------------------------------------------- */
+      function init() {
+        state.glass.supportsSvgBackdrop = detectSvgBackdropSupport();
+        state.lines = parseLRC(DEMO_LRC);
+        el.manualLrcInput.value = DEMO_LRC;
+
+        applyPresetWallpaper("ink");
+        setBgFilter("original", false);
+        setBgMotion("kenburns", false);
+        setLyricFont("bricolage");
+        setVolume(0.85);
+        setSnippetBounds(0, 24.8);
+
+        initAtmosphereCanvas();
+        initLenisSmoothScroll();
+        initGlassSpecularReflection();
+        updateGlassSurfaceMap();
+        updateGlassWavePalette();
+        startMasterLoop();
+
+        if (window.gsap) {
+          gsap.from(el.glassPlayer, { opacity: 0, y: -26, scale: 0.94, duration: 0.85, ease: "power3.out" });
+          gsap.from(el.typingLyricsStage, { opacity: 0, y: 18, duration: 0.8, delay: 0.18, ease: "power3.out" });
+        }
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

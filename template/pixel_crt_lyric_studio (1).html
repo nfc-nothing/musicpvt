@@ -1,0 +1,3462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Pixel CRT Lyric Studio — 3D Arcade Motion Graphics &amp; Synced Player</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Animation Libraries: GSAP 3 & Anime.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+  <!-- Chunky Pixel Arcade & UI Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Press+Start+2P&family=Rubik+Mono+One&family=Silkscreen:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       1. RETRO CRT & HUD DESIGN TOKENS
+       ============================================================ */
+    :root {
+      --accent: #f472b6;
+      --accent-glow: rgba(244, 114, 182, 0.55);
+      --hud-bg: rgba(14, 10, 15, 0.72);
+      --hud-border: rgba(255, 224, 240, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #040305;
+      color: #ffffff;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+
+    /* ============================================================
+       2. RESPONSIVE CRT STAGE DESK (1:1 CRT SQUARE / 16:9 / 9:16)
+       ============================================================ */
+    .studio-desk {
+      position: relative;
+      width: 100vw;
+      max-width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 48%, #160c14 0%, #040305 100%);
+      overflow: hidden;
+    }
+
+    .stage-frame {
+      position: relative;
+      /* Default 1:1 CRT Square matching the iconic reference video */
+      width: min(94vw, 84dvh, 720px);
+      height: min(94vw, 84dvh, 720px);
+      background: #020203;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow:
+        0 32px 100px rgba(0, 0, 0, 0.92),
+        0 0 90px -26px var(--accent-glow);
+      transition:
+        width 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.55s ease;
+    }
+
+    body[data-aspect="16:9"] .stage-frame {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    body[data-aspect="9:16"] .stage-frame {
+      height: min(86dvh, 810px);
+      width: min(92vw, calc(min(86dvh, 810px) * 0.5625));
+      border-radius: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    #crtCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ============================================================
+       3. FROSTED GLASS HUD, BOTTOM DOCK & STUDIO DRAWER
+       ============================================================ */
+    .glass-hud {
+      background: var(--hud-bg);
+      backdrop-filter: blur(26px) saturate(170%);
+      -webkit-backdrop-filter: blur(26px) saturate(170%);
+      border: 1px solid var(--hud-border);
+      box-shadow:
+        0 18px 46px rgba(0, 0, 0, 0.72),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    .top-hud {
+      position: fixed;
+      top: max(0.8rem, calc(env(safe-area-inset-top) + 0.35rem));
+      left: max(0.85rem, env(safe-area-inset-left));
+      right: max(0.85rem, env(safe-area-inset-right));
+      z-index: 32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .bottom-dock {
+      position: fixed;
+      bottom: max(0.85rem, calc(env(safe-area-inset-bottom) + 0.4rem));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      max-width: calc(100vw - 1rem);
+      transition: opacity 0.45s ease;
+    }
+
+    .bottom-dock.is-idle-dim {
+      opacity: 0.28;
+    }
+    .bottom-dock.is-idle-dim:hover,
+    .bottom-dock.is-idle-dim:focus-within {
+      opacity: 1;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .micro-eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .micro-eq-bar {
+      width: 2.5px;
+      height: 3.5px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      will-change: height;
+    }
+
+    .clean-exit-btn {
+      position: fixed;
+      top: max(0.9rem, env(safe-area-inset-top));
+      right: max(0.9rem, env(safe-area-inset-right));
+      z-index: 48;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    body.clean-mode .clean-exit-btn {
+      pointer-events: auto;
+    }
+    body.clean-mode .clean-exit-btn:hover,
+    body.clean-mode .clean-exit-btn:focus-visible {
+      opacity: 0.96;
+    }
+
+    /* Studio Drawer */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(4, 3, 6, 0.62);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .studio-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(100vw, 468px);
+      height: 100dvh;
+      z-index: 60;
+      background: rgba(14, 10, 16, 0.92);
+      backdrop-filter: blur(36px) saturate(175%);
+      -webkit-backdrop-filter: blur(36px) saturate(175%);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: -28px 0 88px rgba(0, 0, 0, 0.86);
+      transform: translateX(105%);
+      display: flex;
+      flex-direction: column;
+      user-select: text;
+      overflow: hidden;
+    }
+
+    .drawer-scroll-area {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .drawer-scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+    }
+
+    .inner-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    }
+    .inner-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .inner-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .inner-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+
+    input[type="range"].studio-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].studio-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    input[type="color"].color-swatch-input {
+      -webkit-appearance: none;
+      appearance: none;
+      border: none;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="color"].color-swatch-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    input[type="color"].color-swatch-input::-webkit-color-swatch {
+      border: 1.5px solid rgba(255, 255, 255, 0.28);
+      border-radius: 9px;
+    }
+
+    .toast-pill {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-28px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+      .studio-drawer {
+        width: 100vw;
+        border-left: none;
+      }
+      body[data-aspect="1:1"] .stage-frame {
+        width: min(95vw, 70dvh);
+        height: min(95vw, 70dvh);
+        border-radius: 22px;
+      }
+    }
+  </style>
+</head>
+<body data-aspect="1:1">
+
+  <!-- Hidden HTML5 Audio Element -->
+  <audio id="audioPlayer" preload="auto" crossorigin="anonymous"></audio>
+
+  <!-- Anime.js Toast Notification -->
+  <div id="toastPill" class="toast-pill glass-hud px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs sm:text-sm font-medium text-white max-w-[92vw]">
+    <span id="toastDot" class="w-2 h-2 rounded-full bg-pink-400 shrink-0"></span>
+    <span id="toastText" class="truncate">Ready</span>
+  </div>
+
+  <!-- ============================================================
+       TOP FLOATING HUD
+       ============================================================ -->
+  <header id="topHud" class="top-hud">
+    <!-- Track Pill + Pixel Heart Icon + Micro Equalizer -->
+    <button
+      id="trackPillBtn"
+      type="button"
+      title="Open Studio Settings (Press S)"
+      class="pointer-events-auto glass-hud pl-2.5 pr-3.5 py-1.5 rounded-full flex items-center gap-2.5 max-w-[56vw] sm:max-w-[300px] hover:bg-white/[0.1] transition text-left"
+    >
+      <div
+        id="hudBadgeBg"
+        class="w-7 h-7 rounded-full shrink-0 border border-white/25 bg-gradient-to-br from-pink-400 to-rose-600 flex items-center justify-center shadow-sm"
+      >
+        <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2 4h3v1h2v1h2V5h2V4h3v4h-1v2h-2v2H9v2H7v-2H5v-2H3V8H2V4z" />
+        </svg>
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <p id="hudTitle" class="text-[11px] sm:text-xs font-bold text-white truncate leading-tight">Earrings (Pixel CRT)</p>
+        <p id="hudArtist" class="text-[10px] text-white/55 truncate leading-tight mt-0.5">Arcade Groove Demo</p>
+      </div>
+
+      <div class="micro-eq pl-1 shrink-0" aria-hidden="true">
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+        <span class="micro-eq-bar"></span>
+      </div>
+    </button>
+
+    <!-- Right Quick Actions -->
+    <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+      <!-- Quick Color Palette Cycle (C) -->
+      <button
+        id="quickPaletteBtn"
+        type="button"
+        title="Cycle CRT Color Palette (Press C)"
+        class="glass-hud h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-2 text-[11px] font-semibold text-white/90 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <span
+          id="quickPaletteDot"
+          class="w-3.5 h-3.5 rounded-full border border-white/35 shrink-0"
+          style="background: linear-gradient(135deg, #ed7eb8 50%, #ff2a55 100%);"
+        ></span>
+        <span id="quickPaletteName" class="hidden md:inline">Strawberry Pink</span>
+      </button>
+
+      <!-- Clean Record Mode (H) -->
+      <button
+        id="cleanModeBtn"
+        type="button"
+        title="Clean Screen-Record Mode (Press H)"
+        class="glass-hud w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.1] transition active:scale-95"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
+      <!-- Open Studio Drawer (S) -->
+      <button
+        id="openStudioBtn"
+        type="button"
+        title="Open Studio (Press S)"
+        class="glass-hud h-9 px-3 sm:px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition active:scale-95"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="2" y1="14" x2="6" y2="14" />
+          <line x1="10" y1="8" x2="14" y2="8" />
+          <line x1="18" y1="16" x2="22" y2="16" />
+        </svg>
+        <span>Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Discrete Corner Exit for Clean Mode -->
+  <button
+    id="cleanExitBtn"
+    type="button"
+    title="Exit Clean Mode (H or Esc)"
+    class="clean-exit-btn glass-hud px-3.5 py-1.5 rounded-full text-xs font-semibold text-white/90"
+  >
+    Exit Clean Mode
+  </button>
+
+  <!-- ============================================================
+       MAIN WEBGL CRT + PIXEL-DOT MATRIX MOTION GRAPHICS STAGE
+       ============================================================ -->
+  <div class="studio-desk">
+    <main id="stageFrame" class="stage-frame">
+      <canvas id="crtCanvas" aria-label="Pixel CRT 3D Motion Graphics Lyric Visualizer"></canvas>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM FLOATING GLASS DOCK
+       ============================================================ -->
+  <nav id="bottomDock" class="bottom-dock glass-hud px-2.5 sm:px-3.5 py-2 rounded-full flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+    <!-- Restart Snippet (R) -->
+    <button
+      id="restartBtn"
+      type="button"
+      title="Restart Snippet (Press R)"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/10 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+        <path d="M3 3v5h5" />
+      </svg>
+    </button>
+
+    <!-- Play / Pause (Space) -->
+    <button
+      id="playPauseBtn"
+      type="button"
+      title="Play / Pause (Space)"
+      class="w-10 h-10 rounded-full shrink-0 bg-white text-black hover:scale-105 active:scale-95 transition flex items-center justify-center shadow-[0_0_22px_rgba(255,255,255,0.28)]"
+    >
+      <svg id="playIcon" class="w-4 h-4 translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="6 4 20 12 6 20 6 4" />
+      </svg>
+      <svg id="pauseIcon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4.5" height="16" rx="1.2" />
+        <rect x="13.5" y="4" width="4.5" height="16" rx="1.2" />
+      </svg>
+    </button>
+
+    <!-- Progress Scrubber -->
+    <div class="flex items-center gap-2 min-w-[108px] sm:min-w-[164px] px-1">
+      <span id="timeElapsed" class="text-[11px] font-mono text-white/75 tabular-nums shrink-0">0:00</span>
+      <div id="progressTrack" class="relative flex-1 h-6 flex items-center cursor-pointer group">
+        <div class="w-full h-[3.5px] rounded-full bg-white/16 overflow-hidden">
+          <div id="progressFill" class="h-full rounded-full bg-gradient-to-r from-pink-400 to-white" style="width: 0%"></div>
+        </div>
+        <div
+          id="progressKnob"
+          class="absolute w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_8px_#ffffff] -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style="left: 0%"
+        ></div>
+      </div>
+      <span id="timeTotal" class="text-[11px] font-mono text-white/45 tabular-nums shrink-0">0:24</span>
+    </div>
+
+    <!-- Loop Toggle -->
+    <button
+      id="loopBtn"
+      type="button"
+      title="Loop Active Snippet"
+      class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-pink-400 bg-white/12 hover:bg-white/18 transition active:scale-90"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m17 2 4 4-4 4" />
+        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+        <path d="m7 22-4-4 4-4" />
+        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+      </svg>
+    </button>
+
+    <div class="w-px h-5 bg-white/15 shrink-0"></div>
+
+    <!-- Cycle Motion Scene Mode (V) -->
+    <button
+      id="dockSceneCycleBtn"
+      type="button"
+      title="Cycle Pixel Motion Scene (Press V)"
+      class="h-9 px-2.5 sm:px-3 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold bg-white/12 hover:bg-white/22 text-white transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5 text-pink-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+      <span id="dockSceneLabel">Auto Mix</span>
+    </button>
+
+    <!-- Aspect Ratio Switcher: 1:1 CRT / 16:9 / 9:16 -->
+    <button
+      id="dockAspectBtn"
+      type="button"
+      title="Switch 1:1 CRT Square / 16:9 / 9:16 Reel"
+      class="h-9 px-2.5 rounded-full shrink-0 flex items-center gap-1.5 text-[11px] font-bold text-white/85 hover:text-white hover:bg-white/10 transition active:scale-95"
+    >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="4" width="16" height="16" rx="3" />
+      </svg>
+      <span id="dockAspectLabel">1:1</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       STUDIO DRAWER (NATIVE SMOOTH SCROLL)
+       ============================================================ -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <aside id="studioDrawer" class="studio-drawer" aria-label="Pixel CRT Lyric Studio Settings">
+    <!-- Drawer Header -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <div>
+        <h2 class="text-base font-extrabold text-white tracking-tight">Pixel CRT Studio</h2>
+        <p class="text-[11px] text-white/50">3D Pixel Text · Motion Scenes · MP3 &amp; LRCLIB</p>
+      </div>
+      <button
+        id="closeStudioBtn"
+        type="button"
+        aria-label="Close Studio"
+        class="w-9 h-9 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center text-white/80 hover:text-white transition"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Smooth Native Scroll Body -->
+    <div id="drawerScrollWrapper" class="drawer-scroll-area">
+      <div class="px-5 py-5 space-y-6">
+
+        <!-- SECTION 1: MOTION GRAPHIC SCENES, CRT OPTICS & 3D TEXT -->
+        <section class="space-y-3.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">1. Motion Graphics &amp; CRT Screen</h3>
+            <span id="activeSceneBadge" class="text-[11px] font-semibold text-pink-300">Auto Edit Mix</span>
+          </div>
+
+          <!-- Scene Choreographer Grid -->
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-scene-pick="auto" class="scene-btn col-span-2 p-2.5 rounded-xl text-left bg-white/15 border border-white/45 transition flex items-center justify-between">
+              <div>
+                <p class="text-xs font-extrabold text-white">Auto Motion Mix (Video Style)</p>
+                <p class="text-[10px] text-white/55">Sky + 3D Heart · Heart Tunnel · Swirl · Speed Drop · Cloud Frame</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-pink-500/25 text-pink-300 border border-pink-400/35">CRT</span>
+            </button>
+            <button type="button" data-scene-pick="sky" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Sky &amp; 3D Heart</p>
+              <p class="text-[10px] text-white/50">Clouds, floor &amp; spinning heart</p>
+            </button>
+            <button type="button" data-scene-pick="tunnel" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Heart Tunnel</p>
+              <p class="text-[10px] text-white/50">Pulsing nested pixel hearts</p>
+            </button>
+            <button type="button" data-scene-pick="swirl" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Candy Pinwheel</p>
+              <p class="text-[10px] text-white/50">Spinning hypnotic vortex</p>
+            </button>
+            <button type="button" data-scene-pick="drop" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Speed Drop</p>
+              <p class="text-[10px] text-white/50">Speed lines + heart earring</p>
+            </button>
+            <button type="button" data-scene-pick="cloud" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Cloud Frame</p>
+              <p class="text-[10px] text-white/50">Puffy pixel thought frame</p>
+            </button>
+            <button type="button" data-scene-pick="orbit" class="scene-btn p-2.5 rounded-xl text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition">
+              <p class="text-xs font-bold text-white">Heart Orbit</p>
+              <p class="text-[10px] text-white/50">Words wrap around 3D heart</p>
+            </button>
+          </div>
+
+          <!-- Pixel Font Style + Sliders -->
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-3">
+            <div class="space-y-1.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-white/50">3D Pixel Font</span>
+              <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-black/40 border border-white/10 text-[10px] font-bold">
+                <button type="button" data-font-pick="silkscreen" class="font-btn py-1.5 rounded-lg bg-white text-black transition">Silkscreen</button>
+                <button type="button" data-font-pick="rubik" class="font-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Chunky 3D</button>
+                <button type="button" data-font-pick="arcade" class="font-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">8-Bit Press</button>
+              </div>
+            </div>
+
+            <!-- Text Size Slider -->
+            <div class="space-y-1 pt-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-white/80">3D Text Size</span>
+                <span id="textSizeLabel" class="font-mono font-bold text-pink-300">100%</span>
+              </div>
+              <input id="textSizeSlider" type="range" min="0.7" max="1.4" step="0.05" value="1" class="studio-slider w-full" aria-label="Text size" />
+            </div>
+
+            <!-- LED Pixel-Dot Matrix Intensity -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-white/80">LED Pixel-Dot Matrix</span>
+                <span id="dotGridLabel" class="font-mono font-bold text-pink-300">78%</span>
+              </div>
+              <input id="dotGridSlider" type="range" min="0" max="100" step="2" value="78" class="studio-slider w-full" aria-label="Pixel dot grid" />
+            </div>
+
+            <!-- CRT TV Barrel Curvature -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-white/80">CRT Screen Curvature</span>
+                <span id="crtCurveLabel" class="font-mono font-bold text-pink-300">68%</span>
+              </div>
+              <input id="crtCurveSlider" type="range" min="0" max="100" step="2" value="68" class="studio-slider w-full" aria-label="CRT curvature" />
+            </div>
+
+            <!-- Camera Movement Energy -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-white/80">3D Camera Whip &amp; Bounce</span>
+                <span id="camEnergyLabel" class="font-mono font-bold text-pink-300">90%</span>
+              </div>
+              <input id="camEnergySlider" type="range" min="0" max="100" step="5" value="90" class="studio-slider w-full" aria-label="Camera energy" />
+            </div>
+
+            <!-- Optional Custom Sticker PNG Upload (if user wants a mascot/sprite) -->
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+              <div class="min-w-0">
+                <p class="text-[11px] font-bold text-white/85">Optional Custom Sticker</p>
+                <p id="stickerStatus" class="text-[10px] text-white/45 truncate">Using crisp 3D Pixel Heart</p>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <label class="px-2.5 py-1 rounded-lg bg-white/12 hover:bg-white/22 text-[10px] font-bold text-white cursor-pointer transition">
+                  <input id="stickerFileInput" type="file" accept="image/*" class="hidden" />
+                  Upload PNG
+                </label>
+                <button id="clearStickerBtn" type="button" class="hidden px-2 py-1 rounded-lg bg-rose-500/25 text-rose-300 text-[10px] font-bold transition">Reset</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: RETRO COLOR PALETTES & CUSTOM PICKERS -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">2. Retro Color Palette</h3>
+            <span id="activePaletteLabel" class="text-[11px] font-semibold text-pink-300">Strawberry Pink</span>
+          </div>
+
+          <div id="paletteGrid" class="grid grid-cols-5 gap-1.5"></div>
+
+          <div class="p-3 rounded-2xl bg-white/[0.05] border border-white/10 grid grid-cols-3 gap-2">
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customSkyPicker" type="color" value="#ed7db6" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">Sky</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customHeartPicker" type="color" value="#ff2e4c" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">Heart</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded-xl bg-black/35 border border-white/10 cursor-pointer">
+              <input id="customTextPicker" type="color" value="#fffef2" class="color-swatch-input w-6 h-6 shrink-0" />
+              <span class="text-[10px] font-bold text-white/75">Text</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- SECTION 3: SONG MP3 & TRACK INFO -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">3. Song MP3 &amp; Track Info</h3>
+            <span id="audioStatusBadge" class="text-[11px] font-semibold text-pink-300">Demo Groove Ready</span>
+          </div>
+
+          <label
+            id="audioDropZone"
+            for="audioFileInput"
+            class="block w-full p-3.5 rounded-2xl border border-dashed border-white/20 hover:border-pink-400/80 bg-white/[0.03] hover:bg-white/[0.06] transition cursor-pointer text-center"
+          >
+            <input id="audioFileInput" type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" class="hidden" />
+            <div class="flex items-center justify-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-pink-300 shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+              <div class="text-left min-w-0">
+                <p id="audioDropLabel" class="text-xs font-bold text-white truncate">Drop MP3 / WAV / M4A or tap to upload</p>
+                <p id="audioFileMeta" class="text-[11px] text-white/45">100% browser-local · Bass-reactive CRT bounce</p>
+              </div>
+            </div>
+          </label>
+
+          <div class="grid grid-cols-2 gap-2">
+            <input
+              id="titleInput"
+              type="text"
+              value="Earrings (Pixel CRT)"
+              placeholder="Track Title"
+              class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-pink-400/70 focus:outline-none text-xs font-semibold text-white placeholder-white/35"
+            />
+            <input
+              id="artistInput"
+              type="text"
+              value="Arcade Groove Demo"
+              placeholder="Artist Name"
+              class="w-full px-3 py-2 rounded-xl bg-white/[0.07] border border-white/12 focus:border-pink-400/70 focus:outline-none text-xs text-white/85 placeholder-white/35"
+            />
+          </div>
+        </section>
+
+        <!-- SECTION 4: SYNCED LYRICS (LRCLIB.NET) -->
+        <section class="space-y-3 pt-3 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">4. Synced Lyrics (LRCLIB.net)</h3>
+            <span id="lyricsCountBadge" class="text-[11px] font-mono text-white/55">10 lines</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-bold">
+            <button type="button" data-lrc-tab="url" class="lrc-tab-btn py-1.5 rounded-lg bg-white text-black transition">LRCLIB Link</button>
+            <button type="button" data-lrc-tab="search" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Search</button>
+            <button type="button" data-lrc-tab="manual" class="lrc-tab-btn py-1.5 rounded-lg text-white/65 hover:text-white transition">Manual LRC</button>
+          </div>
+
+          <div id="lrcTabUrl" class="space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibUrlInput"
+                type="text"
+                placeholder="https://lrclib.net/tracks/28185115 or 28185115"
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-pink-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="fetchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95 flex items-center gap-1.5"
+              >
+                <span id="fetchBtnLabel">Fetch</span>
+                <svg id="fetchSpinner" class="hidden w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25" />
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p id="lrclibStatusText" class="text-[11px] text-white/48">
+              Paste any <span class="text-white/80 font-medium">lrclib.net/tracks/{id}</span> link to load synced lyrics instantly.
+            </p>
+          </div>
+
+          <div id="lrcTabSearch" class="hidden space-y-2">
+            <div class="flex gap-2">
+              <input
+                id="lrclibSearchInput"
+                type="text"
+                placeholder="Search song name or artist..."
+                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-white/[0.07] border border-white/14 focus:border-pink-400/70 focus:outline-none text-xs text-white placeholder-white/35"
+              />
+              <button
+                id="searchLrclibBtn"
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-xs shrink-0 transition active:scale-95"
+              >
+                Search
+              </button>
+            </div>
+            <div id="searchResultsBox" class="max-h-48 inner-scroll space-y-1.5 pr-0.5">
+              <p class="text-[11px] text-white/45 text-center py-4">Search LRCLIB's synced library and click any track.</p>
+            </div>
+          </div>
+
+          <div id="lrcTabManual" class="hidden space-y-2">
+            <textarea
+              id="manualLrcInput"
+              rows="5"
+              placeholder="[00:00.15] Her love is in your head&#10;[00:02.50] You lost your earrings"
+              class="w-full p-3 rounded-xl bg-white/[0.07] border border-white/14 focus:border-pink-400/70 focus:outline-none text-xs font-mono text-white placeholder-white/35 resize-y"
+            ></textarea>
+            <button
+              id="applyManualLrcBtn"
+              type="button"
+              class="w-full py-2.5 rounded-xl bg-white/15 hover:bg-white/24 border border-white/15 text-xs font-bold text-white transition"
+            >
+              Apply Manual LRC
+            </button>
+          </div>
+        </section>
+
+        <!-- SECTION 5: EXACT SONG PART TRIMMER & SYNC OFFSET -->
+        <section class="space-y-3.5 pt-3 border-t border-white/10 pb-8">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-white/50">5. Exact Song Part (Loop)</h3>
+            <span id="snippetWindowBadge" class="text-[11px] font-mono font-semibold text-pink-300">0:00 → 0:24 (24s)</span>
+          </div>
+
+          <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">Start</span>
+                <button id="useNowStartBtn" type="button" class="text-[10px] font-bold text-pink-300 hover:underline">Now</button>
+              </div>
+              <input id="startTimeInput" type="text" value="0:00" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold text-white/45">End</span>
+                <button id="useNowEndBtn" type="button" class="text-[10px] font-bold text-pink-300 hover:underline">Now</button>
+              </div>
+              <input id="endTimeInput" type="text" value="0:24" class="w-full bg-transparent text-sm font-mono font-bold text-white focus:outline-none" />
+            </div>
+
+            <button
+              id="resetFullSongBtn"
+              type="button"
+              class="h-[54px] px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-[11px] font-bold text-white/80 hover:text-white transition"
+            >
+              Reset<br/>Full
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <p class="text-[11px] text-white/55">Tap <span class="text-white font-semibold">Start</span> / <span class="text-white font-semibold">End</span> on any line to play only that part:</p>
+            <div class="h-44 inner-scroll rounded-2xl bg-black/45 border border-white/10">
+              <div id="lyricPickerList" class="divide-y divide-white/[0.06]"></div>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-white/85">Lyric Sync Offset</span>
+              <div class="flex items-center gap-1.5">
+                <button id="offsetMinusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">-0.1s</button>
+                <span id="offsetLabel" class="min-w-[54px] text-center font-mono text-xs font-bold text-white">0.00s</span>
+                <button id="offsetPlusBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold transition">+0.1s</button>
+                <button id="offsetResetBtn" type="button" class="px-2 py-0.5 rounded-lg bg-white/8 hover:bg-white/16 text-[10px] text-white/70 transition">0</button>
+              </div>
+            </div>
+            <input id="offsetSlider" type="range" min="-5" max="5" step="0.05" value="0" class="studio-slider w-full" aria-label="Lyric sync offset" />
+          </div>
+
+          <p class="text-[10px] text-white/40 text-center">
+            Shortcuts: <span class="text-white/75 font-semibold">Space</span> Play · <span class="text-white/75 font-semibold">V</span> Scene · <span class="text-white/75 font-semibold">C</span> Palette · <span class="text-white/75 font-semibold">R</span> Restart · <span class="text-white/75 font-semibold">S</span> Studio · <span class="text-white/75 font-semibold">H</span> Clean
+          </p>
+        </section>
+
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    /* ============================================================
+       PIXEL CRT LYRIC STUDIO — 3D MOTION GRAPHICS + CRT SHADER
+       True 3D Extruded Block Typography + Flap-Up Flip Animation
+       3D Spinning Pixel Heart + Drifting Clouds + Candy Swirl +
+       Heart Tunnel + Perspective Floor + WebGL CRT Dot Matrix
+       ============================================================ */
+    (() => {
+      "use strict";
+
+      /* ----------------------------------------------------------
+         1. DEMO LYRICS (EXACT VIDEO PACING & PUNCHY PHRASING)
+         ---------------------------------------------------------- */
+      const DEMO_LRC = `
+[00:00.15] Her love is in your head
+[00:02.45] You lost your earrings
+[00:04.70] You couldn't tell her
+[00:06.90] That you lost them
+[00:08.95] Cause you're scared
+[00:10.90] Ur not talking
+[00:12.80] So you think of what you said
+[00:15.10] Save it for another day
+[00:17.35] Cuz you just never had the heart
+[00:20.20] Now they just drift further apart
+[00:22.80] Further apart from you
+      `.trim();
+
+      /* ----------------------------------------------------------
+         2. 5 CURATED RETRO PIXEL PALETTES & PIXEL SPRITE MATRICES
+         ---------------------------------------------------------- */
+      const PALETTES = [
+        {
+          id: "strawberry",
+          name: "Strawberry Pink",
+          sky: "#ea7eb6",
+          skyAlt: "#f6b2d6",
+          swirlA: "#e673b0",
+          swirlB: "#f9c6e2",
+          heartMain: "#ff2d4f",
+          heartDark: "#b21536",
+          heartLight: "#ff7e98",
+          textFace: "#fffef3",
+          textSide: "#1d1118",
+          cloud: "#ffffff",
+          floorA: "#2a1723",
+          floorB: "#f4a9d0",
+          hudAccent: "#f472b6",
+        },
+        {
+          id: "skyblue",
+          name: "Sky Arcade",
+          sky: "#62b5f6",
+          skyAlt: "#b7e1ff",
+          swirlA: "#54a8ee",
+          swirlB: "#c3e7ff",
+          heartMain: "#ff3b6b",
+          heartDark: "#b41744",
+          heartLight: "#ff88a8",
+          textFace: "#ffffff",
+          textSide: "#101a2c",
+          cloud: "#ffffff",
+          floorA: "#13223b",
+          floorB: "#a8dbff",
+          hudAccent: "#38bdf8",
+        },
+        {
+          id: "lavender",
+          name: "Lavender Dream",
+          sky: "#a685f4",
+          skyAlt: "#d8c9ff",
+          swirlA: "#9672ee",
+          swirlB: "#e1d4ff",
+          heartMain: "#ff4893",
+          heartDark: "#a61858",
+          heartLight: "#ff94c2",
+          textFace: "#fffdf8",
+          textSide: "#1a112c",
+          cloud: "#ffffff",
+          floorA: "#22153b",
+          floorB: "#d2c0ff",
+          hudAccent: "#c084fc",
+        },
+        {
+          id: "mint",
+          name: "Mint Gameboy",
+          sky: "#62d4ad",
+          skyAlt: "#bbf4df",
+          swirlA: "#51c89e",
+          swirlB: "#c8f8e6",
+          heartMain: "#ff4b5c",
+          heartDark: "#a81d31",
+          heartLight: "#ff949e",
+          textFace: "#fffff4",
+          textSide: "#0e221b",
+          cloud: "#ffffff",
+          floorA: "#112b22",
+          floorB: "#adf2d8",
+          hudAccent: "#34d399",
+        },
+        {
+          id: "peach",
+          name: "Sunset Peach",
+          sky: "#f4926e",
+          skyAlt: "#ffd0b8",
+          swirlA: "#ec825b",
+          swirlB: "#ffd7c2",
+          heartMain: "#ff2a48",
+          heartDark: "#9e1429",
+          heartLight: "#ff7e92",
+          textFace: "#fffdf4",
+          textSide: "#24110e",
+          cloud: "#ffffff",
+          floorA: "#2d1510",
+          floorB: "#ffc7ac",
+          hudAccent: "#fb923c",
+        },
+      ];
+
+      // Hand-crafted 15x13 Glossy 3D Pixel Heart Sprite Matrix
+      // 0=empty, 1=outline, 2=shadow, 3=main red, 4=highlight, 5=white shine
+      const HEART_PIXELS = [
+        "000111000111000",
+        "001333101333100",
+        "013454313332210",
+        "134553333333221",
+        "134433333333221",
+        "133333333332221",
+        "133333333332221",
+        "013333333322210",
+        "001333333222100",
+        "000133332221000",
+        "000013322210000",
+        "000001222100000",
+        "000000111000000",
+      ];
+
+      // Crisp 15x7 Pixel Cloud Silhouette
+      const CLOUD_PIXELS = [
+        "000000111000000",
+        "000011111100000",
+        "000111111111000",
+        "011111111111100",
+        "111111111111110",
+        "111111111111111",
+        "111111111111111",
+      ];
+
+      // Crisp 7x7 4-Point Pixel Sparkle Star
+      const SPARKLE_PIXELS = [
+        "0001000",
+        "0001000",
+        "0011100",
+        "1111111",
+        "0011100",
+        "0001000",
+        "0001000",
+      ];
+
+      // Crisp 9x8 Pixel Paw / Cute Stamp for Floating Outro Scene
+      const PAW_PIXELS = [
+        "011000110",
+        "011000110",
+        "100101001",
+        "100010001",
+        "001111100",
+        "011222110",
+        "012222210",
+        "001111100",
+      ];
+
+      const SCENE_SEQUENCE = ["sky", "tunnel", "drop", "sky", "swirl", "swirl", "cloud", "sky", "orbit", "orbit", "outro"];
+      const SCENE_MODES = [
+        { id: "auto",   label: "Auto Mix",   badge: "Auto Edit Mix" },
+        { id: "sky",    label: "Sky Heart",  badge: "Sky & 3D Heart" },
+        { id: "tunnel", label: "Tunnel",     badge: "Heart Tunnel" },
+        { id: "swirl",  label: "Pinwheel",   badge: "Candy Pinwheel" },
+        { id: "drop",   label: "Speed Drop", badge: "Speed Drop" },
+        { id: "cloud",  label: "Cloud Box",  badge: "Cloud Frame" },
+        { id: "orbit",  label: "Orbit",      badge: "Heart Orbit" },
+      ];
+
+      const ASPECT_MODES = ["1:1", "16:9", "9:16"];
+
+      const FONT_SPECS = {
+        silkscreen: { family: '"Silkscreen", monospace', weight: "700", scale: 1.0, tracking: -0.04 },
+        rubik:      { family: '"Rubik Mono One", sans-serif', weight: "400", scale: 0.86, tracking: -0.05 },
+        arcade:     { family: '"Press Start 2P", monospace', weight: "400", scale: 0.72, tracking: 0.0 },
+      };
+
+      /* ----------------------------------------------------------
+         3. APPLICATION STATE
+         ---------------------------------------------------------- */
+      const state = {
+        mode: "demo",               // "demo" | "audio"
+        audioObjectUrl: null,
+        stickerImg: null,
+        stickerUrl: null,
+        isPlaying: false,
+        isLooping: true,
+        isDrawerOpen: false,
+        isCleanMode: false,
+        aspect: "1:1",              // "1:1" | "16:9" | "9:16"
+
+        // Palette & Style Settings
+        paletteId: "strawberry",
+        palette: { ...PALETTES[0] },
+        sceneMode: "auto",
+        fontId: "silkscreen",
+        textScale: 1.0,
+        dotGridStrength: 0.78,      // 0..1
+        crtCurvature: 0.68,         // 0..1
+        camEnergy: 0.90,            // 0..1
+
+        // Playback & Snippet Bounds
+        duration: 24.8,
+        startTime: 0.0,
+        endTime: 24.8,
+        syncOffset: 0.0,
+        currentTime: 0.0,
+
+        lines: [],
+        snippetLines: [],
+        activeLineIdx: -1,
+        activeSceneType: "sky",
+
+        // Active Choreographed 3D Words inside the Stage
+        // [{ text, x, y, targetX, targetY, baseRot, rot, flipRad, scale, popTime, revealed, flipDir, isBig }]
+        stageWords: [],
+        activeWordTimes: [],
+        revealedWordCount: 0,
+
+        // 3D Virtual Camera Physics Rig (Whip-Pans, Crane Tilts & Beat Punches)
+        cam: {
+          x: 0,
+          y: 0,
+          tx: 0,
+          ty: 0,
+          zoom: 1,
+          tZoom: 1,
+          rot: 0,
+          tRot: 0,
+          whipX: 0,
+          whipY: 0,
+          sceneTime: 0,
+          heartAngle: 0,
+          floorOffset: 0,
+          swirlAngle: 0,
+        },
+
+        // Drifting Clouds, Sparkles & Outro Stamps
+        clouds: [],
+        sparkles: [],
+        floatingStamps: [],
+
+        // Rendering Pipeline (Offscreen 2D Canvas -> WebGL CRT Dot-Matrix Shader)
+        srcCanvas: null,
+        srcCtx: null,
+        gl: null,
+        glProgram: null,
+        glTex: null,
+        glUniforms: {},
+        fallback2d: null,
+        logicalW: 600,
+        logicalH: 600,
+
+        // Web Audio API
+        audioCtx: null,
+        masterGain: null,
+        analyser: null,
+        freqData: null,
+        mediaConnected: false,
+        demoTimer: null,
+        demoStep: 0,
+        demoNodes: [],
+        bassEnergy: 0,
+
+        // Loops
+        rafId: null,
+        lastFrameTs: 0,
+        idleTimer: null,
+      };
+
+      /* ----------------------------------------------------------
+         4. DOM REFERENCES
+         ---------------------------------------------------------- */
+      const el = {
+        audio: document.getElementById("audioPlayer"),
+        stageFrame: document.getElementById("stageFrame"),
+        canvas: document.getElementById("crtCanvas"),
+
+        // Toast & Top HUD
+        toastPill: document.getElementById("toastPill"),
+        toastDot: document.getElementById("toastDot"),
+        toastText: document.getElementById("toastText"),
+        topHud: document.getElementById("topHud"),
+        trackPillBtn: document.getElementById("trackPillBtn"),
+        hudBadgeBg: document.getElementById("hudBadgeBg"),
+        hudTitle: document.getElementById("hudTitle"),
+        hudArtist: document.getElementById("hudArtist"),
+        eqBars: document.querySelectorAll(".micro-eq-bar"),
+        quickPaletteBtn: document.getElementById("quickPaletteBtn"),
+        quickPaletteDot: document.getElementById("quickPaletteDot"),
+        quickPaletteName: document.getElementById("quickPaletteName"),
+        cleanModeBtn: document.getElementById("cleanModeBtn"),
+        cleanExitBtn: document.getElementById("cleanExitBtn"),
+        openStudioBtn: document.getElementById("openStudioBtn"),
+
+        // Bottom Dock
+        bottomDock: document.getElementById("bottomDock"),
+        restartBtn: document.getElementById("restartBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        playIcon: document.getElementById("playIcon"),
+        pauseIcon: document.getElementById("pauseIcon"),
+        progressTrack: document.getElementById("progressTrack"),
+        progressFill: document.getElementById("progressFill"),
+        progressKnob: document.getElementById("progressKnob"),
+        timeElapsed: document.getElementById("timeElapsed"),
+        timeTotal: document.getElementById("timeTotal"),
+        loopBtn: document.getElementById("loopBtn"),
+        dockSceneCycleBtn: document.getElementById("dockSceneCycleBtn"),
+        dockSceneLabel: document.getElementById("dockSceneLabel"),
+        dockAspectBtn: document.getElementById("dockAspectBtn"),
+        dockAspectLabel: document.getElementById("dockAspectLabel"),
+
+        // Studio Drawer
+        drawerBackdrop: document.getElementById("drawerBackdrop"),
+        studioDrawer: document.getElementById("studioDrawer"),
+        closeStudioBtn: document.getElementById("closeStudioBtn"),
+
+        // Section 1: Motion & CRT
+        activeSceneBadge: document.getElementById("activeSceneBadge"),
+        sceneBtns: document.querySelectorAll(".scene-btn"),
+        fontBtns: document.querySelectorAll(".font-btn"),
+        textSizeSlider: document.getElementById("textSizeSlider"),
+        textSizeLabel: document.getElementById("textSizeLabel"),
+        dotGridSlider: document.getElementById("dotGridSlider"),
+        dotGridLabel: document.getElementById("dotGridLabel"),
+        crtCurveSlider: document.getElementById("crtCurveSlider"),
+        crtCurveLabel: document.getElementById("crtCurveLabel"),
+        camEnergySlider: document.getElementById("camEnergySlider"),
+        camEnergyLabel: document.getElementById("camEnergyLabel"),
+        stickerFileInput: document.getElementById("stickerFileInput"),
+        stickerStatus: document.getElementById("stickerStatus"),
+        clearStickerBtn: document.getElementById("clearStickerBtn"),
+
+        // Section 2: Palettes
+        activePaletteLabel: document.getElementById("activePaletteLabel"),
+        paletteGrid: document.getElementById("paletteGrid"),
+        customSkyPicker: document.getElementById("customSkyPicker"),
+        customHeartPicker: document.getElementById("customHeartPicker"),
+        customTextPicker: document.getElementById("customTextPicker"),
+
+        // Section 3: Audio
+        audioStatusBadge: document.getElementById("audioStatusBadge"),
+        audioDropZone: document.getElementById("audioDropZone"),
+        audioFileInput: document.getElementById("audioFileInput"),
+        audioDropLabel: document.getElementById("audioDropLabel"),
+        audioFileMeta: document.getElementById("audioFileMeta"),
+        titleInput: document.getElementById("titleInput"),
+        artistInput: document.getElementById("artistInput"),
+
+        // Section 4: LRCLIB
+        lyricsCountBadge: document.getElementById("lyricsCountBadge"),
+        lrcTabBtns: document.querySelectorAll(".lrc-tab-btn"),
+        lrcTabUrl: document.getElementById("lrcTabUrl"),
+        lrcTabSearch: document.getElementById("lrcTabSearch"),
+        lrcTabManual: document.getElementById("lrcTabManual"),
+        lrclibUrlInput: document.getElementById("lrclibUrlInput"),
+        fetchLrclibBtn: document.getElementById("fetchLrclibBtn"),
+        fetchBtnLabel: document.getElementById("fetchBtnLabel"),
+        fetchSpinner: document.getElementById("fetchSpinner"),
+        lrclibStatusText: document.getElementById("lrclibStatusText"),
+        lrclibSearchInput: document.getElementById("lrclibSearchInput"),
+        searchLrclibBtn: document.getElementById("searchLrclibBtn"),
+        searchResultsBox: document.getElementById("searchResultsBox"),
+        manualLrcInput: document.getElementById("manualLrcInput"),
+        applyManualLrcBtn: document.getElementById("applyManualLrcBtn"),
+
+        // Section 5: Trimmer & Offset
+        snippetWindowBadge: document.getElementById("snippetWindowBadge"),
+        startTimeInput: document.getElementById("startTimeInput"),
+        endTimeInput: document.getElementById("endTimeInput"),
+        useNowStartBtn: document.getElementById("useNowStartBtn"),
+        useNowEndBtn: document.getElementById("useNowEndBtn"),
+        resetFullSongBtn: document.getElementById("resetFullSongBtn"),
+        lyricPickerList: document.getElementById("lyricPickerList"),
+        offsetSlider: document.getElementById("offsetSlider"),
+        offsetLabel: document.getElementById("offsetLabel"),
+        offsetMinusBtn: document.getElementById("offsetMinusBtn"),
+        offsetPlusBtn: document.getElementById("offsetPlusBtn"),
+        offsetResetBtn: document.getElementById("offsetResetBtn"),
+      };
+
+      /* ----------------------------------------------------------
+         5. UTILITIES (TOAST, TIME, ESCAPE, LRC PARSER)
+         ---------------------------------------------------------- */
+      let toastTimer = null;
+      function showToast(msg, type = "info") {
+        el.toastText.textContent = msg;
+        el.toastDot.className = "w-2 h-2 rounded-full shrink-0 " + (
+          type === "error" ? "bg-rose-500" :
+          type === "success" ? "bg-emerald-400" :
+          "bg-pink-400"
+        );
+        clearTimeout(toastTimer);
+
+        if (window.anime) {
+          anime.remove(el.toastPill);
+          anime({
+            targets: el.toastPill,
+            translateX: ["-50%", "-50%"],
+            translateY: [-24, 0],
+            opacity: [0, 1],
+            scale: [0.92, 1],
+            duration: 360,
+            easing: "easeOutElastic(1, 0.72)",
+          });
+        } else {
+          el.toastPill.style.opacity = "1";
+          el.toastPill.style.transform = "translateX(-50%) translateY(0)";
+        }
+
+        toastTimer = setTimeout(() => {
+          if (window.anime) {
+            anime({
+              targets: el.toastPill,
+              translateX: ["-50%", "-50%"],
+              translateY: [0, -18],
+              opacity: [1, 0],
+              duration: 240,
+              easing: "easeInQuad",
+            });
+          } else {
+            el.toastPill.style.opacity = "0";
+          }
+        }, 2600);
+      }
+
+      function formatTime(sec) {
+        if (!Number.isFinite(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+
+      function parseTimeInput(str) {
+        if (!str) return null;
+        const clean = str.trim();
+        if (/^\d+(\.\d+)?$/.test(clean)) return parseFloat(clean);
+        const m = clean.match(/^(\d+):(\d{1,2})(?:\.(\d+))?$/);
+        if (!m) return null;
+        const mins = parseInt(m[1], 10);
+        const secs = parseInt(m[2], 10);
+        if (secs >= 60) return null;
+        const frac = m[3] ? parseFloat("0." + m[3]) : 0;
+        return mins * 60 + secs + frac;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function parseLRC(rawText) {
+        if (!rawText || typeof rawText !== "string") return [];
+        const rawLines = rawText.split(/\r?\n/);
+        const timeRx = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+        const parsed = [];
+
+        for (const raw of rawLines) {
+          const stamps = [];
+          let m;
+          timeRx.lastIndex = 0;
+          while ((m = timeRx.exec(raw)) !== null) {
+            const mins = parseInt(m[1], 10);
+            const secs = parseInt(m[2], 10);
+            const msStr = m[3] || "0";
+            const ms = msStr.length === 1
+              ? parseInt(msStr, 10) / 10
+              : msStr.length === 2
+              ? parseInt(msStr, 10) / 100
+              : parseInt(msStr.slice(0, 3), 10) / 1000;
+            stamps.push(mins * 60 + secs + ms);
+          }
+          if (!stamps.length) continue;
+          const cleanText = raw
+            .replace(timeRx, "")
+            .replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, "")
+            .trim();
+          if (!cleanText) continue;
+          for (const t of stamps) parsed.push({ time: Number(t.toFixed(3)), text: cleanText });
+        }
+
+        parsed.sort((a, b) => a.time - b.time);
+        return parsed;
+      }
+
+      /* ----------------------------------------------------------
+         6. WEBGL CRT BARREL CURVATURE + LED PIXEL-DOT MATRIX SHADER
+         ---------------------------------------------------------- */
+      const VERT_SRC = `
+        attribute vec2 aPos;
+        varying vec2 vUv;
+        void main() {
+          vUv = vec2(aPos.x * 0.5 + 0.5, 0.5 - aPos.y * 0.5);
+          gl_Position = vec4(aPos, 0.0, 1.0);
+        }
+      `;
+
+      const FRAG_SRC = `
+        precision mediump float;
+        uniform sampler2D uTex;
+        uniform vec2 uRes;
+        uniform float uCurve;
+        uniform float uDotGrid;
+        uniform vec2 uWhip;
+        uniform float uTime;
+        varying vec2 vUv;
+
+        vec2 crtWarp(vec2 uv, float curve) {
+          vec2 p = uv * 2.0 - 1.0;
+          float k = curve * 0.16;
+          vec2 offset = p.yx * p.yx * k;
+          p += p * offset;
+          // Slight zoom to frame the curved CRT screen edges against black outer bezel
+          float pad = 1.0 + curve * 0.055;
+          return p * pad * 0.5 + 0.5;
+        }
+
+        void main() {
+          vec2 uv = crtWarp(vUv, uCurve);
+
+          // Pure black CRT TV bezel outside curved screen edge
+          if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+            gl_FragColor = vec4(0.015, 0.01, 0.015, 1.0);
+            return;
+          }
+
+          // Smooth curved bezel corner falloff
+          vec2 edgeDist = min(uv, 1.0 - uv);
+          float bezelMask = smoothstep(0.0, 0.014, edgeDist.x) * smoothstep(0.0, 0.014, edgeDist.y);
+
+          // LED Pixel-Dot Mosaic Quantization (~116 crisp pixel dots across short side!)
+          float aspect = uRes.x / max(1.0, uRes.y);
+          vec2 grid = aspect >= 1.0
+            ? vec2(floor(112.0 * aspect), 112.0)
+            : vec2(104.0, floor(104.0 / max(0.3, aspect)));
+
+          vec2 cellUv = (floor(uv * grid) + 0.5) / grid;
+          vec2 sampleUv = mix(uv, cellUv, clamp(uDotGrid * 0.92, 0.0, 1.0));
+
+          // Directional whip-pan motion blur on fast camera swings
+          vec3 col;
+          float whipMag = length(uWhip);
+          if (whipMag > 0.001) {
+            vec2 stepV = uWhip * 0.5;
+            col = (
+              texture2D(uTex, clamp(sampleUv - stepV * 2.0, 0.002, 0.998)).rgb * 0.15 +
+              texture2D(uTex, clamp(sampleUv - stepV, 0.002, 0.998)).rgb * 0.22 +
+              texture2D(uTex, sampleUv).rgb * 0.26 +
+              texture2D(uTex, clamp(sampleUv + stepV, 0.002, 0.998)).rgb * 0.22 +
+              texture2D(uTex, clamp(sampleUv + stepV * 2.0, 0.002, 0.998)).rgb * 0.15
+            );
+          } else {
+            // Subtle CRT RGB phosphor micro-fringe near screen corners
+            float fringe = 0.0014 * uCurve * length(vUv - 0.5);
+            col.r = texture2D(uTex, clamp(sampleUv + vec2(fringe, 0.0), 0.002, 0.998)).r;
+            col.g = texture2D(uTex, sampleUv).g;
+            col.b = texture2D(uTex, clamp(sampleUv - vec2(fringe, 0.0), 0.002, 0.998)).b;
+          }
+
+          // Iconic Rounded-Square LED Pixel-Dot Cell Mask (matching reference texture!)
+          vec2 f = fract(uv * grid) - 0.5;
+          float boxDist = max(abs(f.x), abs(f.y));
+          float circDist = length(f);
+          float dotShape = mix(boxDist, circDist, 0.32);
+          float dotMask = 1.0 - smoothstep(0.33, 0.49, dotShape);
+
+          // Blend LED dot dark-gap grid with phosphor luminance boost so pink stays vibrant
+          float gridFactor = mix(1.0, 0.58 + 0.56 * dotMask, uDotGrid);
+          col *= gridFactor;
+
+          // Gentle CRT glass vignette & bezel shadow
+          vec2 c = vUv - 0.5;
+          float vig = 1.0 - dot(c, c) * (0.42 * uCurve + 0.12);
+          col *= vig * bezelMask;
+
+          gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+        }
+      `;
+
+      function compileShader(gl, type, src) {
+        const sh = gl.createShader(type);
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+          gl.deleteShader(sh);
+          return null;
+        }
+        return sh;
+      }
+
+      function initCrtPipeline() {
+        state.srcCanvas = document.createElement("canvas");
+        state.srcCtx = state.srcCanvas.getContext("2d");
+
+        let gl = null;
+        try {
+          gl = el.canvas.getContext("webgl", { alpha: false, antialias: true, powerPreference: "high-performance" }) ||
+               el.canvas.getContext("experimental-webgl", { alpha: false, antialias: true });
+        } catch (_) {
+          gl = null;
+        }
+
+        if (gl) {
+          const vs = compileShader(gl, gl.VERTEX_SHADER, VERT_SRC);
+          const fs = compileShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
+          if (vs && fs) {
+            const prog = gl.createProgram();
+            gl.attachShader(prog, vs);
+            gl.attachShader(prog, fs);
+            gl.linkProgram(prog);
+
+            if (gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+              state.gl = gl;
+              state.glProgram = prog;
+              gl.useProgram(prog);
+
+              const buf = gl.createBuffer();
+              gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+              gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+              const aPos = gl.getAttribLocation(prog, "aPos");
+              gl.enableVertexAttribArray(aPos);
+              gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+              const tex = gl.createTexture();
+              gl.bindTexture(gl.TEXTURE_2D, tex);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+              state.glTex = tex;
+
+              state.glUniforms = {
+                uTex: gl.getUniformLocation(prog, "uTex"),
+                uRes: gl.getUniformLocation(prog, "uRes"),
+                uCurve: gl.getUniformLocation(prog, "uCurve"),
+                uDotGrid: gl.getUniformLocation(prog, "uDotGrid"),
+                uWhip: gl.getUniformLocation(prog, "uWhip"),
+                uTime: gl.getUniformLocation(prog, "uTime"),
+              };
+            }
+          }
+        }
+
+        if (!state.gl) {
+          state.fallback2d = el.canvas.getContext("2d");
+        }
+
+        resizeCrtPipeline();
+      }
+
+      function resizeCrtPipeline() {
+        const w = Math.max(260, el.stageFrame.clientWidth || 600);
+        const h = Math.max(260, el.stageFrame.clientHeight || 600);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        el.canvas.width = Math.round(w * dpr);
+        el.canvas.height = Math.round(h * dpr);
+        if (state.gl) {
+          state.gl.viewport(0, 0, el.canvas.width, el.canvas.height);
+        }
+
+        // Logical pixel-art stage coordinates (keeps pixel proportions crisp across 1:1, 16:9, 9:16)
+        const base = 560;
+        const aspect = w / h;
+        if (aspect >= 1) {
+          state.logicalH = base;
+          state.logicalW = Math.round(base * aspect);
+        } else {
+          state.logicalW = base;
+          state.logicalH = Math.round(base / aspect);
+        }
+
+        state.srcCanvas.width = state.logicalW;
+        state.srcCanvas.height = state.logicalH;
+        if (state.srcCtx) {
+          state.srcCtx.imageSmoothingEnabled = false;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         7. PIXEL ART PRIMITIVES (CLOUDS, SPARKLES, 3D HEART, FLOOR)
+         ---------------------------------------------------------- */
+      function initSceneParticles() {
+        state.clouds = [
+          { rx: 0.14, ry: 0.14, s: 1.05, spd: 0.018 },
+          { rx: 0.78, ry: 0.19, s: 1.32, spd: 0.013 },
+          { rx: 0.18, ry: 0.72, s: 1.15, spd: 0.016 },
+          { rx: 0.84, ry: 0.84, s: 1.25, spd: 0.020 },
+          { rx: 0.52, ry: 0.58, s: 0.90, spd: 0.012 },
+        ];
+
+        state.sparkles = [];
+        for (let i = 0; i < 14; i++) {
+          state.sparkles.push({
+            rx: 0.08 + Math.random() * 0.84,
+            ry: 0.08 + Math.random() * 0.84,
+            size: i < 6 ? 1.0 : 0.55,
+            phase: Math.random() * Math.PI * 2,
+            speed: 2.2 + Math.random() * 2.8,
+            isCross: i < 6,
+          });
+        }
+
+        state.floatingStamps = [];
+        for (let i = 0; i < 7; i++) {
+          state.floatingStamps.push({
+            rx: 0.18 + (i % 3) * 0.30 + (Math.random() - 0.5) * 0.12,
+            ry: (i / 7) * 1.15,
+            rot: (Math.random() - 0.5) * 0.65,
+            speed: 0.18 + Math.random() * 0.1,
+            kind: i % 2 === 0 ? "paw" : "heart",
+          });
+        }
+      }
+
+      function drawPixelMatrix(ctx, matrix, cx, cy, cellSize, colorMap) {
+        const rows = matrix.length;
+        const cols = matrix[0].length;
+        const ox = cx - (cols * cellSize) * 0.5;
+        const oy = cy - (rows * cellSize) * 0.5;
+        for (let r = 0; r < rows; r++) {
+          const line = matrix[r];
+          for (let c = 0; c < cols; c++) {
+            const ch = line[c];
+            if (ch === "0") continue;
+            const col = colorMap[ch];
+            if (!col) continue;
+            ctx.fillStyle = col;
+            ctx.fillRect(
+              Math.floor(ox + c * cellSize),
+              Math.floor(oy + r * cellSize),
+              Math.ceil(cellSize),
+              Math.ceil(cellSize)
+            );
+          }
+        }
+      }
+
+      function drawPixelCloud(ctx, cx, cy, scale, pal) {
+        const cell = Math.max(4, Math.round(7.5 * scale));
+        drawPixelMatrix(ctx, CLOUD_PIXELS, cx, cy, cell, { "1": pal.cloud });
+      }
+
+      function drawPixelSparkles(ctx, w, h, ts, pal) {
+        const t = ts * 0.001;
+        state.sparkles.forEach((sp) => {
+          const pulse = 0.55 + 0.45 * Math.sin(t * sp.speed + sp.phase);
+          if (pulse < 0.25) return;
+          const x = sp.rx * w;
+          const y = sp.ry * h;
+          ctx.save();
+          ctx.globalAlpha = 0.65 + pulse * 0.35;
+          if (sp.isCross) {
+            const cell = Math.max(2, Math.round(4.6 * sp.size * (0.75 + pulse * 0.35)));
+            drawPixelMatrix(ctx, SPARKLE_PIXELS, x, y, cell, { "1": "#ffffff" });
+          } else {
+            const sq = Math.round(6 * sp.size);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(Math.floor(x - sq * 0.5), Math.floor(y - sq * 0.5), sq, sq);
+          }
+          ctx.restore();
+        });
+      }
+
+      /**
+       * Draws a true 3D Y-axis spinning faceted pixel heart with dark 3D edge extrusion
+       * (matching 00:00, 00:01, 00:04 earring, and 00:20-00:22 spinning heart!).
+       */
+      function draw3DPixelHeart(ctx, cx, cy, pixelSize, angleY, pal, withHook = false) {
+        const cosA = Math.cos(angleY);
+        const sinA = Math.sin(angleY);
+        const scaleX = Math.max(0.14, Math.abs(cosA));
+        const depthSteps = 6;
+        const depthShift = sinA * pixelSize * 1.45;
+
+        // Optional curved earring hook on top (Scene: Speed Drop 00:04)
+        if (withHook) {
+          ctx.save();
+          ctx.strokeStyle = pal.textSide;
+          ctx.lineWidth = Math.max(4, pixelSize * 0.72);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.arc(cx - pixelSize * 0.6, cy - pixelSize * 8.4, pixelSize * 2.2, Math.PI * 0.85, Math.PI * 2.15);
+          ctx.lineTo(cx + pixelSize * 1.1, cy - pixelSize * 5.6);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 1. Extruded 3D dark edge slices behind heart face
+        for (let d = depthSteps; d >= 1; d--) {
+          const frac = d / depthSteps;
+          const sx = cx - depthShift * frac;
+          const sy = cy + Math.abs(sinA) * pixelSize * 0.35 * frac;
+          ctx.save();
+          ctx.translate(sx, sy);
+          ctx.scale(scaleX, 1);
+          drawPixelMatrix(ctx, HEART_PIXELS, 0, 0, pixelSize, {
+            "1": pal.textSide,
+            "2": pal.textSide,
+            "3": pal.heartDark,
+            "4": pal.heartDark,
+            "5": pal.heartDark,
+          });
+          ctx.restore();
+        }
+
+        // 2. Front glossy pixel heart face
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scaleX, 1);
+        drawPixelMatrix(ctx, HEART_PIXELS, 0, 0, pixelSize, {
+          "1": pal.textSide,
+          "2": pal.heartDark,
+          "3": pal.heartMain,
+          "4": pal.heartLight,
+          "5": "#ffffff",
+        });
+        ctx.restore();
+      }
+
+      /* ----------------------------------------------------------
+         8. SIX MOTION GRAPHIC BACKDROPS (MATCHING VIDEO SCENES!)
+         ---------------------------------------------------------- */
+      function drawPerspectiveFloor(ctx, w, h, offset, pal) {
+        const horizonY = h * 0.83;
+        const tileCount = 5;
+        ctx.save();
+        // Perspective dark tile pads receding along bottom edge (00:01 & 00:03!)
+        for (let i = -2; i <= tileCount + 2; i++) {
+          const u0 = (i - (offset % 1)) / tileCount;
+          const u1 = u0 + 0.16;
+          const xTop0 = w * 0.5 + (u0 - 0.5) * w * 0.92;
+          const xTop1 = w * 0.5 + (u1 - 0.5) * w * 0.92;
+          const xBot0 = w * 0.5 + (u0 - 0.5) * w * 1.38;
+          const xBot1 = w * 0.5 + (u1 - 0.5) * w * 1.38;
+
+          ctx.fillStyle = pal.floorA;
+          ctx.beginPath();
+          ctx.moveTo(xTop0, horizonY);
+          ctx.lineTo(xTop1, horizonY);
+          ctx.lineTo(xBot1, h + 14);
+          ctx.lineTo(xBot0, h + 14);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(xTop0, horizonY);
+          ctx.lineTo(xTop1, horizonY);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawHeartTunnelBackdrop(ctx, w, h, t, pal) {
+        const cx = w * 0.5;
+        const cy = h * 0.5;
+        const layers = 8;
+        const cycle = (t * 0.95) % 1;
+
+        ctx.fillStyle = pal.sky;
+        ctx.fillRect(0, 0, w, h);
+
+        // Draw nested concentric pixelated hearts expanding outward (00:02!)
+        for (let i = layers; i >= 0; i--) {
+          const prog = (i + cycle) / layers;
+          const pSize = Math.max(4, Math.pow(prog, 1.55) * (Math.max(w, h) * 0.135));
+          const col = i % 3 === 0 ? pal.skyAlt : i % 3 === 1 ? pal.cloud : pal.sky;
+          drawPixelMatrix(ctx, HEART_PIXELS, cx, cy, pSize, {
+            "1": col, "2": col, "3": col, "4": col, "5": col,
+          });
+        }
+      }
+
+      function drawCandySwirlBackdrop(ctx, w, h, angle, pal) {
+        const cx = w * 0.5;
+        const cy = h * 0.58;
+        const maxR = Math.hypot(w, h) * 0.85;
+        const rays = 14;
+        const stepAng = (Math.PI * 2) / rays;
+
+        ctx.fillStyle = pal.swirlA;
+        ctx.fillRect(0, 0, w, h);
+
+        // Spinning hypnotic curved candy pinwheel rays (00:09 - 00:11!)
+        ctx.save();
+        ctx.translate(cx, cy);
+        for (let i = 0; i < rays; i += 2) {
+          const a0 = angle + i * stepAng;
+          const a1 = a0 + stepAng;
+          ctx.fillStyle = pal.swirlB;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          const steps = 16;
+          for (let s = 1; s <= steps; s++) {
+            const f = s / steps;
+            const r = f * maxR;
+            const twist = f * 1.15;
+            ctx.lineTo(Math.cos(a0 + twist) * r, Math.sin(a0 + twist) * r);
+          }
+          for (let s = steps; s >= 1; s--) {
+            const f = s / steps;
+            const r = f * maxR;
+            const twist = f * 1.15;
+            ctx.lineTo(Math.cos(a1 + twist) * r, Math.sin(a1 + twist) * r);
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawSpeedLinesBackdrop(ctx, w, h, t, pal) {
+        ctx.fillStyle = pal.sky;
+        ctx.fillRect(0, 0, w, h);
+        // Drifting clouds behind speed lines
+        state.clouds.slice(0, 3).forEach((cl) => {
+          const cx = ((cl.rx + t * cl.spd) % 1.25 - 0.12) * w;
+          drawPixelCloud(ctx, cx, cl.ry * h, cl.s, pal);
+        });
+
+        // Vertical white rushing pixel speed lines (00:04!)
+        ctx.save();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.86)";
+        for (let i = 0; i < 11; i++) {
+          const x = ((i * 0.097 + 0.04) % 0.92 + 0.04) * w;
+          const len = 70 + (i % 3) * 65;
+          const y = (((t * (2.6 + (i % 4) * 0.5) + i * 0.37) % 1.4) - 0.2) * h;
+          ctx.fillRect(Math.floor(x), Math.floor(y), 5, len);
+        }
+        ctx.restore();
+      }
+
+      function drawCloudThoughtFrame(ctx, w, h, pal) {
+        const cx = w * 0.5;
+        const cy = h * 0.52;
+        const rx = w * 0.39;
+        const ry = h * 0.28;
+        const puffs = 14;
+
+        ctx.save();
+        // Thick black pixel-stepped outline behind puffy cloud bubble (00:13-00:14!)
+        ctx.fillStyle = pal.textSide;
+        for (let i = 0; i < puffs; i++) {
+          const ang = (i / puffs) * Math.PI * 2;
+          const px = cx + Math.cos(ang) * rx;
+          const py = cy + Math.sin(ang) * ry;
+          const r = 56 + (i % 2) * 16;
+          ctx.beginPath();
+          ctx.arc(px, py, r + 9, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = pal.cloud;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+        for (let i = 0; i < puffs; i++) {
+          const ang = (i / puffs) * Math.PI * 2;
+          const px = cx + Math.cos(ang) * rx;
+          const py = cy + Math.sin(ang) * ry;
+          const r = 56 + (i % 2) * 16;
+          ctx.beginPath();
+          ctx.arc(px, py, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      /* ----------------------------------------------------------
+         9. TRUE 3D EXTRUDED BLOCKY PIXEL TYPOGRAPHY RENDERER
+         ---------------------------------------------------------- */
+      function measure3DWordBox(ctx, text, fSize, fontSpec) {
+        ctx.font = `${fontSpec.weight} ${fSize}px ${fontSpec.family}`;
+        const upper = text.toUpperCase();
+        const textW = ctx.measureText(upper).width;
+        const strokeW = Math.max(3, Math.round(fSize * 0.105));
+        const baseDepth = Math.max(7, Math.round(fSize * 0.22));
+        const extDx = baseDepth * 0.62;
+        const extDy = baseDepth * 0.78;
+        return {
+          textW,
+          strokeW,
+          extDx,
+          extDy,
+          totalW: textW + strokeW * 1.45 + extDx + 8,
+          totalH: fSize * 1.05 + strokeW + extDy,
+        };
+      }
+
+      function draw3DExtrudedWord(ctx, wordObj, pal) {
+        if (!wordObj.revealed) return;
+        const fontSpec = FONT_SPECS[state.fontId] || FONT_SPECS.silkscreen;
+        const fSize = Math.max(16, Math.round(wordObj.fontSize || 42));
+
+        // 3D Flap-up rotation angle (0 rad = flat facing camera, PI/2 = edge-on horizontal!)
+        const flipRad = wordObj.flipRad;
+        const cosFlip = Math.cos(flipRad);
+        const sinFlip = Math.sin(flipRad);
+        const faceScaleY = Math.max(0.06, Math.abs(cosFlip));
+
+        // Dynamic 3D volumetric extrusion vector shifts with camera angle & flap angle
+        const baseDepth = Math.max(7, Math.round(fSize * 0.22));
+        const extDx = (baseDepth * 0.52) * (1 + Math.max(-0.35, Math.min(0.35, state.cam.rot * 2.0)));
+        const extDy = (baseDepth * 0.68) * Math.max(0.28, Math.abs(cosFlip)) + sinFlip * baseDepth * 0.72;
+        const steps = 11;
+
+        ctx.save();
+        // Shift origin slightly up-left so the front face + 3D extrusion visually center on (x, y)
+        ctx.translate(wordObj.x - extDx * 0.32, wordObj.y - extDy * 0.32);
+        ctx.rotate(wordObj.rot);
+        ctx.scale(wordObj.scale, wordObj.scale);
+
+        ctx.font = `${fontSpec.weight} ${fSize}px ${fontSpec.family}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineJoin = "round";
+
+        const txt = wordObj.text.toUpperCase();
+        const strokeW = Math.max(3, Math.round(fSize * 0.105));
+
+        // 1. Draw 3D solid dark extruded block back-to-front
+        for (let s = steps; s >= 1; s--) {
+          const frac = s / steps;
+          ctx.save();
+          ctx.translate(extDx * frac, extDy * frac);
+          ctx.scale(1, faceScaleY);
+          ctx.lineWidth = strokeW;
+          ctx.strokeStyle = pal.textSide;
+          ctx.fillStyle = s > steps * 0.65 ? pal.textSide : "#2d1d26";
+          ctx.strokeText(txt, 0, 0);
+          ctx.fillText(txt, 0, 0);
+          ctx.restore();
+        }
+
+        // 2. Crisp front creamy-white face with thick pixel outline
+        ctx.save();
+        ctx.scale(1, faceScaleY);
+        ctx.lineWidth = strokeW;
+        ctx.strokeStyle = pal.textSide;
+        ctx.strokeText(txt, 0, 0);
+
+        ctx.fillStyle = pal.textFace;
+        ctx.fillText(txt, 0, 0);
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      /* ----------------------------------------------------------
+         10. CHOREOGRAPHED 3D SCENE & WORD TIMING ENGINE
+         ---------------------------------------------------------- */
+      function computeWordTimestamps(lineObj, nextLineObj) {
+        const words = lineObj.text.split(/\s+/).filter(Boolean);
+        if (!words.length) return { words: [], times: [] };
+
+        const gap = nextLineObj
+          ? Math.max(0.75, nextLineObj.time - lineObj.time)
+          : Math.max(1.8, Math.min(4.2, state.endTime - lineObj.time));
+
+        const weights = words.map((w) => Math.max(1, w.length * 0.35 + 0.8));
+        const totalW = weights.reduce((a, b) => a + b, 0) || 1;
+        const span = Math.min(gap * 0.78, Math.max(0.45, words.length * 0.32));
+
+        let acc = 0;
+        const times = words.map((_, i) => {
+          const t = lineObj.time + (acc / totalW) * span;
+          acc += weights[i];
+          return t;
+        });
+
+        return { words, times };
+      }
+
+      function packMeasuredRows(ctx, words, fSize, safeW, fontSpec) {
+        const wordGap = Math.max(12, Math.round(fSize * 0.28));
+        const rows = [];
+        let curRow = [];
+        let curW = 0;
+        let maxRowW = 0;
+        let maxWordH = 0;
+
+        for (let i = 0; i < words.length; i++) {
+          const box = measure3DWordBox(ctx, words[i], fSize, fontSpec);
+          maxWordH = Math.max(maxWordH, box.totalH);
+          const needed = curRow.length ? curW + wordGap + box.totalW : box.totalW;
+
+          if (curRow.length > 0 && needed > safeW) {
+            rows.push({ items: curRow, width: curW });
+            maxRowW = Math.max(maxRowW, curW);
+            curRow = [{ text: words[i], box }];
+            curW = box.totalW;
+          } else {
+            curRow.push({ text: words[i], box });
+            curW = needed;
+          }
+        }
+        if (curRow.length) {
+          rows.push({ items: curRow, width: curW });
+          maxRowW = Math.max(maxRowW, curW);
+        }
+
+        // Balance orphan single short word on last row when possible
+        if (rows.length >= 2) {
+          const last = rows[rows.length - 1];
+          const prev = rows[rows.length - 2];
+          if (last.items.length === 1 && prev.items.length >= 3) {
+            const moved = prev.items[prev.items.length - 1];
+            const candLastW = moved.box.totalW + wordGap + last.items[0].box.totalW;
+            if (candLastW <= safeW) {
+              prev.items.pop();
+              prev.width -= (moved.box.totalW + wordGap);
+              last.items.unshift(moved);
+              last.width = candLastW;
+              maxRowW = Math.max(...rows.map((r) => r.width));
+            }
+          }
+        }
+
+        return { rows, wordGap, maxRowW, rowH: maxWordH };
+      }
+
+      function mountPixelScene(lineIdx, instant = false) {
+        const lineObj = state.snippetLines[lineIdx];
+        if (!lineObj) {
+          state.stageWords = [];
+          state.activeWordTimes = [];
+          return;
+        }
+
+        const nextLineObj = state.snippetLines[lineIdx + 1] || null;
+        const { words, times } = computeWordTimestamps(lineObj, nextLineObj);
+
+        // Pick scene type (Auto Mix mirrors the exact reference video sequence!)
+        const sceneType = state.sceneMode === "auto"
+          ? SCENE_SEQUENCE[lineIdx % SCENE_SEQUENCE.length]
+          : state.sceneMode;
+
+        state.activeLineIdx = lineIdx;
+        state.activeSceneType = sceneType;
+        state.activeWordTimes = times;
+        state.revealedWordCount = 0;
+        state.cam.sceneTime = 0;
+
+        // Trigger signature After-Effects 3D camera whip-pan & angle swing!
+        if (!instant && state.camEnergy > 0.05) {
+          const e = state.camEnergy;
+          const dir = lineIdx % 2 === 0 ? 1 : -1;
+          if (sceneType === "cloud") {
+            state.cam.x = -220 * dir * e;
+            state.cam.y = 0;
+            state.cam.rot = -0.11 * dir * e;
+            state.cam.zoom = 1.18;
+          } else if (sceneType === "tunnel" || sceneType === "drop") {
+            state.cam.x = 0;
+            state.cam.y = 190 * e;
+            state.cam.rot = 0.08 * dir * e;
+            state.cam.zoom = 0.86;
+          } else if (sceneType === "swirl") {
+            state.cam.x = 80 * dir * e;
+            state.cam.y = -95 * e;
+            state.cam.rot = -0.13 * dir * e;
+            state.cam.zoom = 1.22;
+          } else {
+            state.cam.x = 150 * dir * e;
+            state.cam.y = 95 * (lineIdx % 3 === 0 ? 1 : -1) * e;
+            state.cam.rot = 0.09 * dir * e;
+            state.cam.zoom = 1.18;
+          }
+        }
+
+        // Measurement-driven anti-overlap, zero-clipping CRT safe-zone layout
+        const ctx = state.srcCtx;
+        const w = state.logicalW;
+        const h = state.logicalH;
+        const cx = w * 0.5;
+        const fontSpec = FONT_SPECS[state.fontId] || FONT_SPECS.silkscreen;
+
+        // Keep comfortable curved-bezel safe margins across 1:1, 16:9, and 9:16
+        const marginX = Math.max(44, w * (sceneType === "cloud" ? 0.145 : 0.105));
+        const safeW = Math.max(180, w - marginX * 2);
+
+        const hasLowerProp = sceneType === "sky" || sceneType === "swirl" || sceneType === "drop";
+        const marginTop = Math.max(52, h * (hasLowerProp ? 0.12 : 0.14));
+        const marginBot = Math.max(64, h * (hasLowerProp ? 0.34 : 0.16));
+        const safeH = Math.max(140, h - marginTop - marginBot);
+        const anchorY = marginTop + safeH * 0.5;
+
+        // Start from desired chunky pixel display size and auto-fit to safeW & safeH
+        const shortSide = Math.min(w, h);
+        const shortBoost = words.length <= 2 ? 1.12 : words.length <= 4 ? 1.0 : 0.9;
+        let fSize = Math.round(shortSide * 0.116 * shortBoost * state.textScale * fontSpec.scale);
+        fSize = Math.max(20, Math.min(86, fSize));
+
+        let packed = null;
+        if (ctx && words.length) {
+          ctx.save();
+          // Ensure even the single widest word fits strictly inside safeW
+          let widestSingle = 0;
+          for (let i = 0; i < words.length; i++) {
+            widestSingle = Math.max(widestSingle, measure3DWordBox(ctx, words[i], fSize, fontSpec).totalW);
+          }
+          if (widestSingle > safeW) {
+            fSize = Math.max(18, Math.floor(fSize * (safeW / widestSingle) * 0.95));
+          }
+
+          // Iteratively pack rows and shrink gently if total height or width exceeds CRT safe zone
+          for (let attempt = 0; attempt < 12; attempt++) {
+            packed = packMeasuredRows(ctx, words, fSize, safeW, fontSpec);
+            const rowGap = Math.max(12, Math.round(fSize * 0.24));
+            const totalH = packed.rows.length * packed.rowH + Math.max(0, packed.rows.length - 1) * rowGap;
+            if (totalH <= safeH && packed.maxRowW <= safeW && packed.rows.length <= 4) {
+              packed.rowGap = rowGap;
+              packed.totalH = totalH;
+              break;
+            }
+            const nextSize = Math.max(17, Math.floor(fSize * 0.89));
+            if (nextSize === fSize) {
+              packed.rowGap = rowGap;
+              packed.totalH = totalH;
+              break;
+            }
+            fSize = nextSize;
+          }
+          ctx.restore();
+        }
+
+        const built = [];
+        if (packed && packed.rows.length) {
+          const rowGap = packed.rowGap || Math.max(12, Math.round(fSize * 0.24));
+          const totalH = packed.totalH || (packed.rows.length * packed.rowH + (packed.rows.length - 1) * rowGap);
+          const startY = anchorY - totalH * 0.5 + packed.rowH * 0.5;
+          let globalIdx = 0;
+
+          packed.rows.forEach((rowObj, rIdx) => {
+            const rowY = startY + rIdx * (packed.rowH + rowGap);
+            const slackX = Math.max(0, (safeW - rowObj.width) * 0.5);
+            const staggerX = packed.rows.length > 1
+              ? Math.min(slackX * 0.42, 16) * (rIdx % 2 === 0 ? -1 : 1)
+              : 0;
+            let cursorX = cx - rowObj.width * 0.5 + staggerX;
+
+            rowObj.items.forEach((entry, cIdx) => {
+              const halfW = entry.box.totalW * 0.5;
+              const halfH = entry.box.totalH * 0.5;
+              const rawTx = cursorX + halfW;
+              const tx = Math.max(marginX + halfW, Math.min(w - marginX - halfW, rawTx));
+              const rawTy = rowY + (rowObj.items.length > 1 ? (cIdx % 2 === 0 ? -3 : 3) : 0);
+              const ty = Math.max(marginTop + halfH, Math.min(h - marginBot - halfH, rawTy));
+              cursorX += entry.box.totalW + packed.wordGap;
+
+              // Crisp retro tilt kept subtle so adjacent words never collide
+              const tilt = ((globalIdx % 3) - 1) * 0.045;
+              const useFlap = sceneType === "swirl" || sceneType === "orbit" || sceneType === "cloud" || globalIdx % 2 === 1;
+
+              built.push({
+                text: entry.text,
+                fontSize: fSize,
+                x: tx,
+                y: instant ? ty : ty + (useFlap ? 14 : 26),
+                tx,
+                ty,
+                rot: instant ? tilt : tilt + (globalIdx % 2 === 0 ? -0.14 : 0.14),
+                tRot: tilt,
+                flipRad: instant ? 0 : (useFlap ? Math.PI * 0.49 : 0.25),
+                scale: instant ? 1 : (useFlap ? 0.92 : 0.48),
+                revealed: instant,
+              });
+              globalIdx++;
+            });
+          });
+        }
+
+        state.stageWords = built;
+        if (instant) {
+          state.revealedWordCount = built.length;
+        }
+      }
+
+      function revealWordObj(wordObj) {
+        if (!wordObj || wordObj.revealed) return;
+        wordObj.revealed = true;
+
+        if (window.gsap) {
+          gsap.killTweensOf(wordObj);
+          gsap.to(wordObj, {
+            flipRad: 0,
+            y: wordObj.ty,
+            rot: wordObj.tRot,
+            scale: 1,
+            duration: 0.46,
+            ease: "back.out(1.75)",
+          });
+        } else {
+          wordObj.flipRad = 0;
+          wordObj.y = wordObj.ty;
+          wordObj.rot = wordObj.tRot;
+          wordObj.scale = 1;
+        }
+      }
+
+      function syncPixelLyrics(effectiveNow, forceRebuild = false) {
+        if (!state.snippetLines.length) return;
+
+        let targetLineIdx = 0;
+        for (let i = 0; i < state.snippetLines.length; i++) {
+          if (state.snippetLines[i].time <= effectiveNow + 0.04) {
+            targetLineIdx = i;
+          } else {
+            break;
+          }
+        }
+
+        const isInitialPaused = !state.isPlaying && Math.abs(effectiveNow - state.startTime) < 0.2;
+
+        if (forceRebuild || targetLineIdx !== state.activeLineIdx) {
+          mountPixelScene(targetLineIdx, isInitialPaused);
+          if (isInitialPaused) return;
+        }
+
+        let targetCount = 0;
+        for (let w = 0; w < state.activeWordTimes.length; w++) {
+          if (state.activeWordTimes[w] <= effectiveNow + 0.04) {
+            targetCount = w + 1;
+          } else {
+            break;
+          }
+        }
+        if (targetCount < 1 && state.stageWords.length > 0) targetCount = 1;
+
+        if (targetCount < state.revealedWordCount) {
+          state.stageWords.forEach((wObj, i) => {
+            if (window.gsap) gsap.killTweensOf(wObj);
+            const show = i < targetCount;
+            wObj.revealed = show;
+            wObj.flipRad = 0;
+            wObj.scale = 1;
+            wObj.y = wObj.ty;
+            wObj.rot = wObj.tRot;
+          });
+          state.revealedWordCount = targetCount;
+        } else if (targetCount > state.revealedWordCount) {
+          for (let w = state.revealedWordCount; w < targetCount; w++) {
+            revealWordObj(state.stageWords[w]);
+          }
+          state.revealedWordCount = targetCount;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         11. MASTER CANVAS SCENE RENDERER -> WEBGL CRT SHADER PASS
+         ---------------------------------------------------------- */
+      function renderCrtFrame(ts, dt) {
+        const ctx = state.srcCtx;
+        if (!ctx) return;
+
+        const w = state.logicalW;
+        const h = state.logicalH;
+        const pal = state.palette;
+        const t = ts * 0.001;
+        const cam = state.cam;
+        const scene = state.activeSceneType;
+
+        // Smooth camera physics convergence + whip velocity computation
+        const rate = 8.5;
+        const k = 1 - Math.exp(-rate * dt);
+        const prevX = cam.x;
+        const prevY = cam.y;
+
+        cam.sceneTime += dt;
+        cam.heartAngle += dt * (state.isPlaying ? 3.2 : 1.1);
+        cam.floorOffset += dt * (state.isPlaying ? 1.85 : 0.35);
+        cam.swirlAngle += dt * (state.isPlaying ? 1.55 : 0.35);
+
+        // Subtle continuous camera crane/sway inside each scene
+        const e = state.camEnergy;
+        cam.tx = Math.sin(t * 1.35) * 9 * e;
+        cam.ty = Math.cos(t * 1.1) * 7 * e;
+        cam.tRot = Math.sin(t * 0.95) * 0.028 * e;
+        cam.tZoom = 1.0 + state.bassEnergy * 0.05 * e;
+
+        cam.x += (cam.tx - cam.x) * k;
+        cam.y += (cam.ty - cam.y) * k;
+        cam.rot += (cam.tRot - cam.rot) * k;
+        cam.zoom += (cam.tZoom - cam.zoom) * k;
+
+        const safeDt = Math.max(0.008, dt);
+        const vx = (cam.x - prevX) / safeDt;
+        const vy = (cam.y - prevY) / safeDt;
+        cam.whipX = Math.max(-0.04, Math.min(0.04, (vx / 4800) * e));
+        cam.whipY = Math.max(-0.04, Math.min(0.04, (vy / 4800) * e));
+
+        /* --- DRAW OFFSCREEN MOTION GRAPHICS STAGE --- */
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+
+        // 1. Scene Backdrop Layer
+        if (scene === "tunnel") {
+          drawHeartTunnelBackdrop(ctx, w, h, t, pal);
+        } else if (scene === "swirl") {
+          drawCandySwirlBackdrop(ctx, w, h, cam.swirlAngle, pal);
+        } else if (scene === "drop") {
+          drawSpeedLinesBackdrop(ctx, w, h, t, pal);
+        } else {
+          // Classic Retro Pink Sky + Drifting Pixel Clouds + Twinkling Sparkles
+          ctx.fillStyle = pal.sky;
+          ctx.fillRect(0, 0, w, h);
+
+          state.clouds.forEach((cl) => {
+            const cx = ((cl.rx + t * cl.spd) % 1.28 - 0.14) * w - cam.x * 0.18;
+            const cy = cl.ry * h - cam.y * 0.12;
+            drawPixelCloud(ctx, cx, cy, cl.s, pal);
+          });
+          drawPixelSparkles(ctx, w, h, ts, pal);
+        }
+
+        // Apply 3D Camera Transform for Foreground Motion Graphics & 3D Text
+        ctx.save();
+        ctx.translate(w * 0.5 + cam.x, h * 0.5 + cam.y);
+        ctx.rotate(cam.rot);
+        ctx.scale(cam.zoom, cam.zoom);
+        ctx.translate(-w * 0.5, -h * 0.5);
+
+        // 2. Scene Midground Props (Perspective Floor, Cloud Thought Bubble, Floating Outro Stamps)
+        if (scene === "sky") {
+          drawPerspectiveFloor(ctx, w, h, cam.floorOffset, pal);
+        } else if (scene === "cloud") {
+          drawCloudThoughtFrame(ctx, w, h, pal);
+        } else if (scene === "outro") {
+          // Floating upward pixel paws & mini hearts (00:24-00:25!)
+          state.floatingStamps.forEach((st) => {
+            const sy = (1.15 - ((st.ry + t * st.speed) % 1.3)) * h;
+            const sx = st.rx * w + Math.sin(t * 1.5 + st.rot * 6) * 14;
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(st.rot);
+            if (st.kind === "paw") {
+              drawPixelMatrix(ctx, PAW_PIXELS, 0, 0, 7, { "1": pal.textSide, "2": pal.skyAlt });
+            } else {
+              draw3DPixelHeart(ctx, 0, 0, 4.2, cam.heartAngle + st.rot * 4, pal, false);
+            }
+            ctx.restore();
+          });
+        }
+
+        // 3. Optional Custom Sticker OR Iconic 3D Spinning Pixel Heart Prop
+        const drawCenterProp = (px, py, size, withHook = false) => {
+          if (state.stickerImg && state.stickerImg.complete) {
+            const bob = Math.sin(t * 4.5) * 8 + state.bassEnergy * -10;
+            const sw = size * 18;
+            const aspect = state.stickerImg.naturalWidth / Math.max(1, state.stickerImg.naturalHeight);
+            const sh = sw / aspect;
+            ctx.save();
+            ctx.translate(px, py + bob);
+            ctx.rotate(Math.sin(t * 2.4) * 0.08);
+            ctx.drawImage(state.stickerImg, -sw * 0.5, -sh * 0.5, sw, sh);
+            ctx.restore();
+          } else {
+            const bob = Math.sin(t * 3.8) * 9;
+            draw3DPixelHeart(ctx, px, py + bob, size * (1 + state.bassEnergy * 0.1), cam.heartAngle, pal, withHook);
+          }
+        };
+
+        if (scene === "sky") {
+          const hx = state.activeLineIdx % 2 === 0 ? w * 0.56 : w * 0.42;
+          const hy = h * 0.74;
+          drawCenterProp(hx, hy, Math.min(w, h) * 0.02, false);
+        } else if (scene === "drop") {
+          // Dropping heart earring bouncing right into lower center (00:04!)
+          const dropEase = Math.min(1, cam.sceneTime * 1.4);
+          const bounceY = h * 0.74 - Math.pow(1 - dropEase, 2) * h * 0.22;
+          drawCenterProp(w * 0.5, bounceY, Math.min(w, h) * 0.018, true);
+        } else if (scene === "swirl") {
+          drawCenterProp(w * 0.5, h * 0.76, Math.min(w, h) * 0.019, false);
+        }
+
+        // 4. Render 3D Extruded Blocky Pixel Words!
+        if (scene === "orbit") {
+          // Interleave words cleanly behind & in front of center 3D spinning heart (00:20-00:22!)
+          const half = Math.ceil(state.stageWords.length * 0.5);
+          for (let i = 0; i < half; i++) {
+            draw3DExtrudedWord(ctx, state.stageWords[i], pal);
+          }
+          drawCenterProp(w * 0.5, h * 0.52, Math.min(w, h) * 0.021, false);
+          for (let i = half; i < state.stageWords.length; i++) {
+            draw3DExtrudedWord(ctx, state.stageWords[i], pal);
+          }
+        } else {
+          for (let i = 0; i < state.stageWords.length; i++) {
+            draw3DExtrudedWord(ctx, state.stageWords[i], pal);
+          }
+        }
+
+        ctx.restore();
+        ctx.restore();
+
+        /* --- PIPE OFFSCREEN STAGE THROUGH WEBGL CRT DOT-MATRIX SHADER --- */
+        if (state.gl && state.glProgram && state.glTex) {
+          const gl = state.gl;
+          gl.useProgram(state.glProgram);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, state.glTex);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, state.srcCanvas);
+
+          gl.uniform1i(state.glUniforms.uTex, 0);
+          gl.uniform2f(state.glUniforms.uRes, el.canvas.width, el.canvas.height);
+          gl.uniform1f(state.glUniforms.uCurve, state.crtCurvature);
+          gl.uniform1f(state.glUniforms.uDotGrid, state.dotGridStrength);
+          gl.uniform2f(state.glUniforms.uWhip, cam.whipX, cam.whipY);
+          gl.uniform1f(state.glUniforms.uTime, t);
+
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        } else if (state.fallback2d) {
+          state.fallback2d.imageSmoothingEnabled = false;
+          state.fallback2d.drawImage(state.srcCanvas, 0, 0, el.canvas.width, el.canvas.height);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         12. WEB AUDIO API: UPBEAT RETRO INDIE-POP ARCADE GROOVE
+         ---------------------------------------------------------- */
+      function ensureAudioGraph() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return false;
+
+        if (!state.audioCtx) {
+          state.audioCtx = new AudioCtx();
+          state.masterGain = state.audioCtx.createGain();
+          state.masterGain.gain.value = 0.84;
+
+          state.analyser = state.audioCtx.createAnalyser();
+          state.analyser.fftSize = 128;
+          state.analyser.smoothingTimeConstant = 0.78;
+          state.freqData = new Uint8Array(state.analyser.frequencyBinCount);
+
+          state.masterGain.connect(state.analyser);
+          state.analyser.connect(state.audioCtx.destination);
+        }
+
+        if (state.audioCtx.state === "suspended") {
+          state.audioCtx.resume().catch(() => {});
+        }
+        return true;
+      }
+
+      function connectMediaElementOnce() {
+        if (!ensureAudioGraph() || state.mediaConnected) return;
+        try {
+          const src = state.audioCtx.createMediaElementSource(el.audio);
+          src.connect(state.masterGain);
+          state.mediaConnected = true;
+        } catch (_) {}
+      }
+
+      const ARCADE_CHORDS = [
+        { bass: 87.31, pad: [174.61, 220.0, 261.63, 329.63, 392.0] },
+        { bass: 82.41, pad: [164.81, 196.0, 246.94, 293.66, 392.0] },
+        { bass: 73.42, pad: [146.83, 174.61, 220.0, 261.63, 329.63] },
+        { bass: 98.00, pad: [196.0, 246.94, 293.66, 329.63, 440.0] },
+      ];
+
+      function triggerDemoBar() {
+        if (state.mode !== "demo" || !state.isPlaying || !ensureAudioGraph()) return;
+        const ctx = state.audioCtx;
+        const now = ctx.currentTime;
+        const bar = ARCADE_CHORDS[state.demoStep % ARCADE_CHORDS.length];
+        state.demoStep++;
+
+        const beat = 0.52;
+        const nodes = [];
+
+        // Bouncy indie-pop bass kicks
+        [0, beat * 1.5, beat * 2, beat * 3.5].forEach((off, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(idx === 0 || idx === 2 ? 124 : bar.bass * 1.15, now + off);
+          osc.frequency.exponentialRampToValueAtTime(bar.bass * 0.65, now + off + 0.12);
+          g.gain.setValueAtTime(0.0001, now + off);
+          g.gain.exponentialRampToValueAtTime(idx === 0 || idx === 2 ? 0.34 : 0.22, now + off + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.001, now + off + 0.35);
+          osc.connect(g);
+          g.connect(state.masterGain);
+          osc.start(now + off);
+          osc.stop(now + off + 0.38);
+          nodes.push(osc);
+        });
+
+        // Dreamy retro synth chords
+        [0, beat * 1.5, beat * 2.5].forEach((off, idx) => {
+          const lpf = ctx.createBiquadFilter();
+          lpf.type = "lowpass";
+          lpf.frequency.setValueAtTime(1600, now + off);
+          lpf.frequency.exponentialRampToValueAtTime(520, now + off + 0.55);
+
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, now + off);
+          g.gain.exponentialRampToValueAtTime(idx === 0 ? 0.09 : 0.065, now + off + 0.025);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + off + 0.64);
+
+          lpf.connect(g);
+          g.connect(state.masterGain);
+
+          bar.pad.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            osc.type = i % 2 === 0 ? "triangle" : "sine";
+            osc.frequency.setValueAtTime(freq, now + off);
+            osc.detune.setValueAtTime((i - 2) * 4.5, now + off);
+            osc.connect(lpf);
+            osc.start(now + off);
+            osc.stop(now + off + 0.68);
+            nodes.push(osc);
+          });
+        });
+
+        state.demoNodes.push(...nodes);
+        if (state.demoNodes.length > 60) state.demoNodes = state.demoNodes.slice(-30);
+      }
+
+      function startDemoSynth() {
+        stopDemoSynth();
+        if (state.mode !== "demo") return;
+        triggerDemoBar();
+        state.demoTimer = setInterval(triggerDemoBar, 2080);
+      }
+
+      function stopDemoSynth() {
+        if (state.demoTimer) {
+          clearInterval(state.demoTimer);
+          state.demoTimer = null;
+        }
+        state.demoNodes.forEach((n) => { try { n.stop(); } catch (_) {} });
+        state.demoNodes = [];
+      }
+
+      function updateAudioReactivity() {
+        let bass = 0;
+        const eqVals = [0.16, 0.24, 0.2, 0.14];
+
+        if (state.isPlaying && state.analyser && state.freqData) {
+          state.analyser.getByteFrequencyData(state.freqData);
+          let sum = 0;
+          for (let i = 0; i < 6; i++) sum += state.freqData[i];
+          bass = Math.min(1, sum / (6 * 210));
+          [1, 4, 8, 15].forEach((bin, i) => {
+            eqVals[i] = Math.max(0.18, (state.freqData[bin] || 0) / 255);
+          });
+        } else if (state.isPlaying) {
+          const t = performance.now() * 0.006;
+          bass = 0.22 + Math.abs(Math.sin(t)) * 0.28;
+          for (let i = 0; i < 4; i++) {
+            eqVals[i] = 0.24 + Math.abs(Math.sin(t * (1.2 + i * 0.35))) * 0.55;
+          }
+        }
+
+        state.bassEnergy += (bass - state.bassEnergy) * 0.22;
+        el.eqBars.forEach((bar, i) => {
+          bar.style.height = state.isPlaying ? `${Math.round(3 + eqVals[i] * 11)}px` : "3.5px";
+        });
+      }
+
+      /* ----------------------------------------------------------
+         13. PLAYBACK ENGINE, SNIPPET LOOP & MASTER 60FPS LOOP
+         ---------------------------------------------------------- */
+      function getCurrentTime() {
+        return state.mode === "audio" ? el.audio.currentTime : state.currentTime;
+      }
+
+      function seekTo(sec) {
+        const clamped = Math.max(0, Math.min(state.duration, sec));
+        if (state.mode === "audio") {
+          try { el.audio.currentTime = clamped; } catch (_) {}
+        } else {
+          state.currentTime = clamped;
+        }
+        updateProgressUI(clamped);
+        syncPixelLyrics(clamped + state.syncOffset, true);
+      }
+
+      function updateProgressUI(nowSec) {
+        const clipLen = Math.max(0.1, state.endTime - state.startTime);
+        const rel = Math.max(0, Math.min(clipLen, nowSec - state.startTime));
+        const pct = (rel / clipLen) * 100;
+        el.progressFill.style.width = `${pct}%`;
+        el.progressKnob.style.left = `${pct}%`;
+        el.timeElapsed.textContent = formatTime(rel);
+      }
+
+      function setPlayUI(playing) {
+        state.isPlaying = playing;
+        el.playIcon.classList.toggle("hidden", playing);
+        el.pauseIcon.classList.toggle("hidden", !playing);
+        if (window.anime) {
+          anime({
+            targets: el.playPauseBtn,
+            scale: [0.88, 1.07, 1],
+            duration: 340,
+            easing: "easeOutElastic(1, 0.7)",
+          });
+        }
+        resetIdleDockTimer();
+      }
+
+      function startPlayback() {
+        ensureAudioGraph();
+        const now = getCurrentTime();
+        if (now < state.startTime || now >= state.endTime - 0.08) {
+          seekTo(state.startTime);
+        }
+
+        if (state.mode === "audio") {
+          connectMediaElementOnce();
+          el.audio.play().then(() => {
+            setPlayUI(true);
+            state.lastFrameTs = performance.now();
+            syncPixelLyrics(getCurrentTime() + state.syncOffset, true);
+          }).catch(() => {
+            showToast("Tap Play again to start audio", "error");
+            setPlayUI(false);
+          });
+        } else {
+          setPlayUI(true);
+          startDemoSynth();
+          state.lastFrameTs = performance.now();
+          syncPixelLyrics(getCurrentTime() + state.syncOffset, true);
+        }
+      }
+
+      function pausePlayback() {
+        if (state.mode === "audio") el.audio.pause();
+        else stopDemoSynth();
+        setPlayUI(false);
+      }
+
+      function togglePlay() {
+        if (state.isPlaying) pausePlayback();
+        else startPlayback();
+      }
+
+      function computeSnippetLines() {
+        const tol = 0.25;
+        const filtered = state.lines.filter(
+          (l) => l.time >= state.startTime - tol && l.time <= state.endTime + tol
+        );
+        state.snippetLines = filtered.length ? filtered : state.lines.slice();
+      }
+
+      function setSnippetBounds(start, end) {
+        const maxDur = Math.max(2, state.duration);
+        const s = Math.max(0, Math.min(start, maxDur - 1));
+        const e = Math.max(s + 1, Math.min(end, maxDur));
+
+        state.startTime = Number(s.toFixed(2));
+        state.endTime = Number(e.toFixed(2));
+
+        el.startTimeInput.value = formatTime(state.startTime);
+        el.endTimeInput.value = formatTime(state.endTime);
+
+        const clipLen = Math.max(0, state.endTime - state.startTime);
+        el.snippetWindowBadge.textContent = `${formatTime(state.startTime)} → ${formatTime(state.endTime)} (${Math.round(clipLen)}s)`;
+        el.timeTotal.textContent = formatTime(clipLen);
+
+        computeSnippetLines();
+        renderLyricPicker();
+
+        const now = getCurrentTime();
+        updateProgressUI(now);
+        syncPixelLyrics(now + state.syncOffset, true);
+      }
+
+      function renderLyricPicker() {
+        el.lyricsCountBadge.textContent = `${state.lines.length} lines`;
+        el.lyricPickerList.innerHTML = "";
+
+        if (!state.lines.length) {
+          el.lyricPickerList.innerHTML =
+            '<p class="p-4 text-xs text-white/45 text-center">No synced lyrics loaded yet.</p>';
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        state.lines.forEach((line, idx) => {
+          const inRange = line.time >= state.startTime - 0.25 && line.time <= state.endTime + 0.25;
+          const row = document.createElement("div");
+          row.className = `flex items-center justify-between gap-2 px-3 py-2.5 text-xs transition ${
+            inRange
+              ? "bg-pink-500/18 text-white border-l-2 border-pink-400"
+              : "text-white/55 hover:bg-white/[0.04]"
+          }`;
+
+          const left = document.createElement("button");
+          left.type = "button";
+          left.className = "flex-1 min-w-0 text-left flex items-center gap-2.5 truncate";
+          left.innerHTML = `
+            <span class="font-mono text-[10px] opacity-60 shrink-0">${formatTime(line.time)}</span>
+            <span class="truncate font-medium">${escapeHtml(line.text)}</span>
+          `;
+          left.addEventListener("click", () => {
+            const target = Math.max(0, Math.min(state.duration - 0.2, line.time - state.syncOffset));
+            if (target < state.startTime || target >= state.endTime) {
+              setSnippetBounds(target, Math.min(state.duration, target + 22));
+            }
+            seekTo(target);
+            if (!state.isPlaying) startPlayback();
+          });
+
+          const actions = document.createElement("div");
+          actions.className = "flex items-center gap-1 shrink-0";
+
+          const btnStart = document.createElement("button");
+          btnStart.type = "button";
+          btnStart.textContent = "Start";
+          btnStart.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnStart.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newStart = Math.max(0, line.time - state.syncOffset);
+            const newEnd = state.endTime <= newStart + 1.5
+              ? Math.min(state.duration, newStart + 22)
+              : state.endTime;
+            setSnippetBounds(newStart, newEnd);
+            seekTo(newStart);
+            showToast(`Snippet starts at ${formatTime(newStart)}`, "success");
+          });
+
+          const btnEnd = document.createElement("button");
+          btnEnd.type = "button";
+          btnEnd.textContent = "End";
+          btnEnd.className = "px-2 py-1 rounded-lg bg-white/10 hover:bg-white/22 text-[10px] font-bold text-white transition";
+          btnEnd.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const next = state.lines[idx + 1];
+            const naturalEnd = next ? next.time - 0.05 : line.time + 3.4;
+            const newEnd = Math.min(state.duration, Math.max(1.5, naturalEnd - state.syncOffset));
+            const newStart = state.startTime >= newEnd - 1 ? Math.max(0, newEnd - 18) : state.startTime;
+            setSnippetBounds(newStart, newEnd);
+            showToast(`Snippet ends at ${formatTime(newEnd)}`, "success");
+          });
+
+          actions.appendChild(btnStart);
+          actions.appendChild(btnEnd);
+          row.appendChild(left);
+          row.appendChild(actions);
+          frag.appendChild(row);
+        });
+
+        el.lyricPickerList.appendChild(frag);
+      }
+
+      function startMasterLoop() {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+
+        const tick = (ts) => {
+          const dt = Math.min(0.12, (ts - (state.lastFrameTs || ts)) / 1000);
+          state.lastFrameTs = ts;
+
+          if (state.isPlaying) {
+            let now;
+            if (state.mode === "audio") {
+              now = el.audio.currentTime;
+            } else {
+              state.currentTime += dt;
+              now = state.currentTime;
+            }
+
+            if (now >= state.endTime) {
+              if (state.isLooping) {
+                seekTo(state.startTime);
+                now = state.startTime;
+                if (state.mode === "audio" && el.audio.paused) {
+                  el.audio.play().catch(() => {});
+                }
+              } else {
+                pausePlayback();
+                seekTo(state.startTime);
+              }
+            }
+
+            updateProgressUI(now);
+            syncPixelLyrics(now + state.syncOffset, false);
+          }
+
+          updateAudioReactivity();
+          renderCrtFrame(ts, dt);
+          state.rafId = requestAnimationFrame(tick);
+        };
+
+        state.lastFrameTs = performance.now();
+        state.rafId = requestAnimationFrame(tick);
+      }
+
+      /* ----------------------------------------------------------
+         14. LOCAL MP3 UPLOAD, STICKER UPLOAD & LRCLIB.NET
+         ---------------------------------------------------------- */
+      function handleAudioFile(file) {
+        if (!file) return;
+        const ok = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|aac|flac)$/i.test(file.name);
+        if (!ok) {
+          showToast("Please upload a valid MP3, WAV, M4A, or OGG file", "error");
+          return;
+        }
+
+        pausePlayback();
+        stopDemoSynth();
+
+        if (state.audioObjectUrl) URL.revokeObjectURL(state.audioObjectUrl);
+        state.audioObjectUrl = URL.createObjectURL(file);
+        state.mode = "audio";
+        el.audio.src = state.audioObjectUrl;
+        el.audio.load();
+
+        el.audioDropLabel.textContent = file.name;
+        el.audioFileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · Loaded locally`;
+        el.audioStatusBadge.textContent = "Local Audio Active";
+        el.audioStatusBadge.className = "text-[11px] font-semibold text-emerald-400";
+
+        if (el.titleInput.value === "Earrings (Pixel CRT)") {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+          el.titleInput.value = cleanName;
+          el.hudTitle.textContent = cleanName;
+          el.artistInput.value = "Local Audio";
+          el.hudArtist.textContent = "Local Audio";
+        }
+
+        showToast(`Loaded "${file.name}"`, "success");
+      }
+
+      el.audio.addEventListener("loadedmetadata", () => {
+        if (!Number.isFinite(el.audio.duration) || el.audio.duration <= 0) return;
+        state.duration = el.audio.duration;
+        if (state.endTime > state.duration || state.endTime === 24.8) {
+          setSnippetBounds(0, Math.min(state.duration, 26));
+        } else {
+          setSnippetBounds(state.startTime, state.endTime);
+        }
+        seekTo(state.startTime);
+      });
+
+      el.audio.addEventListener("ended", () => {
+        if (state.isLooping) {
+          seekTo(state.startTime);
+          el.audio.play().catch(() => {});
+        } else {
+          pausePlayback();
+          seekTo(state.startTime);
+        }
+      });
+
+      function handleStickerUpload(file) {
+        if (!file || !file.type.startsWith("image/")) {
+          showToast("Please upload a PNG/WebP sticker image", "error");
+          return;
+        }
+        if (state.stickerUrl) URL.revokeObjectURL(state.stickerUrl);
+        state.stickerUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          state.stickerImg = img;
+          el.stickerStatus.textContent = `Custom: ${file.name}`;
+          el.clearStickerBtn.classList.remove("hidden");
+          showToast("Custom CRT sticker loaded!", "success");
+        };
+        img.src = state.stickerUrl;
+      }
+
+      function applyTrackData(data, sourceLabel = "LRCLIB") {
+        if (data.trackName) {
+          el.titleInput.value = data.trackName;
+          el.hudTitle.textContent = data.trackName;
+        }
+        if (data.artistName) {
+          el.artistInput.value = data.artistName;
+          el.hudArtist.textContent = data.artistName;
+        }
+
+        if (data.syncedLyrics) {
+          const parsed = parseLRC(data.syncedLyrics);
+          if (!parsed.length) {
+            showToast("Fetched track had empty synced timestamps", "error");
+            return false;
+          }
+
+          state.lines = parsed;
+          el.manualLrcInput.value = data.syncedLyrics;
+
+          if (state.mode === "demo") {
+            const lastT = parsed[parsed.length - 1].time;
+            state.duration = Math.max(data.duration || 0, lastT + 4.5, 22);
+            const firstT = parsed[0].time;
+            setSnippetBounds(firstT, Math.min(state.duration, firstT + 24));
+          } else {
+            const inside = parsed.some((l) => l.time >= state.startTime && l.time <= state.endTime);
+            if (!inside && parsed[0].time < state.duration - 2) {
+              setSnippetBounds(parsed[0].time, Math.min(state.duration, parsed[0].time + 24));
+            } else {
+              computeSnippetLines();
+              renderLyricPicker();
+            }
+          }
+
+          seekTo(state.startTime);
+          el.lrclibStatusText.innerHTML = `<span class="text-emerald-400 font-semibold">Loaded ${parsed.length} synced lines from ${escapeHtml(sourceLabel)}!</span>`;
+          showToast(`Loaded ${parsed.length} synced lines from ${sourceLabel}`, "success");
+          return true;
+        } else if (data.plainLyrics) {
+          el.manualLrcInput.value = data.plainLyrics;
+          switchLrcTab("manual");
+          el.lrclibStatusText.innerHTML = `<span class="text-amber-400">Plain lyrics only (no timestamps). Try Search for a synced entry.</span>`;
+          showToast("No synced timestamps on this entry", "error");
+          return false;
+        }
+
+        el.lrclibStatusText.innerHTML = `<span class="text-rose-400">No lyrics found on this track.</span>`;
+        showToast("No lyrics available", "error");
+        return false;
+      }
+
+      async function fetchLrclibByUrl() {
+        const raw = el.lrclibUrlInput.value.trim();
+        if (!raw) {
+          showToast("Paste an lrclib.net/tracks/{id} link or Track ID", "error");
+          return;
+        }
+        const idMatch = raw.match(/(?:tracks|get)\/(\d+)/i) || raw.match(/^(\d+)$/) || raw.match(/(\d{4,})/);
+        if (!idMatch) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">Invalid LRCLIB link. Example: https://lrclib.net/tracks/28185115</span>`;
+          showToast("Invalid LRCLIB link or ID", "error");
+          return;
+        }
+
+        const trackId = idMatch[1];
+        el.fetchLrclibBtn.disabled = true;
+        el.fetchBtnLabel.textContent = "...";
+        el.fetchSpinner.classList.remove("hidden");
+        el.lrclibStatusText.textContent = `Fetching track #${trackId} from lrclib.net...`;
+
+        try {
+          const resp = await fetch(`https://lrclib.net/api/get/${trackId}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(resp.status === 404 ? `Track #${trackId} not found.` : `HTTP ${resp.status}`);
+          const data = await resp.json();
+          applyTrackData(data, `LRCLIB #${trackId}`);
+        } catch (err) {
+          el.lrclibStatusText.innerHTML = `<span class="text-rose-400">${escapeHtml(err.message || "Network error")}</span>`;
+          showToast(err.message || "Failed to fetch from LRCLIB", "error");
+        } finally {
+          el.fetchLrclibBtn.disabled = false;
+          el.fetchBtnLabel.textContent = "Fetch";
+          el.fetchSpinner.classList.add("hidden");
+        }
+      }
+
+      async function searchLrclib() {
+        const q = el.lrclibSearchInput.value.trim();
+        if (!q) {
+          showToast("Enter a song title or artist", "error");
+          return;
+        }
+
+        el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/55 text-center py-4">Searching LRCLIB for "${escapeHtml(q)}"...</p>`;
+        try {
+          const resp = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(`Search failed (${resp.status})`);
+          const list = await resp.json();
+          if (!Array.isArray(list) || !list.length) {
+            el.searchResultsBox.innerHTML = `<p class="text-[11px] text-white/45 text-center py-4">No matching tracks found.</p>`;
+            return;
+          }
+
+          list.sort((a, b) => (b.syncedLyrics ? 1 : 0) - (a.syncedLyrics ? 1 : 0));
+          el.searchResultsBox.innerHTML = "";
+          const frag = document.createDocumentFragment();
+
+          list.slice(0, 16).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const hasSync = Boolean(item.syncedLyrics);
+            btn.className = "w-full text-left p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] transition flex items-center justify-between gap-2";
+            btn.innerHTML = `
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${escapeHtml(item.trackName || "Untitled")}</p>
+                <p class="text-[11px] text-white/50 truncate">${escapeHtml(item.artistName || "Unknown")} · ${formatTime(item.duration || 0)}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                hasSync ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/25" : "bg-white/10 text-white/45"
+              }">${hasSync ? "Synced" : "Plain"}</span>
+            `;
+            btn.addEventListener("click", () => {
+              el.lrclibUrlInput.value = `https://lrclib.net/tracks/${item.id}`;
+              applyTrackData(item, `LRCLIB #${item.id}`);
+            });
+            frag.appendChild(btn);
+          });
+
+          el.searchResultsBox.appendChild(frag);
+        } catch (err) {
+          el.searchResultsBox.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-4">${escapeHtml(err.message)}</p>`;
+        }
+      }
+
+      /* ----------------------------------------------------------
+         15. PALETTES, SCENES, ASPECT RATIO, DRAWER & CLEAN MODE
+         ---------------------------------------------------------- */
+      function buildPaletteGrid() {
+        el.paletteGrid.innerHTML = "";
+        const frag = document.createDocumentFragment();
+        PALETTES.forEach((p) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.dataset.palettePick = p.id;
+          btn.title = p.name;
+          btn.className = "palette-btn flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.09] transition";
+          btn.innerHTML = `
+            <span class="w-6 h-6 rounded-full border border-white/25" style="background: linear-gradient(135deg, ${p.sky} 50%, ${p.heartMain} 100%);"></span>
+            <span class="text-[9px] font-bold text-white/80 truncate w-full text-center">${escapeHtml(p.name.split(" ")[0])}</span>
+          `;
+          btn.addEventListener("click", () => applyPalette(p.id, true));
+          frag.appendChild(btn);
+        });
+        el.paletteGrid.appendChild(frag);
+      }
+
+      function syncPaletteUI() {
+        const p = state.palette;
+        document.documentElement.style.setProperty("--accent", p.hudAccent);
+        el.quickPaletteDot.style.background = `linear-gradient(135deg, ${p.sky} 48%, ${p.heartMain} 100%)`;
+        el.hudBadgeBg.style.background = `linear-gradient(135deg, ${p.sky} 0%, ${p.heartMain} 100%)`;
+        el.customSkyPicker.value = p.sky;
+        el.customHeartPicker.value = p.heartMain;
+        el.customTextPicker.value = p.textFace;
+      }
+
+      function applyPalette(paletteId, announce = false) {
+        const found = PALETTES.find((item) => item.id === paletteId) || PALETTES[0];
+        state.paletteId = found.id;
+        state.palette = { ...found };
+
+        el.activePaletteLabel.textContent = found.name;
+        el.quickPaletteName.textContent = found.name;
+
+        el.paletteGrid.querySelectorAll(".palette-btn").forEach((btn) => {
+          const active = btn.dataset.palettePick === found.id;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/45", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+
+        syncPaletteUI();
+        if (announce) showToast(`Palette: ${found.name}`);
+      }
+
+      function setSceneMode(modeId, preview = false) {
+        state.sceneMode = modeId;
+        const meta = SCENE_MODES.find((m) => m.id === modeId) || SCENE_MODES[0];
+        el.dockSceneLabel.textContent = meta.label;
+        el.activeSceneBadge.textContent = meta.badge;
+
+        el.sceneBtns.forEach((btn) => {
+          const active = btn.dataset.scenePick === modeId;
+          btn.classList.toggle("bg-white/15", active);
+          btn.classList.toggle("border-white/45", active);
+          btn.classList.toggle("bg-white/[0.04]", !active);
+          btn.classList.toggle("border-white/10", !active);
+        });
+
+        if (preview) {
+          const idx = Math.max(0, state.activeLineIdx);
+          mountPixelScene(idx, false);
+          state.stageWords.forEach((wObj, i) => {
+            setTimeout(() => revealWordObj(wObj), i * 85);
+          });
+          state.revealedWordCount = state.stageWords.length;
+        }
+      }
+
+      function setPixelFont(fontId) {
+        state.fontId = fontId;
+        el.fontBtns.forEach((btn) => {
+          const active = btn.dataset.fontPick === fontId;
+          btn.className = `font-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+        mountPixelScene(Math.max(0, state.activeLineIdx), !state.isPlaying);
+      }
+
+      function cycleAspectRatio() {
+        const idx = ASPECT_MODES.indexOf(state.aspect);
+        const next = ASPECT_MODES[(idx + 1) % ASPECT_MODES.length];
+        state.aspect = next;
+        document.body.setAttribute("data-aspect", next);
+        el.dockAspectLabel.textContent = next;
+        setTimeout(() => {
+          resizeCrtPipeline();
+          mountPixelScene(Math.max(0, state.activeLineIdx), !state.isPlaying);
+        }, 420);
+        showToast(
+          next === "1:1" ? "1:1 Retro CRT Square Frame" :
+          next === "9:16" ? "9:16 Vertical Reel Frame" :
+          "Full 16:9 CRT Widescreen"
+        );
+      }
+
+      function switchLrcTab(tab) {
+        el.lrcTabUrl.classList.toggle("hidden", tab !== "url");
+        el.lrcTabSearch.classList.toggle("hidden", tab !== "search");
+        el.lrcTabManual.classList.toggle("hidden", tab !== "manual");
+        el.lrcTabBtns.forEach((btn) => {
+          const active = btn.dataset.lrcTab === tab;
+          btn.className = `lrc-tab-btn py-1.5 rounded-lg transition ${
+            active ? "bg-white text-black" : "text-white/65 hover:text-white"
+          }`;
+        });
+      }
+
+      function setSyncOffset(val) {
+        const clamped = Math.max(-5, Math.min(5, Math.round(val * 20) / 20));
+        state.syncOffset = clamped;
+        el.offsetSlider.value = String(clamped);
+        el.offsetLabel.textContent = `${clamped > 0 ? "+" : ""}${clamped.toFixed(2)}s`;
+        syncPixelLyrics(getCurrentTime() + state.syncOffset, true);
+      }
+
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !state.isDrawerOpen;
+        state.isDrawerOpen = open;
+        el.drawerBackdrop.style.pointerEvents = open ? "auto" : "none";
+
+        if (window.gsap) {
+          gsap.to(el.studioDrawer, {
+            x: open ? "0%" : "105%",
+            duration: 0.48,
+            ease: open ? "power3.out" : "power3.inOut",
+          });
+          gsap.to(el.drawerBackdrop, {
+            opacity: open ? 1 : 0,
+            duration: 0.34,
+            ease: "power2.out",
+          });
+        } else {
+          el.studioDrawer.style.transform = open ? "translateX(0)" : "translateX(105%)";
+          el.drawerBackdrop.style.opacity = open ? "1" : "0";
+        }
+
+        if (open) el.bottomDock.classList.remove("is-idle-dim");
+        else resetIdleDockTimer();
+      }
+
+      function toggleCleanMode(force) {
+        const next = typeof force === "boolean" ? force : !state.isCleanMode;
+        state.isCleanMode = next;
+        if (next && state.isDrawerOpen) toggleDrawer(false);
+        document.body.classList.toggle("clean-mode", next);
+
+        if (window.gsap) {
+          gsap.to(el.topHud, {
+            opacity: next ? 0 : 1,
+            y: next ? -22 : 0,
+            duration: 0.38,
+            ease: "power3.out",
+          });
+          gsap.to(el.bottomDock, {
+            opacity: next ? 0 : 1,
+            y: next ? 28 : 0,
+            duration: 0.4,
+            ease: "power3.out",
+            onStart: () => { if (!next) el.bottomDock.style.pointerEvents = "auto"; },
+            onComplete: () => { if (next) el.bottomDock.style.pointerEvents = "none"; },
+          });
+        } else {
+          el.topHud.style.opacity = next ? "0" : "1";
+          el.bottomDock.style.opacity = next ? "0" : "1";
+        }
+
+        if (next) showToast("Clean Record Mode — Tap stage or press H / Esc to restore");
+      }
+
+      function resetIdleDockTimer() {
+        clearTimeout(state.idleTimer);
+        el.bottomDock.classList.remove("is-idle-dim");
+        if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+          state.idleTimer = setTimeout(() => {
+            if (state.isPlaying && !state.isDrawerOpen && !state.isCleanMode) {
+              el.bottomDock.classList.add("is-idle-dim");
+            }
+          }, 3400);
+        }
+      }
+
+      /* ----------------------------------------------------------
+         16. EVENT LISTENERS & KEYBOARD SHORTCUTS
+         ---------------------------------------------------------- */
+      el.playPauseBtn.addEventListener("click", togglePlay);
+      el.restartBtn.addEventListener("click", () => {
+        seekTo(state.startTime);
+        if (!state.isPlaying) startPlayback();
+      });
+
+      el.loopBtn.addEventListener("click", () => {
+        state.isLooping = !state.isLooping;
+        el.loopBtn.classList.toggle("text-pink-400", state.isLooping);
+        el.loopBtn.classList.toggle("bg-white/12", state.isLooping);
+        el.loopBtn.classList.toggle("text-white/40", !state.isLooping);
+        showToast(state.isLooping ? "Snippet Loop ON" : "Snippet Loop OFF");
+      });
+
+      function scrubProgress(clientX) {
+        const rect = el.progressTrack.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        seekTo(state.startTime + ratio * (state.endTime - state.startTime));
+      }
+      el.progressTrack.addEventListener("click", (e) => scrubProgress(e.clientX));
+      el.progressTrack.addEventListener("touchstart", (e) => {
+        if (e.touches[0]) scrubProgress(e.touches[0].clientX);
+      }, { passive: true });
+
+      function cycleSceneMode() {
+        const idx = SCENE_MODES.findIndex((m) => m.id === state.sceneMode);
+        const next = SCENE_MODES[(idx + 1) % SCENE_MODES.length];
+        setSceneMode(next.id, true);
+        showToast(`Motion Scene: ${next.badge}`);
+      }
+
+      function cyclePalette() {
+        const idx = PALETTES.findIndex((p) => p.id === state.paletteId);
+        const next = PALETTES[(idx + 1) % PALETTES.length];
+        applyPalette(next.id, true);
+      }
+
+      el.dockSceneCycleBtn.addEventListener("click", cycleSceneMode);
+      el.quickPaletteBtn.addEventListener("click", cyclePalette);
+      el.dockAspectBtn.addEventListener("click", cycleAspectRatio);
+
+      el.openStudioBtn.addEventListener("click", () => toggleDrawer(true));
+      el.trackPillBtn.addEventListener("click", () => toggleDrawer(true));
+      el.closeStudioBtn.addEventListener("click", () => toggleDrawer(false));
+      el.drawerBackdrop.addEventListener("click", () => toggleDrawer(false));
+      el.cleanModeBtn.addEventListener("click", () => toggleCleanMode(true));
+      el.cleanExitBtn.addEventListener("click", () => toggleCleanMode(false));
+
+      el.stageFrame.addEventListener("click", () => {
+        if (state.isCleanMode) toggleCleanMode(false);
+      });
+
+      ["pointermove", "touchstart", "keydown"].forEach((evt) => {
+        window.addEventListener(evt, resetIdleDockTimer, { passive: true });
+      });
+
+      // Studio Section 1 Controls
+      el.sceneBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setSceneMode(btn.dataset.scenePick, true));
+      });
+      el.fontBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setPixelFont(btn.dataset.fontPick));
+      });
+
+      el.textSizeSlider.addEventListener("input", () => {
+        state.textScale = parseFloat(el.textSizeSlider.value);
+        el.textSizeLabel.textContent = `${Math.round(state.textScale * 100)}%`;
+        mountPixelScene(Math.max(0, state.activeLineIdx), !state.isPlaying);
+      });
+      el.dotGridSlider.addEventListener("input", () => {
+        const pct = parseInt(el.dotGridSlider.value, 10);
+        state.dotGridStrength = pct / 100;
+        el.dotGridLabel.textContent = `${pct}%`;
+      });
+      el.crtCurveSlider.addEventListener("input", () => {
+        const pct = parseInt(el.crtCurveSlider.value, 10);
+        state.crtCurvature = pct / 100;
+        el.crtCurveLabel.textContent = `${pct}%`;
+      });
+      el.camEnergySlider.addEventListener("input", () => {
+        const pct = parseInt(el.camEnergySlider.value, 10);
+        state.camEnergy = pct / 100;
+        el.camEnergyLabel.textContent = `${pct}%`;
+      });
+
+      el.stickerFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleStickerUpload(e.target.files[0]);
+      });
+      el.clearStickerBtn.addEventListener("click", () => {
+        state.stickerImg = null;
+        el.stickerStatus.textContent = "Using crisp 3D Pixel Heart";
+        el.clearStickerBtn.classList.add("hidden");
+        showToast("Restored 3D Pixel Heart");
+      });
+
+      // Custom Color Pickers
+      el.customSkyPicker.addEventListener("input", () => {
+        state.palette.sky = el.customSkyPicker.value;
+        state.palette.swirlA = el.customSkyPicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteUI();
+      });
+      el.customHeartPicker.addEventListener("input", () => {
+        state.palette.heartMain = el.customHeartPicker.value;
+        state.palette.hudAccent = el.customHeartPicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteUI();
+      });
+      el.customTextPicker.addEventListener("input", () => {
+        state.palette.textFace = el.customTextPicker.value;
+        state.paletteId = "custom";
+        el.activePaletteLabel.textContent = "Custom";
+        el.quickPaletteName.textContent = "Custom";
+        syncPaletteUI();
+      });
+
+      // Audio Upload + Drag & Drop
+      el.audioFileInput.addEventListener("change", (e) => {
+        if (e.target.files?.[0]) handleAudioFile(e.target.files[0]);
+      });
+      ["dragenter", "dragover"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.add("border-pink-400", "bg-white/[0.08]");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        el.audioDropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          el.audioDropZone.classList.remove("border-pink-400", "bg-white/[0.08]");
+        });
+      });
+      el.audioDropZone.addEventListener("drop", (e) => {
+        if (e.dataTransfer?.files?.[0]) handleAudioFile(e.dataTransfer.files[0]);
+      });
+
+      el.titleInput.addEventListener("input", () => {
+        el.hudTitle.textContent = el.titleInput.value.trim() || "Untitled";
+      });
+      el.artistInput.addEventListener("input", () => {
+        el.hudArtist.textContent = el.artistInput.value.trim() || "Unknown Artist";
+      });
+
+      // LRCLIB Controls
+      el.lrcTabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => switchLrcTab(btn.dataset.lrcTab));
+      });
+      el.fetchLrclibBtn.addEventListener("click", fetchLrclibByUrl);
+      el.lrclibUrlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") fetchLrclibByUrl(); });
+      el.searchLrclibBtn.addEventListener("click", searchLrclib);
+      el.lrclibSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLrclib(); });
+      el.applyManualLrcBtn.addEventListener("click", () => {
+        const parsed = parseLRC(el.manualLrcInput.value);
+        if (!parsed.length) {
+          showToast("Include [mm:ss.xx] timestamps before lyric lines", "error");
+          return;
+        }
+        state.lines = parsed;
+        computeSnippetLines();
+        renderLyricPicker();
+        syncPixelLyrics(getCurrentTime() + state.syncOffset, true);
+        showToast(`Applied ${parsed.length} synced lines`, "success");
+      });
+
+      // Snippet Trimmer Inputs
+      el.startTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.startTimeInput.value);
+        if (p === null) {
+          el.startTimeInput.value = formatTime(state.startTime);
+          showToast("Use M:SS format (e.g. 0:45)", "error");
+          return;
+        }
+        setSnippetBounds(p, Math.max(p + 1, state.endTime));
+        seekTo(state.startTime);
+      });
+      el.endTimeInput.addEventListener("change", () => {
+        const p = parseTimeInput(el.endTimeInput.value);
+        if (p === null) {
+          el.endTimeInput.value = formatTime(state.endTime);
+          showToast("Use M:SS format (e.g. 1:15)", "error");
+          return;
+        }
+        setSnippetBounds(Math.min(state.startTime, p - 1), p);
+      });
+      el.useNowStartBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(now, Math.max(now + 2, state.endTime));
+        showToast(`Start set to ${formatTime(now)}`);
+      });
+      el.useNowEndBtn.addEventListener("click", () => {
+        const now = getCurrentTime();
+        setSnippetBounds(Math.min(state.startTime, Math.max(0, now - 2)), Math.max(1.5, now));
+        showToast(`End set to ${formatTime(now)}`);
+      });
+      el.resetFullSongBtn.addEventListener("click", () => {
+        setSnippetBounds(0, state.duration);
+        showToast("Snippet reset to full song");
+      });
+
+      el.offsetSlider.addEventListener("input", () => setSyncOffset(parseFloat(el.offsetSlider.value)));
+      el.offsetMinusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset - 0.1));
+      el.offsetPlusBtn.addEventListener("click", () => setSyncOffset(state.syncOffset + 0.1));
+      el.offsetResetBtn.addEventListener("click", () => setSyncOffset(0));
+
+      // Resize observer for crisp WebGL CRT canvas
+      const resizeObserver = window.ResizeObserver
+        ? new ResizeObserver(() => resizeCrtPipeline())
+        : null;
+      resizeObserver?.observe(el.stageFrame);
+      window.addEventListener("resize", resizeCrtPipeline);
+
+      // Global Keyboard Shortcuts
+      window.addEventListener("keydown", (e) => {
+        const tag = document.activeElement?.tagName;
+        const typing = tag === "INPUT" || tag === "TEXTAREA";
+
+        if (e.key === "Escape") {
+          if (state.isCleanMode) toggleCleanMode(false);
+          else if (state.isDrawerOpen) toggleDrawer(false);
+          return;
+        }
+        if (typing) return;
+
+        const key = e.key.toLowerCase();
+        if (e.code === "Space") {
+          e.preventDefault();
+          togglePlay();
+        } else if (key === "v") {
+          cycleSceneMode();
+        } else if (key === "c") {
+          cyclePalette();
+        } else if (key === "h") {
+          toggleCleanMode();
+        } else if (key === "s") {
+          toggleDrawer();
+        } else if (key === "r") {
+          seekTo(state.startTime);
+          if (!state.isPlaying) startPlayback();
+        }
+      });
+
+      /* ----------------------------------------------------------
+         17. BOOTSTRAP APPLICATION
+         ---------------------------------------------------------- */
+      function init() {
+        buildPaletteGrid();
+        initSceneParticles();
+        initCrtPipeline();
+
+        state.lines = parseLRC(DEMO_LRC);
+        el.manualLrcInput.value = DEMO_LRC;
+
+        applyPalette("strawberry", false);
+        setSceneMode("auto", false);
+        setPixelFont("silkscreen");
+        setSnippetBounds(0, 24.8);
+        startMasterLoop();
+
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => {
+            mountPixelScene(Math.max(0, state.activeLineIdx), !state.isPlaying);
+          });
+        }
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
